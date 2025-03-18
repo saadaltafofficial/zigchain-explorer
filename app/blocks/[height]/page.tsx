@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { getBlockByHeight } from '@/app/services/api';
+import { formatDate, formatNumber } from '@/app/utils/format';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { getBlockByHeight } from '../../services/api';
-import { formatDate, formatNumber, truncateString } from '../../utils/format';
+import HashDisplay from '@/app/components/HashDisplay';
 
 interface BlockDetailPageProps {
   params: {
@@ -11,193 +13,243 @@ interface BlockDetailPageProps {
   };
 }
 
+interface Block {
+  height: number;
+  time: string;
+  proposer: string;
+  numTxs: number;
+  totalTxs: number;
+  hash: string;
+  appHash: string;
+  consensusHash: string;
+  lastCommitHash: string;
+  validatorHash: string;
+  evidenceHash: string;
+  lastResultsHash: string;
+  transactions: string[];
+}
+
 export default function BlockDetailPage({ params }: BlockDetailPageProps) {
   // Safely access the height parameter
-  const height = params?.height || '';
+  const height = params.height;
   
-  const [block, setBlock] = useState<any>(null);
+  const [block, setBlock] = useState<Block | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchBlock = async () => {
-    if (!height) {
-      setError('Block height is required');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      
-      console.log(`Fetching block details for height: ${height}`);
-      
-      const blockData = await getBlockByHeight(parseInt(height));
-      console.log('Block data received:', blockData ? 'success' : 'not found');
-      setBlock(blockData);
-      setLoading(false);
-    } catch (err: any) {
-      console.error(`Error fetching block ${height}:`, err);
-      setError(err.message || `Failed to load block ${height}. Please try again later.`);
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchBlock = async () => {
+      if (!height) {
+        setError('Block height is required');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+        
+        console.log(`Fetching block with height: ${height}`);
+        const blockData = await getBlockByHeight(parseInt(height));
+        
+        if (blockData) {
+          console.log('Block data:', blockData);
+          setBlock(blockData);
+        } else {
+          setError(`Block with height ${height} not found`);
+        }
+        
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching block:', err);
+        setError(`Failed to load block details: ${err instanceof Error ? err.message : String(err)}`);
+        setLoading(false);
+      }
+    };
+
     fetchBlock();
   }, [height]);
 
-  const handleRetry = () => {
-    fetchBlock();
-  };
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center mb-6">
+          <Link href="/blocks" className="flex items-center text-blue-500 hover:text-blue-700">
+            <ArrowLeft className="mr-2" size={16} />
+            Back to Blocks
+          </Link>
+        </div>
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center mb-6">
+          <Link href="/blocks" className="flex items-center text-blue-500 hover:text-blue-700">
+            <ArrowLeft className="mr-2" size={16} />
+            Back to Blocks
+          </Link>
+        </div>
+        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6">
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!block) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center mb-6">
+          <Link href="/blocks" className="flex items-center text-blue-500 hover:text-blue-700">
+            <ArrowLeft className="mr-2" size={16} />
+            Back to Blocks
+          </Link>
+        </div>
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6">
+          <p>No block data found.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <div className="flex items-center gap-2 mb-6">
-        <Link href="/blocks" className="text-blue-600 hover:text-blue-800">
-          ← Back to Blocks
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex items-center mb-6">
+        <Link href="/blocks" className="flex items-center text-blue-500 hover:text-blue-700">
+          <ArrowLeft className="mr-2" size={16} />
+          Back to Blocks
         </Link>
       </div>
       
-      <h1 className="text-3xl font-bold mb-6">Block #{height}</h1>
+      <h1 className="text-3xl font-bold mb-2">Block #{block.height}</h1>
+      <p className="text-gray-600 dark:text-gray-400 mb-6">
+        {formatDate(block.time)}
+      </p>
       
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
-          <div className="flex items-center justify-between">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8 border border-gray-200 dark:border-gray-700">
+        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Block Information</h2>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <p className="font-bold">Error</p>
-              <p>{error}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Height</p>
+              <p className="text-gray-800 dark:text-white">{block.height}</p>
             </div>
-            <button 
-              onClick={handleRetry}
-              className="bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-4 rounded"
-            >
-              Retry
-            </button>
-          </div>
-        </div>
-      )}
-      
-      {loading ? (
-        <div className="animate-pulse">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
-            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-4"></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-3">
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-              </div>
-              <div className="space-y-3">
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : !block && !error ? (
-        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-6">
-          <p className="font-bold">Block Not Found</p>
-          <p>
-            The block with height {height} could not be found. This could be because:
-          </p>
-          <ul className="list-disc ml-5 mt-2">
-            <li>The block height is incorrect</li>
-            <li>The block is too recent and not yet indexed</li>
-            <li>The node is still syncing and doesn't have this block yet</li>
-          </ul>
-          <button 
-            onClick={handleRetry}
-            className="mt-3 bg-yellow-700 hover:bg-yellow-800 text-white font-bold py-2 px-4 rounded"
-          >
-            Try Again
-          </button>
-        </div>
-      ) : block && (
-        <>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-xl font-semibold mb-4">Block Details</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-gray-600 dark:text-gray-300">
-                  <span className="font-medium">Height:</span> {block.height}
-                </p>
-                <p className="text-gray-600 dark:text-gray-300">
-                  <span className="font-medium">Time:</span> {formatDate(block.time)}
-                </p>
-                {block.proposer && (
-                  <p className="text-gray-600 dark:text-gray-300">
-                    <span className="font-medium">Proposer:</span>{' '}
-                    <Link href={`/validator/${block.proposer}`} className="text-blue-600 hover:text-blue-800">
-                      {truncateString(block.proposer, 8, 8)}
-                    </Link>
-                  </p>
-                )}
-              </div>
-              <div>
-                {block.hash && (
-                  <p className="text-gray-600 dark:text-gray-300">
-                    <span className="font-medium">Hash:</span> {truncateString(block.hash, 10, 10)}
-                  </p>
-                )}
-                <p className="text-gray-600 dark:text-gray-300">
-                  <span className="font-medium">Transactions:</span> {formatNumber(block.txCount || 0)}
-                </p>
-                <p className="text-gray-600 dark:text-gray-300">
-                  <span className="font-medium">Gas Used:</span> {block.gasUsed ? formatNumber(block.gasUsed) : 'N/A'}
-                </p>
-              </div>
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Time</p>
+              <p className="text-gray-800 dark:text-white">{formatDate(block.time)}</p>
             </div>
           </div>
           
-          {block.transactions && block.transactions.length > 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold mb-4">Transactions</h2>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                  <thead className="bg-gray-50 dark:bg-gray-900">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Hash
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Type
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    {block.transactions.map((tx: string, index: number) => (
-                      <tr key={index}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                          <Link href={`/tx/${tx}`} className="text-blue-600 hover:text-blue-800">
-                            {truncateString(tx, 10, 10)}
-                          </Link>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                          Transaction
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                            Success
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Proposer</p>
+              <HashDisplay 
+                hash={block.proposer} 
+                truncateLength={12} 
+                className="mt-1"
+              />
+              <Link href={`/validators/${block.proposer}`} className="text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mt-1">
+                View Validator
+              </Link>
             </div>
-          ) : (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold mb-4">Transactions</h2>
-              <p className="text-gray-600 dark:text-gray-400">No transactions in this block</p>
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Number of Transactions</p>
+              <p className="text-gray-800 dark:text-white">{block.numTxs}</p>
             </div>
-          )}
-        </>
+          </div>
+          
+          <HashDisplay 
+            hash={block.hash} 
+            label="Hash" 
+            truncateLength={16}
+          />
+          
+          <div>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Transactions</p>
+            <p className="text-gray-800 dark:text-white">{block.totalTxs}</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <HashDisplay 
+              hash={block.appHash} 
+              label="App Hash" 
+              truncateLength={12}
+            />
+            <HashDisplay 
+              hash={block.consensusHash} 
+              label="Consensus Hash" 
+              truncateLength={12}
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <HashDisplay 
+              hash={block.lastCommitHash} 
+              label="Last Commit Hash" 
+              truncateLength={12}
+            />
+            <HashDisplay 
+              hash={block.validatorHash} 
+              label="Validator Hash" 
+              truncateLength={12}
+            />
+          </div>
+          
+          <HashDisplay 
+            hash={block.evidenceHash} 
+            label="Evidence Hash" 
+            truncateLength={12}
+          />
+          <HashDisplay 
+            hash={block.lastResultsHash} 
+            label="Last Results Hash" 
+            truncateLength={12}
+          />
+        </div>
+      </div>
+      
+      {block.numTxs > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Transactions</h2>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead>
+                <tr>
+                  <th className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Transaction Hash
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {block.transactions.map((tx: string, index: number) => (
+                  <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center">
+                        <HashDisplay 
+                          hash={tx} 
+                          truncateLength={16}
+                          showCopyButton={true}
+                        />
+                        <Link href={`/tx/${tx}`} className="ml-3 text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                          View
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
     </div>
   );

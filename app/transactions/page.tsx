@@ -1,122 +1,161 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { getLatestBlocks, getBlockByHeight } from '../services/api';
+import axios from 'axios';
+import Link from 'next/link';
 import TransactionCard from '../components/TransactionCard';
 
+// RPC endpoint
+const RPC_ENDPOINT = 'http://localhost:26657';
+
+interface Transaction {
+  hash: string;
+  height: number;
+  time: string;
+}
+
 export default function TransactionsPage() {
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, []);
 
   const fetchTransactions = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      console.log('Fetching transactions for transactions page...');
+      console.log('Fetching latest block height...');
       
-      // We'll get transactions from the latest blocks
-      const blocks = await getLatestBlocks(5);
-      console.log(`Received ${blocks.length} blocks to extract transactions from`);
-      
-      // Extract transactions from blocks
-      const txs: any[] = [];
-      for (const block of blocks) {
-        if (block.txCount > 0) {
-          try {
-            // For blocks with transactions, fetch the full block to get transaction details
-            console.log(`Fetching full block at height ${block.height} with ${block.txCount} transactions`);
-            const fullBlock = await getBlockByHeight(block.height);
-            
-            // For each transaction in the block, create a transaction object
-            if (fullBlock.transactions && fullBlock.transactions.length > 0) {
-              console.log(`Processing ${fullBlock.transactions.length} transactions from block ${block.height}`);
-              for (let i = 0; i <fullBlock.transactions.length; i++) {
-                txs.push({
-                  hash: fullBlock.transactions[i],
-                  time: block.time,
-                  status: 'success',
-                  blockHeight: block.height
-                });
-              }
-            }
-          } catch (blockError) {
-            console.error(`Error fetching block ${block.height}:`, blockError);
-            // Continue with other blocks even if one fails
-          }
-        }
+      // Step 1: Get the latest block height
+      const statusResponse = await axios.get(`${RPC_ENDPOINT}/status`);
+      if (!statusResponse.data || !statusResponse.data.result || !statusResponse.data.result.sync_info) {
+        throw new Error('Failed to fetch blockchain status');
       }
       
-      console.log(`Found a total of ${txs.length} transactions`);
-      setTransactions(txs);
+      const latestHeight = parseInt(statusResponse.data.result.sync_info.latest_block_height);
+      const minHeight = Math.max(1, latestHeight - 500); // Get last 500 blocks or all if less than 500
+      
+      console.log(`Fetching blocks from height ${minHeight} to ${latestHeight}`);
+      
+      // Step 2: Get the block range
+      const blockchainResponse = await axios.get(`${RPC_ENDPOINT}/blockchain`, {
+        params: {
+          minHeight: minHeight,
+          maxHeight: latestHeight
+        }
+      });
+      
+      if (!blockchainResponse.data || !blockchainResponse.data.result || !blockchainResponse.data.result.block_metas) {
+        throw new Error('Invalid blockchain data format');
+      }
+      
+      const blockMetas = blockchainResponse.data.result.block_metas;
+      console.log(`Received ${blockMetas.length} blocks from blockchain API`);
+      
+      // Step 3: Filter blocks with transactions
+      const blocksWithTxs = blockMetas.filter((blockMeta: any) => 
+        blockMeta.num_txs && parseInt(blockMeta.num_txs) > 0
+      );
+      
+      console.log(`Found ${blocksWithTxs.length} blocks with transactions`);
+      
+      // Step 4: Fetch transaction details for blocks with transactions
+      const txPromises = blocksWithTxs.map(async (blockMeta: any) => {
+        const height = parseInt(blockMeta.header.height);
+        
+        try {
+          // Get the block to get the raw transactions
+          const blockResponse = await axios.get(`${RPC_ENDPOINT}/block`, {
+            params: { height: height }
+          });
+          
+          if (!blockResponse.data || !blockResponse.data.result || !blockResponse.data.result.block) {
+            console.error(`Invalid block data for height ${height}`);
+            return [];
+          }
+          
+          const block = blockResponse.data.result.block;
+          const txs = block.data.txs || [];
+          const blockTime = blockMeta.header.time;
+          
+          // Map transactions to our format
+          // Use the base64 encoded transaction data as the hash
+          return txs.map((tx: string) => ({
+            hash: tx,
+            height: height,
+            time: blockTime
+          }));
+        } catch (err) {
+          console.error(`Error fetching transaction details for block ${height}:`, err);
+          return [];
+        }
+      });
+      
+      // Wait for all transaction fetch promises to resolve
+      const txArrays = await Promise.all(txPromises);
+      
+      // Flatten the array of arrays into a single array of transactions
+      const allTransactions = txArrays.flat();
+      
+      console.log(`Loaded ${allTransactions.length} transactions`);
+      setTransactions(allTransactions);
       setLoading(false);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error fetching transactions:', err);
-      setError(err.message || 'Failed to load transactions. Please try again later.');
+      setError(`Failed to load transactions: ${err instanceof Error ? err.message : String(err)}`);
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchTransactions();
-  }, []);
-
-  const handleRetry = () => {
-    fetchTransactions();
-  };
-
   return (
-    <div>
+    <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Latest Transactions</h1>
       
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-bold">Error</p>
-              <p>{error}</p>
-            </div>
-            <button 
-              onClick={handleRetry}
-              className="bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-4 rounded"
-            >
-              Retry
-            </button>
-          </div>
-        </div>
-      )}
-      
       {loading ? (
-        <div className="space-y-4">
-          {[...Array(10)].map((_, i) => (
-            <div key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 animate-pulse">
-              <div className="flex justify-between">
-                <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
-                <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-1/6"></div>
-              </div>
-              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mt-3"></div>
-            </div>
-          ))}
+        <div className="text-center py-12">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" role="status">
+            <span className="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]">Loading...</span>
+          </div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading transactions...</p>
         </div>
-      ) : transactions.length > 0 ? (
-        <div className="space-y-4">
-          {transactions.map((tx, index) => (
-            <TransactionCard 
-              key={index}
-              hash={tx.hash}
-              time={tx.time}
-              status={tx.status}
-            />
-          ))}
+      ) : error ? (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <p className="text-red-700 dark:text-red-400">{error}</p>
+        </div>
+      ) : transactions.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-600 dark:text-gray-400">No transactions found.</p>
         </div>
       ) : (
-        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
-          <p className="font-bold">No Transactions Found</p>
-          <p>
-            No transactions found in the latest blocks. This could be because your node is still syncing,
-            there are connection issues, or there simply haven't been any transactions recently.
-          </p>
+        <div className="space-y-4">
+          {transactions.map((tx, index) => (
+            <div key={index} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+              <div className="flex flex-col md:flex-row justify-between">
+                <div className="mb-2 md:mb-0">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Transaction</div>
+                  <Link href={`/tx/${encodeURIComponent(tx.hash)}`} className="text-blue-600 dark:text-blue-400 hover:underline break-all">
+                    {tx.hash && tx.hash.length > 60 ? `${tx.hash.substring(0, 30)}...${tx.hash.substring(tx.hash.length - 30)}` : tx.hash || 'Unknown'}
+                  </Link>
+                </div>
+                <div className="flex flex-col">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Block</div>
+                  <Link href={`/blocks/${tx.height}`} className="text-blue-600 dark:text-blue-400 hover:underline">
+                    {tx.height}
+                  </Link>
+                </div>
+                <div className="flex flex-col">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Time</div>
+                  <div className="text-gray-700 dark:text-gray-300">
+                    {tx.time ? new Date(tx.time).toLocaleString() : 'Unknown'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

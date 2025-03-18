@@ -1,9 +1,15 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { formatDate } from '@/app/utils/format';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { getTransactionByHash } from '../../services/api';
-import { formatDate, truncateString } from '../../utils/format';
+import { decodeTransaction } from '@/app/utils/transactionDecoder';
+import { fromBase64 } from "@cosmjs/encoding";
+
+// RPC endpoint
+const RPC_ENDPOINT = 'http://localhost:26657';
 
 interface TransactionDetailPageProps {
   params: {
@@ -12,189 +18,288 @@ interface TransactionDetailPageProps {
 }
 
 export default function TransactionDetailPage({ params }: TransactionDetailPageProps) {
-  // Safely access the hash parameter
-  const hash = params?.hash || '';
+  // Decode the URL-encoded hash - this is the base64 encoded transaction
+  const encodedTx = decodeURIComponent(params.hash);
+  
   const [transaction, setTransaction] = useState<any>(null);
+  const [decodedTx, setDecodedTx] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchTransaction = async () => {
-    if (!hash) {
-      setError('Transaction hash is required');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      
-      console.log(`Fetching transaction details for hash: ${hash}`);
-      
-      const txData = await getTransactionByHash(hash);
-      console.log('Transaction data received:', txData ? 'success' : 'not found');
-      setTransaction(txData);
-      setLoading(false);
-    } catch (err: any) {
-      console.error(`Error fetching transaction ${hash}:`, err);
-      setError(err.message || `Failed to load transaction ${hash}. Please try again later.`);
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchTransaction();
-  }, [hash]);
+    const fetchTransaction = async () => {
+      if (!encodedTx) {
+        setError('Transaction data is required');
+        setLoading(false);
+        return;
+      }
 
-  const handleRetry = () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        console.log(`Fetching transaction details for encoded data`);
+        
+        try {
+          // Decode the transaction using the new decoder
+          const decoded = decodeTransaction(encodedTx);
+          setDecodedTx(decoded);
+          console.log('Decoded transaction:', decoded);
+          
+          // Try to fetch the transaction from the blockchain
+          const formattedHash = encodedTx.startsWith('0x') ? encodedTx.substring(2) : encodedTx;
+          
+          try {
+            const response = await axios.get(`${RPC_ENDPOINT}/tx`, {
+              params: {
+                hash: `0x${formattedHash}`
+              }
+            });
+            
+            if (response.data && response.data.result) {
+              const txData = response.data.result;
+              setTransaction({
+                hash: txData.hash,
+                height: txData.height,
+                tx: txData.tx,
+                tx_result: txData.tx_result,
+                time: txData.time,
+                gasUsed: parseInt(txData.tx_result.gas_used || '0'),
+                gasWanted: parseInt(txData.tx_result.gas_wanted || '0'),
+                logs: txData.tx_result.log ? JSON.parse(txData.tx_result.log) : []
+              });
+            }
+          } catch (txError) {
+            console.warn('Could not fetch transaction from blockchain:', txError);
+            // We still have the decoded transaction, so we can continue
+          }
+        } catch (e) {
+          console.error('Error decoding transaction:', e);
+          setError(`Failed to decode transaction: ${e instanceof Error ? e.message : String(e)}`);
+        }
+        
+        setLoading(false);
+      } catch (err) {
+        console.error('Error in transaction processing:', err);
+        setError(`Error processing transaction: ${err instanceof Error ? err.message : String(err)}`);
+        setLoading(false);
+      }
+    };
+
     fetchTransaction();
+  }, [encodedTx]);
+
+  // Format timestamp from RFC3339 format
+  const formatTimestamp = (timestamp: string) => {
+    try {
+      const date = new Date(timestamp);
+      return date.toLocaleString();
+    } catch (e) {
+      return 'Invalid timestamp';
+    }
   };
 
-  if (loading) {
-    return (
-      <div className="animate-pulse">
-        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-6"></div>
-        <div className="space-y-4">
-          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
-          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-5/6"></div>
-          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-4/6"></div>
+  // Render transaction status based on code
+  const renderStatus = (code: number = 0) => {
+    if (code === 0) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+          Success
+        </span>
+      );
+    } else {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+          Failed (Code: {code})
+        </span>
+      );
+    }
+  };
+
+  // Helper function to display transaction type in a user-friendly way
+  const renderTransactionType = (type: string) => {
+    if (!type) return 'Unknown';
+    
+    // If it's a very long string, it's likely not a proper type
+    if (type.length > 100) {
+      return (
+        <div>
+          <span className="font-medium">Unknown Transaction Type</span>
+          <p className="text-xs text-gray-500 mt-1">
+            The transaction type could not be properly decoded.
+          </p>
         </div>
-      </div>
-    );
-  }
+      );
+    }
+    
+    return type;
+  };
 
   return (
-    <div>
-      <div className="flex items-center gap-2 mb-6">
-        <Link href="/" className="text-blue-600 hover:text-blue-800">
-          ← Back to Home
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-6">
+        <Link href="/transactions" className="inline-flex items-center text-blue-600 hover:text-blue-800">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Transactions
         </Link>
       </div>
       
-      <h1 className="text-3xl font-bold mb-2">Transaction Details</h1>
-      <p className="text-gray-500 dark:text-gray-400 break-all mb-6">{hash}</p>
+      <h1 className="text-2xl font-bold mb-6">Transaction Details</h1>
       
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-bold">Error</p>
-              <p>{error}</p>
+      {loading ? (
+        <div className="bg-white shadow overflow-hidden sm:rounded-lg p-8">
+          <div className="text-center py-12">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" role="status">
+              <span className="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]">Loading...</span>
             </div>
-            <button 
-              onClick={handleRetry}
-              className="bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-4 rounded"
-            >
-              Retry
-            </button>
+            <p className="mt-4 text-gray-600">Loading transaction details...</p>
           </div>
         </div>
-      )}
-      
-      {!transaction && !loading && !error && (
-        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-6">
-          <p className="font-bold">Transaction Not Found</p>
-          <p>
-            The transaction with hash {hash} could not be found. This could be because:
-          </p>
-          <ul className="list-disc ml-5 mt-2">
-            <li>The transaction hash is incorrect</li>
-            <li>The transaction is too recent and not yet indexed</li>
-            <li>The node is still syncing and doesn't have this transaction yet</li>
-          </ul>
-          <button 
-            onClick={handleRetry}
-            className="mt-3 bg-yellow-700 hover:bg-yellow-800 text-white font-bold py-2 px-4 rounded"
-          >
-            Try Again
-          </button>
-        </div>
-      )}
-      
-      {transaction && (
-        <>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h2 className="text-lg font-semibold mb-4">Transaction Information</h2>
-                <div className="space-y-3">
-                  <div className="flex flex-col">
-                    <span className="text-gray-500 dark:text-gray-400 text-sm">Status</span>
-                    <span className={`font-medium ${transaction.tx_response?.code === 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                      {transaction.tx_response?.code === 0 ? 'Success' : 'Failed'}
-                    </span>
-                  </div>
-                  
-                  {transaction.tx_response?.height && (
-                    <div className="flex flex-col">
-                      <span className="text-gray-500 dark:text-gray-400 text-sm">Block</span>
-                      <Link href={`/blocks/${transaction.tx_response.height}`} className="font-medium text-blue-600 hover:text-blue-800">
-                        {transaction.tx_response.height}
-                      </Link>
-                    </div>
-                  )}
-                  
-                  {transaction.tx_response?.timestamp && (
-                    <div className="flex flex-col">
-                      <span className="text-gray-500 dark:text-gray-400 text-sm">Time</span>
-                      <span className="font-medium">{formatDate(transaction.tx_response.timestamp)}</span>
-                    </div>
-                  )}
-                  
-                  <div className="flex flex-col">
-                    <span className="text-gray-500 dark:text-gray-400 text-sm">Gas Used / Wanted</span>
-                    <span className="font-medium">{transaction.tx_response?.gas_used || 0} / {transaction.tx_response?.gas_wanted || 0}</span>
-                  </div>
-                </div>
+      ) : error ? (
+        <div className="bg-white shadow overflow-hidden sm:rounded-lg p-6">
+          <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded" role="alert">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
               </div>
-              
-              <div>
-                <h2 className="text-lg font-semibold mb-4">Transaction Details</h2>
-                <div className="space-y-3">
-                  {transaction.tx?.auth_info?.fee?.amount?.[0] && (
-                    <div className="flex flex-col">
-                      <span className="text-gray-500 dark:text-gray-400 text-sm">Fee</span>
-                      <span className="font-medium">
-                        {transaction.tx.auth_info.fee.amount[0].amount || 0} {transaction.tx.auth_info.fee.amount[0].denom || ''}
-                      </span>
-                    </div>
-                  )}
-                  
-                  <div className="flex flex-col">
-                    <span className="text-gray-500 dark:text-gray-400 text-sm">Memo</span>
-                    <span className="font-medium">{transaction.tx?.body?.memo || 'N/A'}</span>
-                  </div>
-                  
-                  {transaction.tx_response?.code !== 0 && (
-                    <div className="flex flex-col">
-                      <span className="text-gray-500 dark:text-gray-400 text-sm">Error</span>
-                      <span className="font-medium text-red-600 dark:text-red-400">{transaction.tx_response?.raw_log || 'Unknown error'}</span>
-                    </div>
-                  )}
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">Error Loading Transaction</h3>
+                <div className="mt-2 text-sm text-red-700">
+                  <p>{error}</p>
+                </div>
+                <div className="mt-4">
+                  <Link href="/transactions" className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                    Return to Transactions
+                  </Link>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+          {/* Transaction Header */}
+          <div className="px-4 py-5 sm:px-6 bg-gray-50">
+            <h3 className="text-lg leading-6 font-medium text-gray-900">
+              Transaction Hash
+            </h3>
+            <p className="mt-1 max-w-2xl text-sm text-gray-500 break-all">
+              {transaction?.hash || 'Unknown'}
+            </p>
           </div>
           
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-            <h2 className="text-lg font-semibold mb-4">Messages</h2>
-            
-            {transaction.tx?.body?.messages?.length > 0 ? (
-              <div className="space-y-4">
-                {transaction.tx.body.messages.map((message: any, index: number) => (
-                  <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                    <h3 className="font-medium text-lg mb-2">Message {index + 1}: {message['@type']?.split('.')?.pop() || 'Unknown Type'}</h3>
-                    <pre className="bg-gray-100 dark:bg-gray-900 p-4 rounded overflow-x-auto text-sm">
-                      {JSON.stringify(message, null, 2)}
-                    </pre>
+          {/* Transaction Details */}
+          <div className="border-t border-gray-200">
+            <dl>
+              {transaction && (
+                <>
+                  <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <dt className="text-sm font-medium text-gray-500">Block</dt>
+                    <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                      <Link href={`/block/${transaction.height}`} className="text-blue-600 hover:text-blue-800">
+                        {transaction.height}
+                      </Link>
+                    </dd>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-600 dark:text-gray-400">No messages found in this transaction</p>
-            )}
+                  
+                  <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <dt className="text-sm font-medium text-gray-500">Time</dt>
+                    <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                      {formatTimestamp(transaction.time)}
+                    </dd>
+                  </div>
+                  
+                  <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <dt className="text-sm font-medium text-gray-500">Status</dt>
+                    <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                      {renderStatus(transaction.tx_result?.code)}
+                    </dd>
+                  </div>
+                  
+                  <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <dt className="text-sm font-medium text-gray-500">Gas (Used / Wanted)</dt>
+                    <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                      {transaction.gasUsed} / {transaction.gasWanted}
+                    </dd>
+                  </div>
+                </>
+              )}
+              
+              {/* Decoded Transaction */}
+              {decodedTx && (
+                <>
+                  <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <dt className="text-sm font-medium text-gray-500">Transaction Type</dt>
+                    <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 break-all">
+                      {renderTransactionType(decodedTx.type)}
+                    </dd>
+                  </div>
+                  
+                  {decodedTx.sender && (
+                    <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                      <dt className="text-sm font-medium text-gray-500">Sender</dt>
+                      <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 break-all">
+                        <Link href={`/account/${decodedTx.sender}`} className="text-blue-600 hover:text-blue-800">
+                          {decodedTx.sender}
+                        </Link>
+                      </dd>
+                    </div>
+                  )}
+                  
+                  {decodedTx.recipient && (
+                    <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                      <dt className="text-sm font-medium text-gray-500">Recipient</dt>
+                      <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 break-all">
+                        <Link href={`/account/${decodedTx.recipient}`} className="text-blue-600 hover:text-blue-800">
+                          {decodedTx.recipient}
+                        </Link>
+                      </dd>
+                    </div>
+                  )}
+                  
+                  {decodedTx.amount && (
+                    <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                      <dt className="text-sm font-medium text-gray-500">Amount</dt>
+                      <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                        {decodedTx.amount} {decodedTx.denom}
+                      </dd>
+                    </div>
+                  )}
+                  
+                  {decodedTx.validators && decodedTx.validators.length > 0 && (
+                    <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                      <dt className="text-sm font-medium text-gray-500">Validators</dt>
+                      <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                        <ul className="border border-gray-200 rounded-md divide-y divide-gray-200">
+                          {decodedTx.validators.map((validator: string, index: number) => (
+                            <li key={index} className="pl-3 pr-4 py-3 flex items-center justify-between text-sm">
+                              <div className="w-0 flex-1 flex items-center break-all">
+                                <Link href={`/validator/${validator}`} className="text-blue-600 hover:text-blue-800">
+                                  {validator}
+                                </Link>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </dd>
+                    </div>
+                  )}
+                  
+                  {decodedTx.publicKey && (
+                    <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                      <dt className="text-sm font-medium text-gray-500">Public Key</dt>
+                      <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 break-all">
+                        {decodedTx.publicKey}
+                      </dd>
+                    </div>
+                  )}
+                </>
+              )}
+            </dl>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

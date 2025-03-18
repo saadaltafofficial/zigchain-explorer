@@ -48,9 +48,9 @@ export default function Home() {
   return (
     <div className="space-y-8">
       <section>
-        <h1 className="text-3xl font-bold mb-6">ZigChain Explorer</h1>
+        <h1 className="text-3xl font-bold mb-6">ZIGChain Explorer</h1>
         <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
-          Explore the ZigChain blockchain - view blocks, transactions, validators, and more.
+          Explore the ZIGChain blockchain - view blocks, transactions, validators, and more.
         </p>
         
         {error && (

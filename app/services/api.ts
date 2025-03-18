@@ -36,8 +36,9 @@ interface Validator {
 }
 
 // Remote endpoints
-const REMOTE_RPC_ENDPOINT = 'https://testnet-rpc.zigchain.com/';
-const REMOTE_API_ENDPOINT = 'https://testnet-api.zigchain.com/';
+const REMOTE_RPC_ENDPOINT = 'http://localhost:26657/';
+// const REMOTE_RPC_ENDPOINT = 'https://testnet-rpc.ZIGChain.com/';
+const REMOTE_API_ENDPOINT = 'https://testnet-api.ZIGChain.com/';
 
 // Use the appropriate endpoints
 const getEndpoints = () => {
@@ -84,27 +85,53 @@ export const getStargateClient = async () => {
 export const getLatestBlocks = async (count = 10) => {
   try {
     const { RPC_ENDPOINT } = getEndpoints();
-    console.log(`Fetching latest blocks (count: ${count}) from remote node`);
+    console.log(`Fetching latest blocks from ${RPC_ENDPOINT}`);
     
-    // Using remote node endpoint
-    const client = await getStargateClient();
-    const latestHeight = await client.getHeight();
-    console.log(`Latest height: ${latestHeight}`);
+    // First, get the latest block height
+    const statusResponse = await axios.get(`${RPC_ENDPOINT}/status`);
+    const latestHeight = parseInt(statusResponse.data.result.sync_info.latest_block_height);
+    console.log(`Latest block height: ${latestHeight}`);
+    
+    // Calculate the range of blocks to fetch
+    const minHeight = Math.max(1, latestHeight - count + 1);
+    console.log(`Fetching blocks from height ${minHeight} to ${latestHeight}`);
     
     const blocks = [];
-    for (let i = 0; i < count; i++) {
-      if (latestHeight - i <= 0) break;
-      
-      const blockHeight = latestHeight - i;
-      console.log(`Fetching block at height: ${blockHeight}`);
-      const block = await client.getBlock(blockHeight);
-      
-      blocks.push({
-        height: blockHeight,
-        hash: block.id,
-        time: new Date(block.header.time).toISOString(),
-        txCount: block.txs.length
-      });
+    
+    // Fetch each block in the range
+    for (let height = latestHeight; height >= minHeight; height--) {
+      try {
+        const blockResponse = await axios.get(`${RPC_ENDPOINT}/block`, {
+          params: { height }
+        });
+        
+        const blockData = blockResponse.data.result;
+        const txs = blockData.block.data.txs || [];
+        
+        // Get transaction hashes by querying each transaction
+        const txHashes = [];
+        for (const tx of txs) {
+          try {
+            // Calculate the transaction hash from the transaction data
+            // This is a SHA-256 hash of the transaction data
+            const txHash = await getTxHashFromBase64(tx);
+            txHashes.push(txHash);
+          } catch (e) {
+            console.error(`Error getting transaction hash: ${e}`);
+          }
+        }
+        
+        blocks.push({
+          height,
+          hash: blockData.block_id.hash,
+          time: blockData.block.header.time,
+          txCount: txs.length,
+          transactions: txHashes,
+          proposer: blockData.block.header.proposer_address
+        });
+      } catch (blockError) {
+        console.error(`Error fetching block at height ${height}:`, blockError);
+      }
     }
     
     return blocks;
@@ -113,29 +140,156 @@ export const getLatestBlocks = async (count = 10) => {
   }
 };
 
+// Helper function to get transaction hash from base64 encoded transaction data
+async function getTxHashFromBase64(txBase64: string): Promise<string> {
+  try {
+    // First, try to get the transaction hash by querying the transaction by its raw data
+    const { RPC_ENDPOINT } = getEndpoints();
+    
+    // Use the tx_search endpoint to find the transaction by its exact data
+    const searchResponse = await axios.get(`${RPC_ENDPOINT}/tx_search`, {
+      params: {
+        query: `tx.hash EXISTS`,
+        page: 1,
+        per_page: 100
+      }
+    });
+    
+    if (searchResponse.data && searchResponse.data.result && searchResponse.data.result.txs) {
+      // Look for a transaction that matches our base64 data
+      const matchingTx = searchResponse.data.result.txs.find((tx: any) => {
+        return tx.tx === txBase64;
+      });
+      
+      if (matchingTx) {
+        return matchingTx.hash.toLowerCase();
+      }
+    }
+    
+    // If we couldn't find the transaction by querying, calculate the hash
+    // This is a fallback method - SHA-256 hash of the transaction data
+    const binary = atob(txBase64);
+    const buffer = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      buffer[i] = binary.charCodeAt(i);
+    }
+    
+    // Use the crypto API to calculate the hash
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    return hashHex;
+  } catch (error) {
+    console.error('Error getting transaction hash:', error);
+    
+    // If all else fails, return a hash of the first 32 bytes of the transaction
+    // This is not ideal but provides a consistent identifier
+    const binary = atob(txBase64);
+    let hash = '';
+    for (let i = 0; i < Math.min(32, binary.length); i++) {
+      hash += binary.charCodeAt(i).toString(16).padStart(2, '0');
+    }
+    return hash;
+  }
+}
+
+// Fetch a range of blocks
+export const fetchBlockRange = async (minHeight: number, maxHeight: number) => {
+  try {
+    const { RPC_ENDPOINT } = getEndpoints();
+    console.log(`Fetching block range from ${minHeight} to ${maxHeight} from remote node`);
+    
+    // Make a direct HTTP request to the RPC endpoint
+    const response = await axios.get(`${RPC_ENDPOINT}/blockchain`, {
+      params: {
+        minHeight: minHeight,
+        maxHeight: maxHeight
+      }
+    });
+    
+    if (!response.data || !response.data.result || !response.data.result.block_metas) {
+      console.error('Invalid blockchain data format:', response.data);
+      throw new Error('Invalid blockchain data format');
+    }
+    
+    const blockMetas = response.data.result.block_metas;
+    console.log(`Received ${blockMetas.length} blocks from blockchain API`);
+    
+    // Format the blocks
+    const blocks = blockMetas.map((blockMeta: any) => {
+      return {
+        height: parseInt(blockMeta.header.height),
+        hash: blockMeta.block_id.hash,
+        time: blockMeta.header.time,
+        proposer: blockMeta.header.proposer_address,
+        txCount: parseInt(blockMeta.num_txs),
+      };
+    });
+    
+    return blocks;
+  } catch (error) {
+    return handleApiError(error, 'fetchBlockRange');
+  }
+};
+
 // Get block by height
 export const getBlockByHeight = async (height: number) => {
   try {
     const { RPC_ENDPOINT } = getEndpoints();
-    console.log(`Fetching block at height ${height} from remote node`);
+    console.log(`Fetching block at height ${height} from ${RPC_ENDPOINT}`);
     
-    // Using remote node endpoint
-    const client = await getStargateClient();
-    const block = await client.getBlock(height);
+    const response = await axios.get(`${RPC_ENDPOINT}/block`, {
+      params: { height }
+    });
     
-    // Format the block data
-    const formattedBlock = {
-      height: height,
-      hash: block.id,
-      time: new Date((block.header as unknown as ExtendedBlockHeader).time || new Date().toISOString()).toISOString(),
-      proposer: (block.header as unknown as ExtendedBlockHeader).proposerAddress || '',
-      txCount: block.txs.length,
-      transactions: block.txs.map(tx => Buffer.from(tx).toString('hex')),
-      gasUsed: 0,
-      gasWanted: 0
+    const blockData = response.data.result;
+    
+    // Extract and format transaction hashes
+    const transactions = blockData.block.data.txs || [];
+    console.log(`Block ${height} has ${transactions.length} transactions`);
+    
+    // Format transaction hashes from base64 to hex
+    const formattedTxs = transactions.map((tx: string) => {
+      try {
+        // Decode base64 to binary
+        const binary = atob(tx);
+        
+        // Convert binary to hex
+        let hex = '';
+        for (let i = 0; i < binary.length; i++) {
+          const hexByte = binary.charCodeAt(i).toString(16);
+          hex += (hexByte.length === 2 ? hexByte : '0' + hexByte);
+        }
+        
+        // Log both formats for debugging
+        console.log(`Transaction in block ${height}:`);
+        console.log(`  Base64: ${tx}`);
+        console.log(`  Hex: ${hex}`);
+        
+        return hex;
+      } catch (e) {
+        console.error(`Error converting transaction from base64 to hex: ${e}`);
+        return tx; // Return original if conversion fails
+      }
+    });
+    
+    // Format the block data for the frontend
+    return {
+      height: parseInt(blockData.block.header.height),
+      hash: blockData.block_id.hash,
+      time: blockData.block.header.time,
+      proposer: blockData.block.header.proposer_address,
+      numTxs: transactions.length,
+      totalTxs: parseInt(blockData.block.header.total_txs || '0'),
+      transactions: formattedTxs,
+      validatorHash: blockData.block.header.validators_hash,
+      consensusHash: blockData.block.header.consensus_hash,
+      appHash: blockData.block.header.app_hash,
+      evidenceHash: blockData.block.header.evidence_hash,
+      lastCommitHash: blockData.block.header.last_commit_hash,
+      lastResultsHash: blockData.block.header.last_results_hash,
     };
-    
-    return formattedBlock;
   } catch (error) {
     return handleApiError(error, 'getBlockByHeight');
   }
@@ -145,56 +299,58 @@ export const getBlockByHeight = async (height: number) => {
 export const getTransactionByHash = async (hash: string) => {
   try {
     const { RPC_ENDPOINT } = getEndpoints();
-    console.log(`Fetching transaction with hash ${hash} from remote node`);
     
-    // Using remote node endpoint
-    const client = await getStargateClient();
+    // Ensure the hash is properly formatted - remove any '0x' prefix if present
+    const formattedHash = hash.startsWith('0x') ? hash.substring(2).toLowerCase() : hash.toLowerCase();
     
-    // Sanitize and normalize the hash
-    let searchHash = hash;
+    console.log(`Fetching transaction with hash: ${formattedHash} from ${RPC_ENDPOINT}`);
     
-    // Remove 0x prefix if present
-    if (searchHash.startsWith('0x')) {
-      searchHash = searchHash.slice(2);
+    // Use the /tx endpoint with the hash parameter
+    const response = await axios.get(`${RPC_ENDPOINT}/tx`, {
+      params: {
+        hash: `0x${formattedHash}` // Add 0x prefix if needed by the API
+      }
+    });
+    
+    if (response.data && response.data.result) {
+      console.log('Transaction data received');
+      
+      // Extract the transaction data from the response
+      const txData = response.data.result;
+      
+      // Extract timestamp from events if available
+      let timestamp = '';
+      try {
+        if (txData.tx_result && txData.tx_result.events) {
+          const txEvent = txData.tx_result.events.find((e: any) => e.type === 'tx');
+          if (txEvent && txEvent.attributes) {
+            const timestampAttr = txEvent.attributes.find((a: any) => a.key === 'timestamp');
+            if (timestampAttr) {
+              timestamp = timestampAttr.value;
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Error extracting timestamp:', e);
+      }
+      
+      // Format the transaction data for the frontend
+      const formattedTx = {
+        hash: formattedHash,
+        height: parseInt(txData.height) || 0,
+        tx: txData.tx || '',
+        tx_result: txData.tx_result || {},
+        time: timestamp || new Date().toISOString(),
+        gasUsed: parseInt(txData.tx_result?.gas_used) || 0,
+        gasWanted: parseInt(txData.tx_result?.gas_wanted) || 0,
+        logs: txData.tx_result?.log || txData.tx_result?.logs || []
+      };
+      
+      return formattedTx;
+    } else {
+      console.error('No transaction data found in response');
+      return null;
     }
-    
-    // Remove any URL encoding or special characters
-    searchHash = searchHash.replace(/[^a-fA-F0-9]/g, '');
-    
-    console.log(`Sanitized hash for search: ${searchHash}`);
-    
-    // Ensure the hash is valid hex before converting
-    if (!/^[a-fA-F0-9]*$/.test(searchHash)) {
-      throw new Error(`Invalid transaction hash format: ${hash}`);
-    }
-    
-    // Convert hex to base64 for searching
-    const searchHashBuffer = Buffer.from(searchHash, 'hex');
-    const base64Hash = searchHashBuffer.toString('base64');
-    
-    console.log(`Searching for transaction with base64 hash: ${base64Hash}`);
-    
-    // Search for the transaction
-    const searchResult = await client.searchTx(`tx.hash='${base64Hash}'`);
-    
-    if (searchResult.length === 0) {
-      throw new Error(`Transaction with hash ${hash} not found`);
-    }
-    
-    const tx = searchResult[0] as IndexedTx & ExtendedTx;
-    
-    return {
-      hash: hash,
-      height: tx.height,
-      index: 0, // Index not available in this API
-      time: new Date().toISOString(), // Exact time not available, using current time
-      gasUsed: tx.gasUsed,
-      gasWanted: tx.gasWanted,
-      fee: tx.fee,
-      memo: tx.tx?.memo,
-      messages: tx.tx?.body?.messages || [],
-      logs: tx.rawLog
-    };
   } catch (error) {
     return handleApiError(error, 'getTransactionByHash');
   }
@@ -203,31 +359,68 @@ export const getTransactionByHash = async (hash: string) => {
 // Get validators
 export const getValidators = async () => {
   try {
-    const { RPC_ENDPOINT } = getEndpoints();
-    console.log('Fetching validators from remote node');
+    const { API_ENDPOINT } = getEndpoints();
+    console.log('Fetching validators from testnet API endpoint:', API_ENDPOINT);
     
-    // Using remote node endpoint
-    const client = await getStargateClient();
+    // Make a direct HTTP request to the Cosmos staking API endpoint
+    const response = await axios.get(`${API_ENDPOINT}/cosmos/staking/v1beta1/validators`);
     
-    // Since getAllValidators doesn't exist on StargateClient, we'll use a custom approach
-    // This is a placeholder - you'll need to implement the actual validator fetching logic
-    // based on the available methods in your StargateClient
+    console.log('Validators API response status:', response.status);
     
-    // Placeholder for validators - replace with actual implementation
-    const validators: Validator[] = [];
-    
-    // Example of how you might fetch validators if you had the right method
-    // const validators = await client.getAllValidators();
-    
-    return validators.map((validator: Validator) => ({
-      address: validator.address,
-      moniker: validator.description?.moniker || 'Unknown',
-      votingPower: validator.votingPower.toString(),
-      commission: validator.commission?.commissionRates?.rate || '0',
-      status: validator.status === 'BOND_STATUS_BONDED' ? 'active' : 'inactive'
-    }));
+    if (response.data && response.data.validators) {
+      console.log(`Found ${response.data.validators.length} validators`);
+      
+      // Return the validators in the format expected by the UI
+      return response.data.validators;
+    } else {
+      console.error('Invalid response format from validators endpoint:', JSON.stringify(response.data, null, 2));
+      return [];
+    }
   } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error fetching validators:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
+    } else {
+      console.error('Error fetching validators:', error);
+    }
     return handleApiError(error, 'getValidators');
+  }
+};
+
+// Get a single validator by address
+export const getValidatorByAddress = async (address: string) => {
+  try {
+    const { API_ENDPOINT } = getEndpoints();
+    console.log(`Fetching validator with address: ${address} from ${API_ENDPOINT}`);
+    
+    // Make a direct HTTP request to the Cosmos staking API endpoint for a specific validator
+    const response = await axios.get(`${API_ENDPOINT}/cosmos/staking/v1beta1/validators/${address}`);
+    
+    console.log('Validator API response status:', response.status);
+    
+    if (response.data && response.data.validator) {
+      console.log('Found validator:', response.data.validator.description?.moniker);
+      return response.data.validator;
+    } else {
+      console.error('Invalid response format from validator endpoint:', JSON.stringify(response.data, null, 2));
+      return null;
+    }
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error(`Axios error fetching validator with address ${address}:`, {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
+    } else {
+      console.error(`Error fetching validator with address ${address}:`, error);
+    }
+    return handleApiError(error, 'getValidatorByAddress');
   }
 };
 
@@ -250,11 +443,11 @@ export const getAccountBalance = async (address: string) => {
   }
 };
 
-// Get transactions for an address
-export const getAddressTransactions = async (address: string) => {
+// Get transactions for an address with pagination
+export const getAddressTransactions = async (address: string, page = 1, limit = 10) => {
   try {
     const { RPC_ENDPOINT } = getEndpoints();
-    console.log(`Fetching transactions for address ${address} from remote node`);
+    console.log(`Fetching transactions for address ${address} from remote node (page ${page}, limit ${limit})`);
     
     // Using remote node endpoint
     const client = await getStargateClient();
@@ -274,8 +467,15 @@ export const getAddressTransactions = async (address: string) => {
     // Sort by height in descending order (newest first)
     uniqueTxs.sort((a, b) => b.height - a.height);
     
+    // Calculate pagination
+    const totalItems = uniqueTxs.length;
+    const totalPages = Math.ceil(totalItems / limit);
+    const startIndex = (page - 1) * limit;
+    const endIndex = Math.min(startIndex + limit, totalItems);
+    const paginatedTxs = uniqueTxs.slice(startIndex, endIndex);
+    
     // Format transactions
-    return uniqueTxs.map(tx => {
+    const formattedTxs = paginatedTxs.map(tx => {
       return {
         hash: tx.hash,
         height: tx.height,
@@ -286,9 +486,27 @@ export const getAddressTransactions = async (address: string) => {
         rawLog: tx.rawLog
       };
     });
+    
+    return {
+      transactions: formattedTxs,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems,
+        limit
+      }
+    };
   } catch (error) {
     console.error('Error fetching address transactions:', error);
-    return [];
+    return {
+      transactions: [],
+      pagination: {
+        currentPage: page,
+        totalPages: 0,
+        totalItems: 0,
+        limit
+      }
+    };
   }
 };
 

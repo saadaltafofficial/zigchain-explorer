@@ -1,33 +1,39 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import SearchBar from './SearchBar';
+import ThemeSwitcher from './ThemeSwitcher';
 
 const Header: React.FC = () => {
   return (
-    <header className="bg-gray-800 text-white shadow-md">
+    <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
       <div className="container mx-auto px-4 py-4">
         <div className="flex flex-col md:flex-row justify-between items-center">
           <div className="flex items-center mb-4 md:mb-0">
-            <Link href="/" className="text-2xl font-bold text-white hover:text-gray-300">
-              ZigChain Explorer
+            <Link href="/" className="text-2xl font-bold text-blue-600 dark:text-white hover:text-blue-800 dark:hover:text-gray-300">
+              ZIGChain
             </Link>
-            <span className="ml-4 px-2 py-1 text-xs bg-blue-600 rounded-md">Testnet</span>
+            <span className="ml-4 px-2 py-1 text-xs text-white bg-blue-600 rounded-md">Testnet</span>
           </div>
           
-          <nav className="flex space-x-6">
-            <Link href="/" className="text-gray-300 hover:text-white">
-              Home
-            </Link>
-            <Link href="/blocks" className="text-gray-300 hover:text-white">
-              Blocks
-            </Link>
-            <Link href="/transactions" className="text-gray-300 hover:text-white">
-              Transactions
-            </Link>
-            <Link href="/validators" className="text-gray-300 hover:text-white">
-              Validators
-            </Link>
-          </nav>
+          <div className="flex items-center space-x-6">
+            <nav className="flex space-x-6">
+              <Link href="/" className="font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-white">
+                Home
+              </Link>
+              <Link href="/blocks" className="font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-white">
+                Blocks
+              </Link>
+              <Link href="/transactions" className="font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-white">
+                Transactions
+              </Link>
+              <Link href="/validators" className="font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-white">
+                Validators
+              </Link>
+            </nav>
+            <ThemeSwitcher />
+          </div>
         </div>
         
         <div className="mt-4">
