@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getBlockByHeight } from '../../services/api';
 import { formatDate, formatNumber, truncateString } from '../../utils/format';
@@ -11,18 +11,45 @@ interface BlockDetailPageProps {
   };
 }
 
-export default async function BlockDetailPage({ params }: BlockDetailPageProps) {
-  const { height } = params;
+export default function BlockDetailPage({ params }: BlockDetailPageProps) {
+  // Safely access the height parameter
+  const height = params?.height || '';
   
-  let block: any = null;
-  let error: string | null = null;
-  
-  try {
-    block = await getBlockByHeight(parseInt(height));
-  } catch (err) {
-    console.error(`Error fetching block ${height}:`, err);
-    error = `Failed to load block ${height}. Please try again later.`;
-  }
+  const [block, setBlock] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchBlock = async () => {
+    if (!height) {
+      setError('Block height is required');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log(`Fetching block details for height: ${height}`);
+      
+      const blockData = await getBlockByHeight(parseInt(height));
+      console.log('Block data received:', blockData ? 'success' : 'not found');
+      setBlock(blockData);
+      setLoading(false);
+    } catch (err: any) {
+      console.error(`Error fetching block ${height}:`, err);
+      setError(err.message || `Failed to load block ${height}. Please try again later.`);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBlock();
+  }, [height]);
+
+  const handleRetry = () => {
+    fetchBlock();
+  };
 
   return (
     <div>
@@ -36,15 +63,58 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
       
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
-          {error}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-bold">Error</p>
+              <p>{error}</p>
+            </div>
+            <button 
+              onClick={handleRetry}
+              className="bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-4 rounded"
+            >
+              Retry
+            </button>
+          </div>
         </div>
       )}
       
-      {!block ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
-          <p className="text-gray-500 dark:text-gray-400">Block not found or still loading...</p>
+      {loading ? (
+        <div className="animate-pulse">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-4"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+              </div>
+              <div className="space-y-3">
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+              </div>
+            </div>
+          </div>
         </div>
-      ) : (
+      ) : !block && !error ? (
+        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-6">
+          <p className="font-bold">Block Not Found</p>
+          <p>
+            The block with height {height} could not be found. This could be because:
+          </p>
+          <ul className="list-disc ml-5 mt-2">
+            <li>The block height is incorrect</li>
+            <li>The block is too recent and not yet indexed</li>
+            <li>The node is still syncing and doesn't have this block yet</li>
+          </ul>
+          <button 
+            onClick={handleRetry}
+            className="mt-3 bg-yellow-700 hover:bg-yellow-800 text-white font-bold py-2 px-4 rounded"
+          >
+            Try Again
+          </button>
+        </div>
+      ) : block && (
         <>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
             <h2 className="text-xl font-semibold mb-4">Block Details</h2>
@@ -56,19 +126,23 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
                 <p className="text-gray-600 dark:text-gray-300">
                   <span className="font-medium">Time:</span> {formatDate(block.time)}
                 </p>
-                <p className="text-gray-600 dark:text-gray-300">
-                  <span className="font-medium">Proposer:</span>{' '}
-                  <Link href={`/validator/${block.proposer}`} className="text-blue-600 hover:text-blue-800">
-                    {truncateString(block.proposer, 8, 8)}
-                  </Link>
-                </p>
+                {block.proposer && (
+                  <p className="text-gray-600 dark:text-gray-300">
+                    <span className="font-medium">Proposer:</span>{' '}
+                    <Link href={`/validator/${block.proposer}`} className="text-blue-600 hover:text-blue-800">
+                      {truncateString(block.proposer, 8, 8)}
+                    </Link>
+                  </p>
+                )}
               </div>
               <div>
+                {block.hash && (
+                  <p className="text-gray-600 dark:text-gray-300">
+                    <span className="font-medium">Hash:</span> {truncateString(block.hash, 10, 10)}
+                  </p>
+                )}
                 <p className="text-gray-600 dark:text-gray-300">
-                  <span className="font-medium">Hash:</span> {truncateString(block.hash, 10, 10)}
-                </p>
-                <p className="text-gray-600 dark:text-gray-300">
-                  <span className="font-medium">Transactions:</span> {formatNumber(block.txCount)}
+                  <span className="font-medium">Transactions:</span> {formatNumber(block.txCount || 0)}
                 </p>
                 <p className="text-gray-600 dark:text-gray-300">
                   <span className="font-medium">Gas Used:</span> {block.gasUsed ? formatNumber(block.gasUsed) : 'N/A'}
@@ -120,7 +194,7 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
           ) : (
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
               <h2 className="text-xl font-semibold mb-4">Transactions</h2>
-              <p className="text-gray-500 dark:text-gray-400">No transactions in this block.</p>
+              <p className="text-gray-600 dark:text-gray-400">No transactions in this block</p>
             </div>
           )}
         </>

@@ -9,22 +9,31 @@ export default function BlocksPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchBlocks = async () => {
-      try {
-        setLoading(true);
-        const latestBlocks = await getLatestBlocks(20);
-        setBlocks(latestBlocks);
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching blocks:', err);
-        setError('Failed to load blocks. Please try again later.');
-        setLoading(false);
-      }
-    };
+  const fetchBlocks = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log('Fetching blocks for blocks page...');
+      
+      const latestBlocks = await getLatestBlocks(20);
+      console.log(`Received ${latestBlocks.length} blocks`);
+      setBlocks(latestBlocks);
+      setLoading(false);
+    } catch (err: any) {
+      console.error('Error fetching blocks:', err);
+      setError(err.message || 'Failed to load blocks. Please try again later.');
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchBlocks();
   }, []);
+
+  const handleRetry = () => {
+    fetchBlocks();
+  };
 
   return (
     <div>
@@ -32,7 +41,18 @@ export default function BlocksPage() {
       
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
-          {error}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-bold">Error</p>
+              <p>{error}</p>
+            </div>
+            <button 
+              onClick={handleRetry}
+              className="bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-4 rounded"
+            >
+              Retry
+            </button>
+          </div>
         </div>
       )}
       
@@ -50,15 +70,21 @@ export default function BlocksPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {blocks.map((block) => (
-            <BlockCard 
-              key={block.height}
-              height={block.height}
-              hash={block.hash}
-              time={block.time}
-              txCount={block.txCount}
-            />
-          ))}
+          {blocks && blocks.length > 0 ? (
+            blocks.map((block) => (
+              <BlockCard 
+                key={block.height}
+                height={block.height}
+                hash={block.hash}
+                time={block.time}
+                txCount={block.txCount}
+              />
+            ))
+          ) : (
+            <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+              No blocks found. This could be because your node is still syncing or there are connection issues.
+            </div>
+          )}
         </div>
       )}
     </div>

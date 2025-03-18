@@ -12,29 +12,38 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        
-        // Fetch latest blocks
-        const blocks = await getLatestBlocks(5);
-        setLatestBlocks(blocks);
-        
-        // Fetch chain info
-        const info = await getChainInfo();
-        setChainInfo(info);
-        
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('Failed to load blockchain data. Please try again later.');
-        setLoading(false);
-      }
-    };
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log('Fetching data for home page...');
+      
+      // Fetch latest blocks
+      const blocks = await getLatestBlocks(5);
+      console.log('Received blocks:', blocks);
+      setLatestBlocks(blocks);
+      
+      // Fetch chain info
+      const info = await getChainInfo();
+      console.log('Received chain info:', info);
+      setChainInfo(info);
+      
+      setLoading(false);
+    } catch (err: any) {
+      console.error('Error fetching data:', err);
+      setError(err.message || 'Failed to load blockchain data. Please try again later.');
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
   }, []);
+
+  const handleRetry = () => {
+    fetchData();
+  };
 
   return (
     <div className="space-y-8">
@@ -46,7 +55,18 @@ export default function Home() {
         
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
-            {error}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-bold">Error</p>
+                <p>{error}</p>
+              </div>
+              <button 
+                onClick={handleRetry}
+                className="bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-4 rounded"
+              >
+                Retry
+              </button>
+            </div>
           </div>
         )}
         
@@ -69,7 +89,7 @@ export default function Home() {
                 />
                 <StatCard 
                   title="Latest Block" 
-                  value={chainInfo.latestBlockHeight} 
+                  value={chainInfo.height} 
                 />
                 <StatCard 
                   title="Network" 
@@ -103,15 +123,21 @@ export default function Home() {
           </div>
         ) : (
           <div className="space-y-4">
-            {latestBlocks.map((block) => (
-              <BlockCard 
-                key={block.height}
-                height={block.height}
-                hash={block.hash}
-                time={block.time}
-                txCount={block.txCount}
-              />
-            ))}
+            {latestBlocks && latestBlocks.length > 0 ? (
+              latestBlocks.map((block) => (
+                <BlockCard 
+                  key={block.height}
+                  height={block.height}
+                  hash={block.hash}
+                  time={block.time}
+                  txCount={block.txCount}
+                />
+              ))
+            ) : (
+              <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+                No blocks found. This could be because your node is still syncing or there are connection issues.
+              </div>
+            )}
           </div>
         )}
       </section>

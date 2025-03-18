@@ -9,23 +9,30 @@ export default function TransactionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchTransactions = async () => {
-      try {
-        setLoading(true);
-        // We'll get transactions from the latest blocks
-        const blocks = await getLatestBlocks(5);
-        
-        // Extract transactions from blocks
-        const txs: any[] = [];
-        for (const block of blocks) {
-          if (block.txCount > 0) {
+  const fetchTransactions = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log('Fetching transactions for transactions page...');
+      
+      // We'll get transactions from the latest blocks
+      const blocks = await getLatestBlocks(5);
+      console.log(`Received ${blocks.length} blocks to extract transactions from`);
+      
+      // Extract transactions from blocks
+      const txs: any[] = [];
+      for (const block of blocks) {
+        if (block.txCount > 0) {
+          try {
             // For blocks with transactions, fetch the full block to get transaction details
+            console.log(`Fetching full block at height ${block.height} with ${block.txCount} transactions`);
             const fullBlock = await getBlockByHeight(block.height);
             
             // For each transaction in the block, create a transaction object
             if (fullBlock.transactions && fullBlock.transactions.length > 0) {
-              for (let i = 0; i < fullBlock.transactions.length; i++) {
+              console.log(`Processing ${fullBlock.transactions.length} transactions from block ${block.height}`);
+              for (let i = 0; i <fullBlock.transactions.length; i++) {
                 txs.push({
                   hash: fullBlock.transactions[i],
                   time: block.time,
@@ -34,20 +41,30 @@ export default function TransactionsPage() {
                 });
               }
             }
+          } catch (blockError) {
+            console.error(`Error fetching block ${block.height}:`, blockError);
+            // Continue with other blocks even if one fails
           }
         }
-        
-        setTransactions(txs);
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching transactions:', err);
-        setError('Failed to load transactions. Please try again later.');
-        setLoading(false);
       }
-    };
+      
+      console.log(`Found a total of ${txs.length} transactions`);
+      setTransactions(txs);
+      setLoading(false);
+    } catch (err: any) {
+      console.error('Error fetching transactions:', err);
+      setError(err.message || 'Failed to load transactions. Please try again later.');
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchTransactions();
   }, []);
+
+  const handleRetry = () => {
+    fetchTransactions();
+  };
 
   return (
     <div>
@@ -55,7 +72,18 @@ export default function TransactionsPage() {
       
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
-          {error}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-bold">Error</p>
+              <p>{error}</p>
+            </div>
+            <button 
+              onClick={handleRetry}
+              className="bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-4 rounded"
+            >
+              Retry
+            </button>
+          </div>
         </div>
       )}
       
@@ -83,8 +111,12 @@ export default function TransactionsPage() {
           ))}
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
-          <p className="text-gray-500 dark:text-gray-400">No transactions found.</p>
+        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+          <p className="font-bold">No Transactions Found</p>
+          <p>
+            No transactions found in the latest blocks. This could be because your node is still syncing,
+            there are connection issues, or there simply haven't been any transactions recently.
+          </p>
         </div>
       )}
     </div>

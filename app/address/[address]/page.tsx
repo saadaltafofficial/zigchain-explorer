@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
-import { getAccountBalance } from '../../services/api';
-import { formatTokenAmount } from '../../utils/format';
+import { getAccountBalance, getAddressTransactions } from '../../services/api';
+import { formatTokenAmount, formatDate } from '../../utils/format';
 
 interface AddressDetailPageProps {
   params: {
@@ -10,15 +10,23 @@ interface AddressDetailPageProps {
 }
 
 export default async function AddressDetailPage({ params }: AddressDetailPageProps) {
-  const { address } = params;
+  // Ensure params is properly awaited before destructuring
+  const address = params?.address;
   
   let balances: any[] = [];
+  let transactions: any[] = [];
   let error: string | null = null;
   
   try {
-    const balanceData = await getAccountBalance(address);
+    // Fetch both balances and transactions in parallel
+    const [balanceData, txData] = await Promise.all([
+      getAccountBalance(address),
+      getAddressTransactions(address)
+    ]);
+    
     // Convert readonly array to mutable array
     balances = [...balanceData];
+    transactions = [...txData];
   } catch (err) {
     console.error(`Error fetching data for address ${address}:`, err);
     error = `Failed to load data for address ${address}. Please try again later.`;
@@ -76,7 +84,59 @@ export default async function AddressDetailPage({ params }: AddressDetailPagePro
         )}
       </div>
       
-      {/* Additional sections for transactions, delegations, etc. can be added here */}
+      {/* Transaction History Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+        <h2 className="text-xl font-semibold mb-4">Transaction History</h2>
+        
+        {transactions.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-900">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Tx Hash
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Block
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Time
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {transactions.map((tx, index) => (
+                  <tr key={index}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <Link href={`/tx/${encodeURIComponent(tx.hash)}`} className="text-blue-600 hover:text-blue-800">
+                        {tx.hash.substring(0, 10)}...
+                      </Link>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      <Link href={`/blocks/${tx.height}`} className="text-blue-600 hover:text-blue-800">
+                        {tx.height}
+                      </Link>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {formatDate(tx.time)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <span className={`px-2 py-1 rounded-full text-xs ${tx.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {tx.success ? 'Success' : 'Failed'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-gray-500 dark:text-gray-400">No transactions found for this address.</p>
+        )}
+      </div>
     </div>
   );
 }
