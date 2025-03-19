@@ -6,12 +6,7 @@ import { formatDate, formatNumber } from '@/app/utils/format';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import HashDisplay from '@/app/components/HashDisplay';
-
-interface BlockDetailPageProps {
-  params: {
-    height: string;
-  };
-}
+import { useParams } from 'next/navigation';
 
 interface Block {
   height: number;
@@ -29,9 +24,12 @@ interface Block {
   transactions: string[];
 }
 
-export default function BlockDetailPage({ params }: BlockDetailPageProps) {
-  // Safely access the height parameter
-  const height = params.height;
+export default function BlockDetailPage() {
+  // Get the height parameter from the URL
+  const params = useParams();
+  const heightParam = params.height;
+  // Convert to string if it's an array
+  const height = Array.isArray(heightParam) ? heightParam[0] : heightParam;
   
   const [block, setBlock] = useState<Block | null>(null);
   const [loading, setLoading] = useState(true);

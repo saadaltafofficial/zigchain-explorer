@@ -38,16 +38,17 @@ const SearchBar: React.FC = () => {
           placeholder="Search by Address / Tx Hash / Block Height"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full px-4 py-2 rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+          className="w-full px-4 py-2 rounded-md bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400 border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 shadow-sm transition-colors"
+          aria-label="Search input"
         />
         <button
           type="submit"
-          className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-600 text-white px-4 py-1 rounded-md hover:bg-blue-700 focus:outline-none transition-colors duration-200"
+          className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-600 dark:bg-blue-700 text-white px-4 py-1 rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:ring-offset-2 transition-colors duration-200"
           aria-label="Search"
         >
           <span className="flex items-center">
             <Search size={16} className="mr-1" />
-            <span>Search</span>
+            <span className="text-sm font-medium">Search</span>
           </span>
         </button>
       </div>

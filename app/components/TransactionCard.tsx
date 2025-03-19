@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { formatDate, truncateString } from '../utils/format';
 import HashDisplay from './HashDisplay';
+import { CheckCircle, XCircle, Database, ArrowRight } from 'lucide-react';
 
 interface TransactionCardProps {
   hash: string;
@@ -32,59 +33,83 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
   const displayHash = isCorrectHashFormat ? hashString : 
     (hashString.length > 128 ? hashString.substring(0, 64) : hashString);
   
+  // Convert to uppercase for display
+  const displayUppercaseHash = displayHash.toUpperCase();
+  
   const safeTime = time || new Date().toISOString();
   const safeStatus = status || 'success';
   const safeFrom = from || '';
   const safeTo = to || '';
   
+  // Set the referrer when clicking on a transaction
+  const setReferrer = () => {
+    if (typeof window !== 'undefined') {
+      // Get the current path
+      const currentPath = window.location.pathname;
+      sessionStorage.setItem('txReferrer', currentPath);
+    }
+  };
+  
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow">
       <div className="flex justify-between items-start">
-        <div>
+        <div className="w-full">
           <Link 
             href={`/tx/${encodeURIComponent(displayHash)}`} 
-            className="text-blue-600 hover:text-blue-800 text-lg font-semibold"
+            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors text-lg font-semibold"
+            onClick={setReferrer}
           >
-            <HashDisplay hash={displayHash} truncateLength={10} showCopyButton={true} />
+            <HashDisplay hash={displayUppercaseHash} truncateLength={10} showCopyButton={false} />
           </Link>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-            {formatDate(safeTime)}
-          </p>
-          {blockHeight && (
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
-              Block: <Link href={`/blocks/${blockHeight}`} className="text-blue-600 hover:text-blue-800">
-                {blockHeight}
-              </Link>
-            </p>
-          )}
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{formatDate(safeTime)}</p>
         </div>
-        <div className={`px-3 py-1 rounded-full text-sm ${
-          safeStatus === 'success' 
-            ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' 
-            : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
-        }`}>
-          {safeStatus === 'success' ? 'Success' : 'Failed'}
+        <div className="flex-shrink-0 ml-2">
+          {safeStatus === 'success' ? (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">
+              <CheckCircle className="h-3 w-3 mr-1" />
+              Success
+            </span>
+          ) : (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300">
+              <XCircle className="h-3 w-3 mr-1" />
+              Failed
+            </span>
+          )}
+          {blockHeight && (
+            <div className="flex items-center mt-2 text-sm text-gray-600 dark:text-gray-400">
+              <Database className="h-4 w-4 mr-1" />
+              <span>Block: {blockHeight}</span>
+            </div>
+          )}
         </div>
       </div>
-      
       {(safeFrom || safeTo) && (
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          {safeFrom && (
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">From</p>
-              <p className="text-sm font-mono text-gray-700 dark:text-gray-300 truncate">
-                {truncateString(safeFrom, 16)}
-              </p>
+        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-2 sm:mb-0">
+              {(safeFrom || safeTo) && (
+                <span className="inline-flex items-center flex-wrap">
+                  <ArrowRight className="h-4 w-4 mr-1" />
+                  <span>
+                    {safeFrom && (
+                      <span className="mr-2">From: {truncateString(safeFrom, 8)} </span>
+                    )}
+                    {safeTo && (
+                      <span>To: {truncateString(safeTo, 8)}</span>
+                    )}
+                  </span>
+                </span>
+              )} 
             </div>
-          )}
-          {safeTo && (
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">To</p>
-              <p className="text-sm font-mono text-gray-700 dark:text-gray-300 truncate">
-                {truncateString(safeTo, 16)}
-              </p>
-            </div>
-          )}
+            <Link 
+              href={`/tx/${encodeURIComponent(displayHash)}`}
+              className="inline-flex items-center text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+              onClick={setReferrer}
+            >
+              View Details
+              <ArrowRight className="ml-1 h-4 w-4" />
+            </Link>
+          </div>
         </div>
       )}
     </div>

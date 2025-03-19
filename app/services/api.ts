@@ -36,8 +36,8 @@ interface Validator {
 }
 
 // Remote endpoints
-const REMOTE_RPC_ENDPOINT = 'http://localhost:26657/';
-// const REMOTE_RPC_ENDPOINT = 'https://testnet-rpc.ZIGChain.com/';
+const REMOTE_RPC_ENDPOINT = 'http://localhost:26657';
+// const REMOTE_RPC_ENDPOINT = 'https://testnet-rpc.ZIGChain.com';
 const REMOTE_API_ENDPOINT = 'https://testnet-api.ZIGChain.com/';
 
 // Use the appropriate endpoints
@@ -87,54 +87,70 @@ export const getLatestBlocks = async (count = 10) => {
     const { RPC_ENDPOINT } = getEndpoints();
     console.log(`Fetching latest blocks from ${RPC_ENDPOINT}`);
     
-    // First, get the latest block height
-    const statusResponse = await axios.get(`${RPC_ENDPOINT}/status`);
-    const latestHeight = parseInt(statusResponse.data.result.sync_info.latest_block_height);
-    console.log(`Latest block height: ${latestHeight}`);
-    
-    // Calculate the range of blocks to fetch
-    const minHeight = Math.max(1, latestHeight - count + 1);
-    console.log(`Fetching blocks from height ${minHeight} to ${latestHeight}`);
-    
-    const blocks = [];
-    
-    // Fetch each block in the range
-    for (let height = latestHeight; height >= minHeight; height--) {
-      try {
-        const blockResponse = await axios.get(`${RPC_ENDPOINT}/block`, {
-          params: { height }
-        });
-        
-        const blockData = blockResponse.data.result;
-        const txs = blockData.block.data.txs || [];
-        
-        // Get transaction hashes by querying each transaction
-        const txHashes = [];
-        for (const tx of txs) {
-          try {
-            // Calculate the transaction hash from the transaction data
-            // This is a SHA-256 hash of the transaction data
-            const txHash = await getTxHashFromBase64(tx);
-            txHashes.push(txHash);
-          } catch (e) {
-            console.error(`Error getting transaction hash: ${e}`);
-          }
-        }
-        
-        blocks.push({
-          height,
-          hash: blockData.block_id.hash,
-          time: blockData.block.header.time,
-          txCount: txs.length,
-          transactions: txHashes,
-          proposer: blockData.block.header.proposer_address
-        });
-      } catch (blockError) {
-        console.error(`Error fetching block at height ${height}:`, blockError);
+    try {
+      const statusResponse = await axios.get(`${RPC_ENDPOINT}/status`, {
+        timeout: 5000 // Add timeout to prevent hanging requests
+      });
+      
+      if (!statusResponse.data || !statusResponse.data.result || !statusResponse.data.result.sync_info) {
+        console.error('Invalid status response:', statusResponse.data);
+        return handleApiError(new Error('Invalid status response'), 'getLatestBlocks');
       }
+      
+      const latestHeight = parseInt(statusResponse.data.result.sync_info.latest_block_height);
+      console.log(`Latest block height: ${latestHeight}`);
+      
+      // Calculate the range of blocks to fetch
+      const minHeight = Math.max(1, latestHeight - count + 1);
+      console.log(`Fetching blocks from height ${minHeight} to ${latestHeight}`);
+      
+      const blocks = [];
+      
+      // Fetch each block in the range
+      for (let height = latestHeight; height >= minHeight; height--) {
+        try {
+          const blockResponse = await axios.get(`${RPC_ENDPOINT}/block`, {
+            params: { height }
+          });
+          
+          const blockData = blockResponse.data.result;
+          const txs = blockData.block.data.txs || [];
+          
+          // Get transaction hashes by querying each transaction
+          const txHashes = [];
+          for (const tx of txs) {
+            try {
+              // Calculate the transaction hash from the transaction data
+              // This is a SHA-256 hash of the transaction data
+              const txHash = await getTxHashFromBase64(tx);
+              txHashes.push(txHash);
+            } catch (e) {
+              console.error(`Error getting transaction hash: ${e}`);
+              // Generate a placeholder hash to maintain the transaction count
+              const placeholderHash = `placeholder_${Date.now().toString(16)}_${Math.random().toString(16).substring(2, 10)}`;
+              console.log(`Using placeholder hash: ${placeholderHash}`);
+              txHashes.push(placeholderHash);
+            }
+          }
+          
+          blocks.push({
+            height,
+            hash: blockData.block_id.hash,
+            time: blockData.block.header.time,
+            txCount: txs.length,
+            transactions: txHashes,
+            proposer: blockData.block.header.proposer_address
+          });
+        } catch (blockError) {
+          console.error(`Error fetching block at height ${height}:`, blockError);
+        }
+      }
+      
+      return blocks;
+    } catch (statusError) {
+      console.error('Error fetching status:', statusError);
+      return handleApiError(statusError, 'getLatestBlocks');
     }
-    
-    return blocks;
   } catch (error) {
     return handleApiError(error, 'getLatestBlocks');
   }
@@ -146,51 +162,91 @@ async function getTxHashFromBase64(txBase64: string): Promise<string> {
     // First, try to get the transaction hash by querying the transaction by its raw data
     const { RPC_ENDPOINT } = getEndpoints();
     
-    // Use the tx_search endpoint to find the transaction by its exact data
-    const searchResponse = await axios.get(`${RPC_ENDPOINT}/tx_search`, {
-      params: {
-        query: `tx.hash EXISTS`,
-        page: 1,
-        per_page: 100
+    try {
+      // Use the tx_search endpoint to find the transaction by its exact data
+      console.log('Searching for transaction with tx_search endpoint...');
+      
+      // Check if the endpoint is available first with a simple status request
+      try {
+        const statusResponse = await axios.get(`${RPC_ENDPOINT}/status`, {
+          timeout: 3000
+        });
+        console.log('RPC node is available:', statusResponse.status === 200);
+      } catch (statusError) {
+        console.error('RPC node status check failed:', statusError);
+        // If status check fails, skip tx_search and go straight to fallback methods
+        throw new Error('RPC node unavailable');
       }
-    });
-    
-    if (searchResponse.data && searchResponse.data.result && searchResponse.data.result.txs) {
-      // Look for a transaction that matches our base64 data
-      const matchingTx = searchResponse.data.result.txs.find((tx: any) => {
-        return tx.tx === txBase64;
+      
+      const searchResponse = await axios.get(`${RPC_ENDPOINT}/tx_search`, {
+        params: {
+          query: `tx.hash EXISTS`,
+          page: 1,
+          per_page: 100
+        },
+        timeout: 5000 // Add a timeout to prevent hanging requests
       });
       
-      if (matchingTx) {
-        return matchingTx.hash.toLowerCase();
+      if (searchResponse.data && searchResponse.data.result && searchResponse.data.result.txs) {
+        // Look for a transaction that matches our base64 data
+        const matchingTx = searchResponse.data.result.txs.find((tx: any) => {
+          return tx.tx === txBase64;
+        });
+        
+        if (matchingTx) {
+          console.log('Found matching transaction hash:', matchingTx.hash);
+          return matchingTx.hash.toLowerCase();
+        }
       }
+    } catch (searchError) {
+      console.error('Error searching for transaction:', searchError);
+      // Continue to fallback methods
     }
     
     // If we couldn't find the transaction by querying, calculate the hash
     // This is a fallback method - SHA-256 hash of the transaction data
-    const binary = atob(txBase64);
-    const buffer = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      buffer[i] = binary.charCodeAt(i);
+    console.log('Calculating hash from base64 data...');
+    try {
+      const binary = atob(txBase64);
+      const buffer = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        buffer[i] = binary.charCodeAt(i);
+      }
+      
+      // Use the crypto API to calculate the hash
+      const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      
+      console.log('Generated hash from crypto API:', hashHex);
+      return hashHex;
+    } catch (cryptoError) {
+      console.error('Error using crypto API:', cryptoError);
+      // Continue to the next fallback
     }
     
-    // Use the crypto API to calculate the hash
-    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    // If crypto API fails, use a simple hash function
+    console.log('Using simple hash function as fallback...');
+    try {
+      const binary = atob(txBase64);
+      let hash = '';
+      for (let i = 0; i < Math.min(32, binary.length); i++) {
+        hash += binary.charCodeAt(i).toString(16).padStart(2, '0');
+      }
+      console.log('Generated simple hash:', hash);
+      return hash;
+    } catch (simpleHashError) {
+      console.error('Error generating simple hash:', simpleHashError);
+    }
     
-    return hashHex;
+    // If all else fails, return a placeholder hash
+    console.log('All hash generation methods failed, returning placeholder');
+    return `tx_placeholder_${Date.now().toString(16)}`;
   } catch (error) {
-    console.error('Error getting transaction hash:', error);
+    console.error('Error in getTxHashFromBase64:', error);
     
-    // If all else fails, return a hash of the first 32 bytes of the transaction
-    // This is not ideal but provides a consistent identifier
-    const binary = atob(txBase64);
-    let hash = '';
-    for (let i = 0; i < Math.min(32, binary.length); i++) {
-      hash += binary.charCodeAt(i).toString(16).padStart(2, '0');
-    }
-    return hash;
+    // Return a fallback hash to prevent the application from crashing
+    return `tx_error_${Date.now().toString(16)}`;
   }
 }
 
@@ -510,44 +566,165 @@ export const getAddressTransactions = async (address: string, page = 1, limit = 
   }
 };
 
-// Get chain info
 export const getChainInfo = async () => {
   try {
-    const { RPC_ENDPOINT } = getEndpoints();
-    console.log('Fetching chain info from remote node');
-    
-    // Using remote node endpoint
-    const client = await getStargateClient();
-    
-    // Get chain ID
-    const chainId = await client.getChainId();
-    
-    // Get latest block height
-    const height = await client.getHeight();
-    
-    // Get block time (average of last 10 blocks if possible)
-    const latestBlocks = await getLatestBlocks(10);
+    console.log("Fetching chain info from RPC...");
+
+    // Fetch chain status from the RPC endpoint
+    const response = await axios.get(`${REMOTE_RPC_ENDPOINT}/status`);
+    const data = response.data.result;
+
+    // Extract chain ID and latest block height
+    const chainId = data.node_info.network;
+    const height = parseInt(data.sync_info.latest_block_height, 10);
+
+    // Get latest blocks (10 blocks back)
+    const latestBlocks = [];
+    for (let i = height; i > height - 10 && i > 0; i--) {
+      const blockResponse = await axios.get(`${REMOTE_RPC_ENDPOINT}/block?height=${i}`);
+      latestBlocks.push({
+        height: i,
+        time: blockResponse.data.result.block.header.time,
+      });
+    }
+
     let blockTime = 0;
-    
     if (latestBlocks.length > 1) {
-      // Calculate average block time in seconds
-      const times = latestBlocks.map(block => new Date(block.time).getTime());
+      // Calculate average block time (in seconds)
+      const times = latestBlocks.map((block) => new Date(block.time).getTime());
       let totalDiff = 0;
-      
+
       for (let i = 0; i < times.length - 1; i++) {
         totalDiff += (times[i] - times[i + 1]) / 1000; // Convert ms to seconds
       }
-      
+
       blockTime = totalDiff / (times.length - 1);
     }
-    
+
     return {
       chainId,
       height,
       blockTime: blockTime.toFixed(2),
-      latestBlockTime: latestBlocks.length > 0 ? latestBlocks[0].time : new Date().toISOString()
+      latestBlockTime: latestBlocks.length > 0 ? latestBlocks[0].time : new Date().toISOString(),
     };
   } catch (error) {
-    return handleApiError(error, 'getChainInfo');
+    console.error("Error fetching chain info:", error);
+    return null;
+  }
+};
+
+// Get latest transactions
+export const getLatestTransactions = async (count = 5) => {
+  try {
+    const { RPC_ENDPOINT } = getEndpoints();
+    console.log(`Fetching latest transactions from ${RPC_ENDPOINT}`);
+    
+    try {
+      const statusResponse = await axios.get(`${RPC_ENDPOINT}/status`, {
+        timeout: 5000 // Add timeout to prevent hanging requests
+      });
+      
+      if (!statusResponse.data || !statusResponse.data.result || !statusResponse.data.result.sync_info) {
+        console.error('Invalid status response:', statusResponse.data);
+        return handleApiError(new Error('Invalid status response'), 'getLatestTransactions');
+      }
+      
+      const latestHeight = parseInt(statusResponse.data.result.sync_info.latest_block_height);
+      console.log(`Latest block height: ${latestHeight}`);
+      
+      // We'll search through the latest 20 blocks to find transactions
+      const blocksToSearch = 20;
+      const minHeight = Math.max(1, latestHeight - blocksToSearch + 1);
+      
+      let transactions = [];
+      let blocksChecked = 0;
+      
+      // Fetch each block in the range until we have enough transactions
+      for (let height = latestHeight; height >= minHeight && transactions.length < count && blocksChecked < blocksToSearch; height--) {
+        try {
+          blocksChecked++;
+          const blockResponse = await axios.get(`${RPC_ENDPOINT}/block`, {
+            params: { height }
+          });
+          
+          const blockData = blockResponse.data.result;
+          const txs = blockData.block.data.txs || [];
+          
+          if (txs.length === 0) continue;
+          
+          // Process each transaction in this block
+          for (const tx of txs) {
+            if (transactions.length >= count) break;
+            
+            try {
+              // Calculate the transaction hash
+              const txHash = await getTxHashFromBase64(tx);
+              
+              // Get more details about the transaction
+              const txResponse = await axios.get(`${RPC_ENDPOINT}/tx`, {
+                params: { hash: `0x${txHash}` }
+              });
+              
+              if (txResponse.data && txResponse.data.result) {
+                const txData = txResponse.data.result;
+                
+                // Extract sender and receiver from events if available
+                let sender = null;
+                let receiver = null;
+                let amount = null;
+                
+                if (txData.tx_result && txData.tx_result.events) {
+                  // Look for transfer events
+                  const transferEvents = txData.tx_result.events.filter((event: any) => event.type === 'transfer');
+                  
+                  if (transferEvents.length > 0) {
+                    const transferEvent = transferEvents[0];
+                    
+                    // Extract sender and recipient from attributes
+                    const senderAttr = transferEvent.attributes.find((attr: any) => attr.key === 'sender');
+                    const recipientAttr = transferEvent.attributes.find((attr: any) => attr.key === 'recipient');
+                    const amountAttr = transferEvent.attributes.find((attr: any) => attr.key === 'amount');
+                    
+                    if (senderAttr && senderAttr.value) {
+                      sender = senderAttr.value;
+                    }
+                    
+                    if (recipientAttr && recipientAttr.value) {
+                      receiver = recipientAttr.value;
+                    }
+                    
+                    if (amountAttr && amountAttr.value) {
+                      amount = amountAttr.value;
+                    }
+                  }
+                }
+                
+                transactions.push({
+                  hash: txHash,
+                  height: height.toString(),
+                  time: blockData.block.header.time,
+                  status: txData.tx_result.code === 0 ? 'success' : 'failed',
+                  from: sender,
+                  to: receiver,
+                  amount: amount
+                });
+              }
+            } catch (txError) {
+              console.error(`Error processing transaction:`, txError);
+            }
+          }
+        } catch (blockError) {
+          console.error(`Error fetching block at height ${height}:`, blockError);
+        }
+      }
+      
+      console.log(`Found ${transactions.length} transactions in ${blocksChecked} blocks`);
+      return transactions;
+    } catch (statusError) {
+      console.error('Error fetching status:', statusError);
+      return handleApiError(statusError, 'getLatestTransactions');
+    }
+  } catch (error) {
+    return handleApiError(error, 'getLatestTransactions');
   }
 };

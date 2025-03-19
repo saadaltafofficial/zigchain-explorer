@@ -23,7 +23,7 @@ export default function HashDisplay({
   if (!hash) return null;
 
   // Ensure the hash is properly formatted
-  const formattedHash = hash.toLowerCase();
+  const formattedHash = hash.toUpperCase();
   
   // Determine display format based on truncateLength
   const displayHash = truncateLength > 0 && formattedHash.length > truncateLength * 2
@@ -36,18 +36,21 @@ export default function HashDisplay({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  console.log(label)
+
   return (
     <div className={`flex flex-col ${className}`}>
-      {label && <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{label}</p>}
+      {label && <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{label}</p>}
       <div className="flex items-center">
-        <span className="text-gray-800 dark:text-white font-mono break-all">{displayHash}</span>
+        <span className="text-gray-800 dark:text-gray-200 font-mono break-all">{displayHash}</span>
         {showCopyButton && (
           <button
             onClick={handleCopy}
-            className="ml-2 p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 focus:outline-none"
+            className="ml-2 p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 rounded transition-colors"
             title="Copy to clipboard"
+            aria-label="Copy to clipboard"
           >
-            {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+            {copied ? <Check size={16} className="text-green-500 dark:text-green-400" /> : <Copy size={16} />}
           </button>
         )}
       </div>

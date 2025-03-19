@@ -128,6 +128,56 @@ export function decodeTransaction(base64Data: string): DecodedTransaction {
       }
     }
     
+    // Special handling for the pipe-delimited format seen in the screenshot
+    if (base64Data.includes('||')) {
+      console.log("Detected pipe-delimited format, attempting to parse");
+      
+      // Check for Send transaction format with pipes
+      if (base64Data.startsWith('Send||')) {
+        try {
+          // Handle the format: Send||*address1*||*address2*||*denom*|amount
+          // or: Send||address1||address2||amount|denom
+          const parts = base64Data.split('||');
+          
+          if (parts.length >= 4) {
+            const type = parts[0]; // "Send"
+            
+            // Clean up the addresses (remove * if present)
+            const sender = parts[1].replace(/\*/g, '');
+            const recipient = parts[2].replace(/\*/g, '');
+            
+            // The last part might contain amount and denom
+            let amount = '';
+            let denom = '';
+            
+            // Check if the last part contains a pipe
+            if (parts[3].includes('|')) {
+              const amountParts = parts[3].split('|');
+              denom = amountParts[0].replace(/\*/g, '');
+              amount = amountParts[1];
+            } else if (parts.length > 4) {
+              // Format might be Send||sender||recipient||denom||amount
+              denom = parts[3].replace(/\*/g, '');
+              amount = parts[4];
+            }
+            
+            console.log(`Parsed pipe-delimited transaction: type=${type}, sender=${sender}, recipient=${recipient}, amount=${amount}, denom=${denom}`);
+            
+            return {
+              type: "Send",
+              sender: sender,
+              recipient: recipient,
+              amount: amount,
+              denom: denom,
+              rawData: base64Data
+            };
+          }
+        } catch (parseError) {
+          console.error("Error parsing pipe-delimited format:", parseError);
+        }
+      }
+    }
+    
     // Try to decode the base64 data
     let binaryData;
     try {

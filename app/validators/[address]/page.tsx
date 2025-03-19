@@ -5,16 +5,14 @@ import { getValidatorByAddress } from '@/app/services/api';
 import { formatDate, formatNumber, formatPercentage, formatAddress } from '@/app/utils/format';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 
-interface ValidatorDetailProps {
-  params: {
-    address: string;
-  };
-}
-
-export default function ValidatorDetailPage({ params }: ValidatorDetailProps) {
-  // Safely access the address parameter
-  const address = params.address;
+export default function ValidatorDetailPage() {
+  // Get the address parameter directly from the URL
+  const params = useParams();
+  const addressParam = params.address;
+  // Convert to string if it's an array
+  const address = Array.isArray(addressParam) ? addressParam[0] : addressParam;
   
   const [validator, setValidator] = useState<any>(null);
   const [loading, setLoading] = useState(true);
