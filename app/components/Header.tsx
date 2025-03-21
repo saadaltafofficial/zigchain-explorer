@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import Link from 'next/link';
 import SearchBar from './SearchBar';
 import ThemeSwitcher from './ThemeSwitcher';
@@ -37,7 +37,9 @@ const Header: React.FC = () => {
         </div>
         
         <div className="mt-4">
-          <SearchBar />
+          <Suspense fallback={<div className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-md">Loading search...</div>}>
+            <SearchBar />
+          </Suspense>
         </div>
       </div>
     </header>

@@ -1,11 +1,14 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import axios from "axios";
 import { ArrowRight, Clock, Database, Hash, ChevronLeft, ChevronRight, Copy, Check } from "lucide-react";
 import { fetchTransactions, Transaction } from "../utils/transactionFetcher";
 import TransactionDetailView from "../components/TransactionDetailView";
+
+// Get the RPC URL from environment variables
+const RPC_URL = process.env.RPC_URL || 'http://localhost:26657';
 
 interface TransactionDetail extends Transaction {
   tx_result: {
@@ -26,44 +29,44 @@ interface TransactionDetail extends Transaction {
 }
 
 export default function TransactionsPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-10">Loading transactions...</div>}>
+      <TransactionsContent />
+    </Suspense>
+  );
+}
+
+function TransactionsContent() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTx, setSelectedTx] = useState<TransactionDetail | null>(null);
   const [txLoading, setTxLoading] = useState(false);
   const [txError, setTxError] = useState<string | null>(null);
+  
+  // Filter state
   const [senderAddress, setSenderAddress] = useState<string | null>(null);
   const [receiverAddress, setReceiverAddress] = useState<string | null>(null);
   const [transactionAmount, setTransactionAmount] = useState<string | null>(null);
   const [transactionFee, setTransactionFee] = useState<string | null>(null);
-
+  
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const [totalItems, setTotalItems] = useState(0);
+  
+  // Transaction fetching state
   const [allFetchedTransactions, setAllFetchedTransactions] = useState<Transaction[]>([]);
-  const [maxBlocksToFetch, setMaxBlocksToFetch] = useState(50); // Default to fetch last 50 blocks
+  const [maxBlocksToFetch, setMaxBlocksToFetch] = useState(50);
   const [customBlocksInput, setCustomBlocksInput] = useState('');
 
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
-
+  
   // Get transaction hash from URL if present
   useEffect(() => {
     const txHash = searchParams.get('tx');
-    if (txHash) {
-      const tx = transactions.find(t => t.hash === txHash);
-      if (tx) {
-        fetchTransactionDetails(tx);
-      } else {
-        setSelectedTx(null);
-      }
-    } else {
-      setSelectedTx(null);
-    }
-
-    // Get URL parameters and set state accordingly
     const page = searchParams.get('page');
     const perPage = searchParams.get('per_page');
     const blocks = searchParams.get('blocks');
@@ -81,6 +84,18 @@ export default function TransactionsPage() {
       if (!isNaN(blockCount) && blockCount > 0) {
         setMaxBlocksToFetch(blockCount);
       }
+    }
+    
+    if (txHash) {
+      // Fetch transaction details
+      const tx = transactions.find(t => t.hash === txHash);
+      if (tx) {
+        fetchTransactionDetails(tx);
+      } else {
+        setSelectedTx(null);
+      }
+    } else {
+      setSelectedTx(null);
     }
   }, [searchParams]);
 
@@ -140,8 +155,10 @@ export default function TransactionsPage() {
       if (!tx.from || !tx.to || !tx.amount) {
         try {
           // Get more details about the transaction
-          const txResponse = await axios.get(`http://localhost:26657/tx`, {
-            params: { hash: `0x${tx.hash}` }
+          const txResponse = await axios.get(`${RPC_URL}/tx`, {
+            params: {
+              hash: `0x${tx.hash}`
+            }
           });
           
           if (txResponse.data && txResponse.data.result && txResponse.data.result.tx_result) {

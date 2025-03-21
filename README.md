@@ -2,7 +2,14 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+First, set up your environment variables:
+
+```bash
+# Create a .env file in the root directory with the following variables
+RPC_URL=http://localhost:26657
+```
+
+Then, run the development server:
 
 ```bash
 npm run dev

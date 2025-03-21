@@ -2,6 +2,9 @@ import axios from 'axios';
 import { fromBase64 } from "@cosmjs/encoding";
 import { sha256 } from "@cosmjs/crypto";
 
+// Get the RPC URL from environment variables
+const RPC_URL = process.env.RPC_URL || 'http://localhost:26657';
+
 export interface Transaction {
   hash: string;
   height: string;
@@ -30,7 +33,7 @@ export const fetchTransactions = async (blocksBack = 50, limit = 10): Promise<Tr
     console.log(`Fetching transactions from last ${blocksBack} blocks, limit: ${limit}`);
     
     // Step 1: Get latest block height
-    const latestBlockResponse = await axios.get(`http://localhost:26657/status`);
+    const latestBlockResponse = await axios.get(`${RPC_URL}/status`);
     const latestBlock = parseInt(latestBlockResponse.data.result.sync_info.latest_block_height);
 
     const startBlock = latestBlock;
@@ -42,7 +45,7 @@ export const fetchTransactions = async (blocksBack = 50, limit = 10): Promise<Tr
 
     // Step 2: Fetch transactions from latestBlock to (latestBlock - blocksBack)
     for (let currentBlock = startBlock; currentBlock >= endBlock && allTransactions.length < limit; currentBlock--) {
-      const response = await axios.get(`http://localhost:26657/block?height=${currentBlock}`);
+      const response = await axios.get(`${RPC_URL}/block?height=${currentBlock}`);
       const txs = response.data.result.block.data.txs || [];
       const blockTime = response.data.result.block.header.time;
 
@@ -56,7 +59,7 @@ export const fetchTransactions = async (blocksBack = 50, limit = 10): Promise<Tr
 
           // Get more details about the transaction
           try {
-            const txResponse = await axios.get(`http://localhost:26657/tx`, {
+            const txResponse = await axios.get(`${RPC_URL}/tx`, {
               params: { hash: `0x${txHash}` }
             });
 
@@ -153,7 +156,7 @@ export const fetchTransactionByHash = async (hash: string): Promise<Transaction 
     const formattedHash = hash.startsWith('0x') ? hash : `0x${hash}`;
     
     // Fetch the transaction details
-    const txResponse = await axios.get(`http://localhost:26657/tx`, {
+    const txResponse = await axios.get(`${RPC_URL}/tx`, {
       params: { hash: formattedHash }
     });
     
@@ -168,7 +171,7 @@ export const fetchTransactionByHash = async (hash: string): Promise<Transaction 
     const height = txData.height;
     
     // Fetch the block to get the timestamp
-    const blockResponse = await axios.get(`http://localhost:26657/block`, {
+    const blockResponse = await axios.get(`${RPC_URL}/block`, {
       params: { height }
     });
     

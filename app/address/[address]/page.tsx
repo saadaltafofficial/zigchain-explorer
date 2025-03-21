@@ -1,20 +1,27 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getAccountBalance, getAddressTransactions } from '../../services/api';
 import { formatTokenAmount, formatDate } from '../../utils/format';
 
 // Define the correct props type for Next.js App Router
 type Props = {
-  params: Promise<{ address: string }>;
-  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+  params: Promise<{ address: string }>,
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>,
 };
 
 export default async function AddressDetailPage({ params }: Props) {
   const { address } = await params;
-  
+  return (
+    <Suspense fallback={<div>Loading address details...</div>}>
+      <AddressDetailContent address={address} />
+    </Suspense>
+  );
+}
+
+function AddressDetailContent({ address }: { address: string }) {
   const [balances, setBalances] = useState<{ amount: string; denom: string }[]>([]);
   
   // Define a transaction type
@@ -42,7 +49,6 @@ export default async function AddressDetailPage({ params }: Props) {
   const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   
-  // Pagination state
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page') || '1');
