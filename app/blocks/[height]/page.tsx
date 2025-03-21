@@ -26,12 +26,12 @@ interface Block {
 
 // Define the correct props type for Next.js App Router
 type Props = {
-  params: { height: string };
-  searchParams?: { [key: string]: string | string[] | undefined };
+  params: Promise<{ height: string }>;
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export default function BlockDetailPage({ params }: Props) {
-  const { height } = params;
+export default async function BlockDetailPage({ params }: Props) {
+  const { height } = await params;
   
   const [block, setBlock] = useState<Block | null>(null);
   const [loading, setLoading] = useState(true);

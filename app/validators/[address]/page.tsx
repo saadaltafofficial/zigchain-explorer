@@ -42,12 +42,12 @@ interface Validator {
 
 // Define the correct props type for Next.js App Router
 type Props = {
-  params: { address: string };
-  searchParams?: { [key: string]: string | string[] | undefined };
+  params: Promise<{ address: string }>;
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export default function ValidatorDetailPage({ params }: Props) {
-  const { address } = params;
+export default async function ValidatorDetailPage({ params }: Props) {
+  const { address } = await params;
   
   const [validator, setValidator] = useState<Validator | null>(null);
   const [loading, setLoading] = useState(true);
