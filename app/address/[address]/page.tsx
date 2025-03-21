@@ -8,12 +8,12 @@ import { formatTokenAmount, formatDate } from '../../utils/format';
 
 // Define the correct props type for Next.js App Router
 type Props = {
-  params: { address: string };
-  searchParams?: { [key: string]: string | string[] | undefined };
+  params: Promise<{ address: string }>;
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export default function AddressDetailPage({ params }: Props) {
-  const { address } = params;
+export default async function AddressDetailPage({ params }: Props) {
+  const { address } = await params;
   
   const [balances, setBalances] = useState<{ amount: string; denom: string }[]>([]);
   
