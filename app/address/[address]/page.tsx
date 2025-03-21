@@ -6,13 +6,15 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { getAccountBalance, getAddressTransactions } from '../../services/api';
 import { formatTokenAmount, formatDate } from '../../utils/format';
 
-interface AddressDetailPageProps {
-  params: {
-    address: string;
-  };
+interface AddressParams {
+  address: string;
 }
 
-export default function AddressDetailPage({ params }: AddressDetailPageProps) {
+interface PageProps {
+  params: AddressParams;
+}
+
+export default function AddressDetailPage({ params }: PageProps) {
   const { address } = params;
   
   const [balances, setBalances] = useState<{ amount: string; denom: string }[]>([]);
@@ -43,8 +45,8 @@ export default function AddressDetailPage({ params }: AddressDetailPageProps) {
   const [refreshing, setRefreshing] = useState(false);
   
   // Pagination state
-  const searchParams = useSearchParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page') || '1');
   const [pagination, setPagination] = useState({
     currentPage: currentPage,
