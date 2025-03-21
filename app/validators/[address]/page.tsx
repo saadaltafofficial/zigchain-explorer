@@ -22,12 +22,17 @@ interface Validator {
     };
   };
   status: string;
-  tokens?: string;
-  delegator_shares?: string;
   unbonding_height?: string;
   unbonding_time?: string;
-  operator_address: string;
-  jailed: boolean;
+  jailed?: boolean;
+  tokens?: string;
+  delegator_shares?: string;
+  uptime?: number;
+  lastSeen?: string;
+  consensusPubkey?: string;
+  selfDelegation?: string;
+  selfDelegationPercentage?: string;
+  operator_address?: string;
   min_self_delegation?: string;
   consensus_pubkey?: {
     '@type': string;
@@ -35,12 +40,14 @@ interface Validator {
   };
 }
 
-export default function ValidatorDetailPage() {
-  // Get the address parameter directly from the URL
-  const params = useParams();
-  const addressParam = params.address;
-  // Convert to string if it's an array
-  const address = Array.isArray(addressParam) ? addressParam[0] : addressParam;
+// Define the correct props type for Next.js App Router
+type Props = {
+  params: { address: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
+};
+
+export default function ValidatorDetailPage({ params }: Props) {
+  const { address } = params;
   
   const [validator, setValidator] = useState<Validator | null>(null);
   const [loading, setLoading] = useState(true);
@@ -160,7 +167,7 @@ export default function ValidatorDetailPage() {
       
       <h1 className="text-3xl font-bold mb-2">{description?.moniker || 'Unknown Validator'}</h1>
       <p className="text-gray-600 dark:text-gray-400 mb-6">
-        {formatAddress(operator_address)}
+        {operator_address ? formatAddress(operator_address) : 'Address not available'}
       </p>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">

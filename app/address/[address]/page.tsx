@@ -6,15 +6,13 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { getAccountBalance, getAddressTransactions } from '../../services/api';
 import { formatTokenAmount, formatDate } from '../../utils/format';
 
-interface AddressParams {
-  address: string;
-}
+// Define the correct props type for Next.js App Router
+type Props = {
+  params: { address: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
+};
 
-interface PageProps {
-  params: AddressParams;
-}
-
-export default function AddressDetailPage({ params }: PageProps) {
+export default function AddressDetailPage({ params }: Props) {
   const { address } = params;
   
   const [balances, setBalances] = useState<{ amount: string; denom: string }[]>([]);

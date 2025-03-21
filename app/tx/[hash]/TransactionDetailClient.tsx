@@ -24,11 +24,14 @@ interface Transaction {
   denom?: string;
 }
 
-export default function TransactionDetailClient() {
-  const params = useParams();
-  const hashParam = params.hash;
-  // Convert to string if it's an array
-  const hash = Array.isArray(hashParam) ? hashParam[0] : hashParam;
+// Define the correct props type for Next.js App Router
+type Props = {
+  params: { hash: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
+};
+
+export default function TransactionDetailClient({ params }: Props) {
+  const { hash } = params;
   
   const router = useRouter();
   const [transaction, setTransaction] = useState<Transaction | null>(null);

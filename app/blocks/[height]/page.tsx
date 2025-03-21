@@ -24,12 +24,14 @@ interface Block {
   transactions: string[];
 }
 
-export default function BlockDetailPage() {
-  // Get the height parameter from the URL
-  const params = useParams();
-  const heightParam = params.height;
-  // Convert to string if it's an array
-  const height = Array.isArray(heightParam) ? heightParam[0] : heightParam;
+// Define the correct props type for Next.js App Router
+type Props = {
+  params: { height: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
+};
+
+export default function BlockDetailPage({ params }: Props) {
+  const { height } = params;
   
   const [block, setBlock] = useState<Block | null>(null);
   const [loading, setLoading] = useState(true);
