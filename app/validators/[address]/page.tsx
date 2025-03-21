@@ -5,7 +5,6 @@ import { getValidatorByAddress } from '@/app/services/api';
 import { formatDate, formatNumber, formatPercentage, formatAddress } from '@/app/utils/format';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
 
 interface Validator {
   address: string;

@@ -6,7 +6,6 @@ import { formatDate } from '@/app/utils/format';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import HashDisplay from '@/app/components/HashDisplay';
-import { useParams } from 'next/navigation';
 
 interface Block {
   height: number;

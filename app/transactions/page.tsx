@@ -3,9 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import axios from "axios";
-import { fromBase64 } from "@cosmjs/encoding";
-import { sha256 } from "@cosmjs/crypto";
-import Link from "next/link";
 import { ArrowRight, Clock, Database, Hash, ChevronLeft, ChevronRight, Copy, Check } from "lucide-react";
 import { fetchTransactions, Transaction } from "../utils/transactionFetcher";
 import TransactionDetailView from "../components/TransactionDetailView";

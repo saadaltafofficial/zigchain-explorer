@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import {  useRouter } from 'next/navigation';
 import { fetchTransactionByHash } from '../../utils/transactionFetcher';
 import TransactionDetailView from '../../components/TransactionDetailView';
-import HashDisplay from '../../components/HashDisplay';
 
 interface Transaction {
   hash: string;
