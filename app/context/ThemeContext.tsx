@@ -21,9 +21,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Effect to initialize theme from localStorage after mount
   useEffect(() => {
     setMounted(true);
-    const storedTheme = localStorage.getItem('theme') as Theme | null;
-    if (storedTheme && ['light', 'dark', 'system'].includes(storedTheme)) {
-      setTheme(storedTheme);
+    // Check if localStorage is available
+    if (typeof window !== 'undefined') {
+      try {
+        const storedTheme = localStorage.getItem('theme');
+        if (storedTheme) {
+          setTheme(storedTheme as Theme);
+        }
+      } catch {
+        // Ignore localStorage errors
+      }
     }
   }, []);
 
@@ -74,7 +81,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       try {
         mediaQuery.addEventListener('change', handleChange);
         return () => mediaQuery.removeEventListener('change', handleChange);
-      } catch (e) {
+      } catch (_) {
         // Fallback for older browsers
         mediaQuery.addListener(handleChange);
         return () => mediaQuery.removeListener(handleChange);

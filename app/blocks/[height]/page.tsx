@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getBlockByHeight } from '@/app/services/api';
-import { formatDate, formatNumber } from '@/app/utils/format';
+import { formatDate } from '@/app/utils/format';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import HashDisplay from '@/app/components/HashDisplay';

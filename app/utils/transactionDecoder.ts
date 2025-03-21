@@ -12,7 +12,7 @@ interface DecodedTransaction {
   recipient?: string;
   amount?: string;
   denom?: string;
-  messages?: any[];
+  messages?: unknown[];
   validators?: string[];
   delegator?: string;
   fee?: string;
@@ -86,152 +86,44 @@ export function decodeTransaction(base64Data: string): DecodedTransaction {
     if (base64Data.includes('{') && base64Data.includes('}')) {
       try {
         // Try to parse as JSON
-        const jsonData = JSON.parse(base64Data);
+        const jsonData: { [key: string]: any } = JSON.parse(base64Data);
         console.log("Parsed as JSON:", jsonData);
         
         // Try to extract transaction type and details from JSON
         if (jsonData.type && jsonData.type.includes('/')) {
           const formattedType = formatTransactionType(jsonData.type);
           
-          let decoded: DecodedTransaction = {
-            type: formattedType,
-            rawData: base64Data,
-          };
-          
-          // Extract details based on message type
-          if (formattedType === 'Send' || formattedType.toLowerCase().includes('send')) {
-            decoded.sender = jsonData.from_address || jsonData.fromAddress || jsonData.sender;
-            decoded.recipient = jsonData.to_address || jsonData.toAddress || jsonData.recipient;
-            
-            if (jsonData.amount && Array.isArray(jsonData.amount) && jsonData.amount.length > 0) {
-              decoded.amount = jsonData.amount[0].amount;
-              decoded.denom = jsonData.amount[0].denom;
-            }
-          }
-          
-          return decoded;
-        }
-        
-        // If we can't extract type from JSON, try to infer from content
-        if (jsonData.from_address || jsonData.fromAddress) {
+          // Create and return the decoded transaction directly
           return {
-            type: "Send",
-            sender: jsonData.from_address || jsonData.fromAddress,
-            recipient: jsonData.to_address || jsonData.toAddress,
-            amount: Array.isArray(jsonData.amount) && jsonData.amount.length > 0 ? jsonData.amount[0].amount : undefined,
-            denom: Array.isArray(jsonData.amount) && jsonData.amount.length > 0 ? jsonData.amount[0].denom : undefined,
+            type: formattedType,
             rawData: base64Data,
           };
         }
       } catch (jsonError) {
-        console.log("Not valid JSON, continuing with base64 decoding");
+        console.error("Error parsing JSON:", jsonError);
+        // Continue with base64 decoding
       }
     }
     
-    // Special handling for the pipe-delimited format seen in the screenshot
-    if (base64Data.includes('||')) {
-      console.log("Detected pipe-delimited format, attempting to parse");
-      
-      // Check for Send transaction format with pipes
-      if (base64Data.startsWith('Send||')) {
-        try {
-          // Handle the format: Send||*address1*||*address2*||*denom*|amount
-          // or: Send||address1||address2||amount|denom
-          const parts = base64Data.split('||');
-          
-          if (parts.length >= 4) {
-            const type = parts[0]; // "Send"
-            
-            // Clean up the addresses (remove * if present)
-            const sender = parts[1].replace(/\*/g, '');
-            const recipient = parts[2].replace(/\*/g, '');
-            
-            // The last part might contain amount and denom
-            let amount = '';
-            let denom = '';
-            
-            // Check if the last part contains a pipe
-            if (parts[3].includes('|')) {
-              const amountParts = parts[3].split('|');
-              denom = amountParts[0].replace(/\*/g, '');
-              amount = amountParts[1];
-            } else if (parts.length > 4) {
-              // Format might be Send||sender||recipient||denom||amount
-              denom = parts[3].replace(/\*/g, '');
-              amount = parts[4];
-            }
-            
-            console.log(`Parsed pipe-delimited transaction: type=${type}, sender=${sender}, recipient=${recipient}, amount=${amount}, denom=${denom}`);
-            
-            return {
-              type: "Send",
-              sender: sender,
-              recipient: recipient,
-              amount: amount,
-              denom: denom,
-              rawData: base64Data
-            };
-          }
-        } catch (parseError) {
-          console.error("Error parsing pipe-delimited format:", parseError);
-        }
-      }
-    }
-    
-    // Try to decode the base64 data
-    let binaryData;
+    // Decode the base64 data
+    let txBytes;
     try {
-      binaryData = fromBase64(base64Data);
-      console.log("Successfully decoded base64 to binary, length:", binaryData.length);
-    } catch (decodeError) {
-      console.error("Error decoding base64:", decodeError);
-      
-      // If base64 decoding fails, try to parse the string directly
-      if (base64Data.includes('zig1') || base64Data.includes('ZIG1')) {
-        // This might be a raw transaction string with addresses
-        const addressRegex = /(zig1[a-zA-Z0-9]{38,44})/g;
-        const addresses = base64Data.match(addressRegex);
-        
-        if (addresses && addresses.length >= 2) {
-          // Extract amount and denom if present
-          const amountRegex = /([0-9]+)([a-zA-Z]+)/g;
-          const amountMatch = amountRegex.exec(base64Data);
-          
-          return {
-            type: "Send",
-            sender: addresses[0],
-            recipient: addresses[1],
-            amount: amountMatch ? amountMatch[1] : undefined,
-            denom: amountMatch ? amountMatch[2] : undefined,
-            rawData: base64Data,
-          };
-        }
-        
-        // If we only found one address, it might be a validator operation
-        if (addresses && addresses.length === 1) {
-          return {
-            type: "Validator Operation",
-            sender: addresses[0],
-            rawData: base64Data,
-          };
-        }
-      }
-      
-      return { 
-        type: "Unknown Transaction", 
-        rawData: base64Data 
-      };
+      txBytes = fromBase64(base64Data);
+    } catch (e) {
+      console.error("Error decoding base64:", e);
+      return { type: "Invalid Base64", rawData: base64Data };
     }
     
     // Try to decode as Any message
     try {
-      const anyMessage = Any.decode(binaryData);
+      const anyMessage = Any.decode(txBytes);
       console.log("Decoded as Any message, typeUrl:", anyMessage.typeUrl);
       
       // Get friendly name for the transaction type
       const friendlyType = formatTransactionType(anyMessage.typeUrl);
       
-      let decoded: DecodedTransaction = {
+      // Create the decoded transaction
+      const decoded: DecodedTransaction = {
         type: friendlyType,
         rawData: base64Data,
       };
@@ -246,14 +138,11 @@ export function decodeTransaction(base64Data: string): DecodedTransaction {
             amount: msgSend.amount
           });
           
-          decoded = {
-            type: "Send",
-            sender: msgSend.fromAddress,
-            recipient: msgSend.toAddress,
-            amount: msgSend.amount[0]?.amount,
-            denom: msgSend.amount[0]?.denom,
-            rawData: base64Data,
-          };
+          decoded.type = "Send";
+          decoded.sender = msgSend.fromAddress;
+          decoded.recipient = msgSend.toAddress;
+          decoded.amount = msgSend.amount[0]?.amount;
+          decoded.denom = msgSend.amount[0]?.denom;
           break;
 
         case "/cosmos.staking.v1beta1.MsgDelegate":
@@ -265,42 +154,33 @@ export function decodeTransaction(base64Data: string): DecodedTransaction {
             amount: msgDelegate.amount
           });
           
-          decoded = {
-            type: "Delegate",
-            sender: msgDelegate.delegatorAddress,
-            validators: [msgDelegate.validatorAddress],
-            amount: msgDelegate.amount?.amount,
-            denom: msgDelegate.amount?.denom,
-            rawData: base64Data,
-          };
+          decoded.type = "Delegate";
+          decoded.sender = msgDelegate.delegatorAddress;
+          decoded.validators = [msgDelegate.validatorAddress];
+          decoded.amount = msgDelegate.amount?.amount;
+          decoded.denom = msgDelegate.amount?.denom;
           break;
           
         case "/cosmos.staking.v1beta1.MsgUndelegate":
           console.log("Decoding as MsgUndelegate");
           const msgUndelegate = MsgUndelegate.decode(anyMessage.value);
           
-          decoded = {
-            type: "Undelegate",
-            sender: msgUndelegate.delegatorAddress,
-            validators: [msgUndelegate.validatorAddress],
-            amount: msgUndelegate.amount?.amount,
-            denom: msgUndelegate.amount?.denom,
-            rawData: base64Data,
-          };
+          decoded.type = "Undelegate";
+          decoded.sender = msgUndelegate.delegatorAddress;
+          decoded.validators = [msgUndelegate.validatorAddress];
+          decoded.amount = msgUndelegate.amount?.amount;
+          decoded.denom = msgUndelegate.amount?.denom;
           break;
           
         case "/cosmos.staking.v1beta1.MsgBeginRedelegate":
           console.log("Decoding as MsgBeginRedelegate");
           const msgRedelegate = MsgBeginRedelegate.decode(anyMessage.value);
           
-          decoded = {
-            type: "Redelegate",
-            sender: msgRedelegate.delegatorAddress,
-            validators: [msgRedelegate.validatorSrcAddress, msgRedelegate.validatorDstAddress],
-            amount: msgRedelegate.amount?.amount,
-            denom: msgRedelegate.amount?.denom,
-            rawData: base64Data,
-          };
+          decoded.type = "Redelegate";
+          decoded.sender = msgRedelegate.delegatorAddress;
+          decoded.validators = [msgRedelegate.validatorSrcAddress, msgRedelegate.validatorDstAddress];
+          decoded.amount = msgRedelegate.amount?.amount;
+          decoded.denom = msgRedelegate.amount?.denom;
           break;
 
         case "/cosmos.gov.v1beta1.MsgVote":
@@ -312,23 +192,17 @@ export function decodeTransaction(base64Data: string): DecodedTransaction {
             option: msgVote.option
           });
           
-          decoded = {
-            type: "Vote",
-            sender: msgVote.voter,
-            rawData: base64Data,
-          };
+          decoded.type = "Vote";
+          decoded.sender = msgVote.voter;
           break;
           
         case "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward":
           console.log("Decoding as MsgWithdrawDelegatorReward");
           const msgWithdraw = MsgWithdrawDelegatorReward.decode(anyMessage.value);
           
-          decoded = {
-            type: "Claim Rewards",
-            sender: msgWithdraw.delegatorAddress,
-            validators: [msgWithdraw.validatorAddress],
-            rawData: base64Data,
-          };
+          decoded.type = "Claim Rewards";
+          decoded.sender = msgWithdraw.delegatorAddress;
+          decoded.validators = [msgWithdraw.validatorAddress];
           break;
 
         case "/cosmos.crypto.secp256k1.PubKey":
@@ -338,11 +212,8 @@ export function decodeTransaction(base64Data: string): DecodedTransaction {
             keyLength: pubKey.key.length
           });
           
-          decoded = {
-            type: "Public Key",
-            publicKey: Buffer.from(pubKey.key).toString("hex"),
-            rawData: base64Data,
-          };
+          decoded.type = "Public Key";
+          decoded.publicKey = Buffer.from(pubKey.key).toString("hex");
           break;
 
         default:
@@ -364,14 +235,14 @@ export function decodeTransaction(base64Data: string): DecodedTransaction {
       // Try a fallback approach - look for common patterns in the binary data
       try {
         // Convert binary to hex for pattern matching
-        const hexData = Buffer.from(binaryData).toString('hex');
+        const hexData = Buffer.from(txBytes).toString('hex');
         console.log("Converted to hex for pattern matching, length:", hexData.length);
         
         // Convert binary to text for pattern matching
-        const textData = Buffer.from(binaryData).toString('utf8', 0, Math.min(binaryData.length, 1000));
+        const textData = Buffer.from(txBytes).toString('utf8', 0, Math.min(txBytes.length, 1000));
         console.log("Converted to text for pattern matching (first 1000 chars):", textData);
         
-        let decoded: DecodedTransaction = {
+        const decoded: DecodedTransaction = {
           type: "Unknown",
           rawData: base64Data,
         };
@@ -387,14 +258,11 @@ export function decodeTransaction(base64Data: string): DecodedTransaction {
           const amountRegex = /([0-9]+)([a-zA-Z]+)/g;
           const amountMatch = amountRegex.exec(textData);
           
-          decoded = {
-            type: "Send",
-            sender: addresses[0],
-            recipient: addresses[1],
-            amount: amountMatch ? amountMatch[1] : undefined,
-            denom: amountMatch ? amountMatch[2] : undefined,
-            rawData: base64Data,
-          };
+          decoded.type = "Send";
+          decoded.sender = addresses[0];
+          decoded.recipient = addresses[1];
+          decoded.amount = amountMatch ? amountMatch[1] : undefined;
+          decoded.denom = amountMatch ? amountMatch[2] : undefined;
           
           return decoded;
         }

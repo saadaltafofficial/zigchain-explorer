@@ -4,10 +4,25 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { fetchTransactionByHash } from '../../utils/transactionFetcher';
 import TransactionDetailView from '../../components/TransactionDetailView';
-import Link from 'next/link';
-import { formatDate } from '../../utils/format';
 import HashDisplay from '../../components/HashDisplay';
-import { decodeTransaction } from '../../utils/transactionDecoder';
+
+interface Transaction {
+  hash: string;
+  height: string;
+  time: string;
+  tx: string;
+  tx_result: {
+    code: number;
+    gas_used: string;
+    gas_wanted: string;
+    log: string;
+  };
+  status?: 'success' | 'failed';
+  from?: string;
+  to?: string;
+  amount?: string;
+  denom?: string;
+}
 
 export default function TransactionDetailClient() {
   const params = useParams();
@@ -16,7 +31,7 @@ export default function TransactionDetailClient() {
   const hash = Array.isArray(hashParam) ? hashParam[0] : hashParam;
   
   const router = useRouter();
-  const [transaction, setTransaction] = useState<any>(null);
+  const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [referrer, setReferrer] = useState<string>('/');

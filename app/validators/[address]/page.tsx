@@ -7,6 +7,34 @@ import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
+interface Validator {
+  address: string;
+  description?: {
+    moniker?: string;
+    identity?: string;
+    website?: string;
+    details?: string;
+  };
+  votingPower: bigint | string;
+  commission?: {
+    commissionRates?: {
+      rate: string;
+    };
+  };
+  status: string;
+  tokens?: string;
+  delegator_shares?: string;
+  unbonding_height?: string;
+  unbonding_time?: string;
+  operator_address: string;
+  jailed: boolean;
+  min_self_delegation?: string;
+  consensus_pubkey?: {
+    '@type': string;
+    key: string;
+  };
+}
+
 export default function ValidatorDetailPage() {
   // Get the address parameter directly from the URL
   const params = useParams();
@@ -14,7 +42,7 @@ export default function ValidatorDetailPage() {
   // Convert to string if it's an array
   const address = Array.isArray(addressParam) ? addressParam[0] : addressParam;
   
-  const [validator, setValidator] = useState<any>(null);
+  const [validator, setValidator] = useState<Validator | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -109,7 +137,7 @@ export default function ValidatorDetailPage() {
     jailed,
     status,
     tokens,
-    delegator_shares,
+    // delegator_shares, // Commented out as it's not used
     commission,
     min_self_delegation,
     unbonding_height,
@@ -119,7 +147,7 @@ export default function ValidatorDetailPage() {
 
   // Staking information
   const votingPower = tokens ? formatNumber(parseInt(tokens) / 1000000) : '0';
-  const commissionRate = commission?.commission_rates?.rate ? formatPercentage(commission.commission_rates.rate) : '0%';
+  const commissionRate = commission?.commissionRates?.rate ? formatPercentage(commission.commissionRates.rate) : '0%';
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -203,7 +231,7 @@ export default function ValidatorDetailPage() {
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Unbonding Info</p>
                 <p className="font-medium">
-                  Height: {unbonding_height}, Time: {formatDate(unbonding_time)}
+                  Height: {unbonding_height || 'N/A'}, Time: {unbonding_time ? formatDate(unbonding_time) : 'N/A'}
                 </p>
               </div>
             )}

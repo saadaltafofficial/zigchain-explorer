@@ -24,7 +24,7 @@ export const formatNumber = (num: number): string => {
 };
 
 // Truncate strings (like addresses or hashes)
-export const truncateString = (str: any, startChars: number = 8, endChars: number = 8): string => {
+export const truncateString = (str: string, startChars: number = 8, endChars: number = 8): string => {
   try {
     if (str === null || str === undefined) return 'Unknown';
     

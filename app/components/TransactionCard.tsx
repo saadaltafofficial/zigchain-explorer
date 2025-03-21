@@ -10,7 +10,7 @@ interface TransactionCardProps {
   status: 'success' | 'failed';
   from?: string;
   to?: string;
-  blockHeight?: number;
+  blockHeight?: string | number;
 }
 
 const TransactionCard: React.FC<TransactionCardProps> = ({ 

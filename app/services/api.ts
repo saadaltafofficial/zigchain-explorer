@@ -1,6 +1,5 @@
 import axios from 'axios';
 import { StargateClient } from '@cosmjs/stargate';
-import { IndexedTx } from '@cosmjs/stargate';
 
 // Define additional interfaces to extend the existing types
 interface ExtendedBlockHeader {
@@ -8,11 +7,16 @@ interface ExtendedBlockHeader {
   time?: string;
 }
 
+interface TransactionMessage {
+  typeUrl: string;
+  value: unknown;
+}
+
 interface ExtendedTx {
   tx: {
     memo?: string;
     body?: {
-      messages: any[];
+      messages: TransactionMessage[];
     };
   };
   fee?: {
@@ -20,19 +24,15 @@ interface ExtendedTx {
   };
 }
 
-// Define a custom validator interface
-interface Validator {
-  address: string;
-  description?: {
-    moniker?: string;
-  };
-  votingPower: bigint;
-  commission?: {
-    commissionRates?: {
-      rate: string;
-    };
-  };
-  status: string;
+// Define types for transactions and responses
+interface Transaction {
+  hash: string;
+  height: number;
+  time: string;
+  gasUsed: bigint;
+  gasWanted: bigint;
+  success: boolean;
+  rawLog: string;
 }
 
 // Remote endpoints
@@ -49,25 +49,14 @@ const getEndpoints = () => {
 };
 
 // Helper function to log and handle errors
-const handleApiError = (error: any, context: string) => {
-  console.error(`Error in ${context}:`, error);
-  
-  // Log more detailed information about the error
-  if (error.response) {
-    // The request was made and the server responded with a status code
-    // that falls out of the range of 2xx
-    console.error('Error response data:', error.response.data);
-    console.error('Error response status:', error.response.status);
-    console.error('Error response headers:', error.response.headers);
-  } else if (error.request) {
-    // The request was made but no response was received
-    console.error('Error request:', error.request);
+const handleApiError = (error: unknown, context: string): never => {
+  if (error instanceof Error) {
+    console.error(`API Error (${context}):`, error.message);
+    throw new Error(`${context}: ${error.message}`);
   } else {
-    // Something happened in setting up the request that triggered an Error
-    console.error('Error message:', error.message);
+    console.error(`API Error (${context}):`, error);
+    throw new Error(`${context}: Unknown error`);
   }
-  
-  throw error;
 };
 
 // Initialize Stargate client
@@ -85,122 +74,60 @@ export const getStargateClient = async () => {
 export const getLatestBlocks = async (count = 10) => {
   try {
     const { RPC_ENDPOINT } = getEndpoints();
-    console.log(`Fetching latest blocks from ${RPC_ENDPOINT}`);
     
-    try {
-      const statusResponse = await axios.get(`${RPC_ENDPOINT}/status`, {
-        timeout: 5000 // Add timeout to prevent hanging requests
+    // Get latest block height
+    const statusResponse = await axios.get(`${RPC_ENDPOINT}/status`);
+    const latestHeight = parseInt(statusResponse.data.result.sync_info.latest_block_height);
+    
+    // Fetch blocks
+    const blocks = [];
+    
+    for (let i = 0; i < count && latestHeight - i > 0; i++) {
+      const height = latestHeight - i;
+      const blockResponse = await axios.get(`${RPC_ENDPOINT}/block`, {
+        params: { height }
       });
       
-      if (!statusResponse.data || !statusResponse.data.result || !statusResponse.data.result.sync_info) {
-        console.error('Invalid status response:', statusResponse.data);
-        return handleApiError(new Error('Invalid status response'), 'getLatestBlocks');
-      }
+      const blockData = blockResponse.data.result;
+      const txCount = blockData.block.data.txs ? blockData.block.data.txs.length : 0;
       
-      const latestHeight = parseInt(statusResponse.data.result.sync_info.latest_block_height);
-      console.log(`Latest block height: ${latestHeight}`);
-      
-      // Calculate the range of blocks to fetch
-      const minHeight = Math.max(1, latestHeight - count + 1);
-      console.log(`Fetching blocks from height ${minHeight} to ${latestHeight}`);
-      
-      const blocks = [];
-      
-      // Fetch each block in the range
-      for (let height = latestHeight; height >= minHeight; height--) {
-        try {
-          const blockResponse = await axios.get(`${RPC_ENDPOINT}/block`, {
-            params: { height }
-          });
-          
-          const blockData = blockResponse.data.result;
-          const txs = blockData.block.data.txs || [];
-          
-          // Get transaction hashes by querying each transaction
-          const txHashes = [];
-          for (const tx of txs) {
-            try {
-              // Calculate the transaction hash from the transaction data
-              // This is a SHA-256 hash of the transaction data
-              const txHash = await getTxHashFromBase64(tx);
-              txHashes.push(txHash);
-            } catch (e) {
-              console.error(`Error getting transaction hash: ${e}`);
-              // Generate a placeholder hash to maintain the transaction count
-              const placeholderHash = `placeholder_${Date.now().toString(16)}_${Math.random().toString(16).substring(2, 10)}`;
-              console.log(`Using placeholder hash: ${placeholderHash}`);
-              txHashes.push(placeholderHash);
-            }
-          }
-          
-          blocks.push({
-            height,
-            hash: blockData.block_id.hash,
-            time: blockData.block.header.time,
-            txCount: txs.length,
-            transactions: txHashes,
-            proposer: blockData.block.header.proposer_address
-          });
-        } catch (blockError) {
-          console.error(`Error fetching block at height ${height}:`, blockError);
-        }
-      }
-      
-      return blocks;
-    } catch (statusError) {
-      console.error('Error fetching status:', statusError);
-      return handleApiError(statusError, 'getLatestBlocks');
+      blocks.push({
+        height: height,
+        hash: blockData.block_id.hash,
+        time: blockData.block.header.time,
+        proposer: blockData.block.header.proposer_address,
+        numTxs: txCount,
+      });
     }
+    
+    return blocks;
   } catch (error) {
-    return handleApiError(error, 'getLatestBlocks');
+    return handleApiError(error, 'Failed to fetch latest blocks');
   }
 };
 
 // Helper function to get transaction hash from base64 encoded transaction data
-async function getTxHashFromBase64(txBase64: string): Promise<string> {
+export const getTxHashFromBase64 = async (txBase64: string): Promise<string> => {
   try {
-    // First, try to get the transaction hash by querying the transaction by its raw data
     const { RPC_ENDPOINT } = getEndpoints();
     
-    try {
-      // Use the tx_search endpoint to find the transaction by its exact data
-      console.log('Searching for transaction with tx_search endpoint...');
-      
-      // Check if the endpoint is available first with a simple status request
-      try {
-        const statusResponse = await axios.get(`${RPC_ENDPOINT}/status`, {
-          timeout: 3000
-        });
-        console.log('RPC node is available:', statusResponse.status === 200);
-      } catch (statusError) {
-        console.error('RPC node status check failed:', statusError);
-        // If status check fails, skip tx_search and go straight to fallback methods
-        throw new Error('RPC node unavailable');
+    // First, try to search for the transaction
+    const searchResponse = await axios.get(`${RPC_ENDPOINT}/tx_search`, {
+      params: {
+        query: `tx.hash exists`,
+        per_page: 100
       }
-      
-      const searchResponse = await axios.get(`${RPC_ENDPOINT}/tx_search`, {
-        params: {
-          query: `tx.hash EXISTS`,
-          page: 1,
-          per_page: 100
-        },
-        timeout: 5000 // Add a timeout to prevent hanging requests
+    });
+    
+    if (searchResponse.data && searchResponse.data.result && searchResponse.data.result.txs) {
+      // Look for a transaction that matches our base64 data
+      const matchingTx = searchResponse.data.result.txs.find((tx: { tx: string }) => {
+        return tx.tx === txBase64;
       });
       
-      if (searchResponse.data && searchResponse.data.result && searchResponse.data.result.txs) {
-        // Look for a transaction that matches our base64 data
-        const matchingTx = searchResponse.data.result.txs.find((tx: any) => {
-          return tx.tx === txBase64;
-        });
-        
-        if (matchingTx) {
-          console.log('Found matching transaction hash:', matchingTx.hash);
-          return matchingTx.hash.toLowerCase();
-        }
+      if (matchingTx) {
+        return matchingTx.hash;
       }
-    } catch (searchError) {
-      console.error('Error searching for transaction:', searchError);
-      // Continue to fallback methods
     }
     
     // If we couldn't find the transaction by querying, calculate the hash
@@ -508,13 +435,41 @@ export const getAddressTransactions = async (address: string, page = 1, limit = 
     // Using remote node endpoint
     const client = await getStargateClient();
     
-    // Search for sent transactions
-    const sentTxs = await client.searchTx(`message.sender='${address}'`);
-    console.log(`Found ${sentTxs.length} sent transactions for address ${address}`);
+    // For CosmJS, we need to optimize our approach since it doesn't directly support pagination in searchTx
     
-    // Search for received transactions (this query may need to be adjusted based on your chain's indexing)
-    const receivedTxs = await client.searchTx(`transfer.recipient='${address}'`);
-    console.log(`Found ${receivedTxs.length} received transactions for address ${address}`);
+    // We'll limit the number of transactions we fetch to avoid performance issues
+    // Only fetch what we need for the current page plus a small buffer
+    const maxTxsToFetch = Math.min(50, page * limit + 10); 
+    
+    console.log(`Fetching up to ${maxTxsToFetch} transactions for address ${address}`);
+    
+    // Use a more specific query with a limit parameter if available
+    // This will help reduce the number of transactions fetched
+    let sentTxsPromise, receivedTxsPromise;
+    
+    try {
+      // Try with limit parameter first (if supported by the client)
+      // Note: Depending on the CosmJS version, the searchTx method might not accept a second parameter
+      // @ts-ignore - Ignoring type error as we're handling the fallback if this fails
+      sentTxsPromise = client.searchTx(`message.sender='${address}'`, { limit: maxTxsToFetch });
+    } catch (error) {
+      // Fallback to standard query without limit
+      sentTxsPromise = client.searchTx(`message.sender='${address}'`);
+    }
+    
+    try {
+      // Try with limit parameter first (if supported by the client)
+      // @ts-ignore - Ignoring type error as we're handling the fallback if this fails
+      receivedTxsPromise = client.searchTx(`transfer.recipient='${address}'`, { limit: maxTxsToFetch });
+    } catch (error) {
+      // Fallback to standard query without limit
+      receivedTxsPromise = client.searchTx(`transfer.recipient='${address}'`);
+    }
+    
+    // Execute both queries in parallel
+    const [sentTxs, receivedTxs] = await Promise.all([sentTxsPromise, receivedTxsPromise]);
+    
+    console.log(`Found ${sentTxs.length} sent transactions and ${receivedTxs.length} received transactions for address ${address}`);
     
     // Combine and deduplicate transactions
     const allTxs = [...sentTxs, ...receivedTxs];
@@ -525,17 +480,22 @@ export const getAddressTransactions = async (address: string, page = 1, limit = 
     
     // Calculate pagination
     const totalItems = uniqueTxs.length;
-    const totalPages = Math.ceil(totalItems / limit);
+    const totalPages = Math.ceil(totalItems / limit) || 1; // Ensure at least 1 page
     const startIndex = (page - 1) * limit;
     const endIndex = Math.min(startIndex + limit, totalItems);
+    
+    // Only get the transactions for the current page
     const paginatedTxs = uniqueTxs.slice(startIndex, endIndex);
     
-    // Format transactions
+    console.log(`Returning ${paginatedTxs.length} transactions for page ${page} (items ${startIndex+1}-${endIndex} of ${totalItems})`);
+    
+    // Format transactions for the current page only - using a faster approach
+    // Instead of waiting for all timestamps, we'll use a default timestamp and update them later
     const formattedTxs = paginatedTxs.map(tx => {
       return {
         hash: tx.hash,
         height: tx.height,
-        time: new Date().toISOString(), // Placeholder - actual timestamp not available directly
+        time: new Date().toISOString(), // Default timestamp
         gasUsed: tx.gasUsed,
         gasWanted: tx.gasWanted,
         success: tx.code === 0,
@@ -543,7 +503,8 @@ export const getAddressTransactions = async (address: string, page = 1, limit = 
       };
     });
     
-    return {
+    // Return the transactions immediately with default timestamps
+    const result = {
       transactions: formattedTxs,
       pagination: {
         currentPage: page,
@@ -552,6 +513,47 @@ export const getAddressTransactions = async (address: string, page = 1, limit = 
         limit
       }
     };
+    
+    // Then update the timestamps in the background
+    // This won't block the UI from displaying the transactions
+    setTimeout(async () => {
+      try {
+        // Update timestamps in the background - but limit concurrent requests
+        const updateBatchSize = 3; // Process 3 at a time to avoid overwhelming the node
+        
+        for (let i = 0; i < formattedTxs.length; i += updateBatchSize) {
+          const batch = formattedTxs.slice(i, i + updateBatchSize);
+          const batchPromises = batch.map(async (_, index) => {
+            const txIndex = i + index;
+            if (txIndex >= formattedTxs.length) return;
+            
+            try {
+              const tx = paginatedTxs[txIndex];
+              const blockData = await client.getBlock(tx.height);
+              
+              // Handle the timestamp based on the type returned
+              if (blockData.header.time) {
+                if (typeof blockData.header.time === 'string') {
+                  formattedTxs[txIndex].time = blockData.header.time;
+                } else {
+                  // Assume it's a Date object or can be converted to string
+                  formattedTxs[txIndex].time = String(blockData.header.time);
+                }
+              }
+            } catch (error) {
+              console.warn(`Could not get timestamp for block at height ${paginatedTxs[txIndex]?.height}`);
+            }
+          });
+          
+          // Wait for this batch to complete before moving to the next
+          await Promise.all(batchPromises);
+        }
+      } catch (error) {
+        console.error('Error updating timestamps:', error);
+      }
+    }, 0);
+    
+    return result;
   } catch (error) {
     console.error('Error fetching address transactions:', error);
     return {
@@ -568,48 +570,38 @@ export const getAddressTransactions = async (address: string, page = 1, limit = 
 
 export const getChainInfo = async () => {
   try {
-    console.log("Fetching chain info from RPC...");
-
-    // Fetch chain status from the RPC endpoint
-    const response = await axios.get(`${REMOTE_RPC_ENDPOINT}/status`);
-    const data = response.data.result;
-
-    // Extract chain ID and latest block height
-    const chainId = data.node_info.network;
-    const height = parseInt(data.sync_info.latest_block_height, 10);
-
-    // Get latest blocks (10 blocks back)
-    const latestBlocks = [];
-    for (let i = height; i > height - 10 && i > 0; i--) {
-      const blockResponse = await axios.get(`${REMOTE_RPC_ENDPOINT}/block?height=${i}`);
-      latestBlocks.push({
-        height: i,
-        time: blockResponse.data.result.block.header.time,
-      });
+    const { RPC_ENDPOINT } = getEndpoints();
+    
+    // Get status information
+    const statusResponse = await axios.get(`${RPC_ENDPOINT}/status`);
+    const statusData = statusResponse.data.result;
+    
+    // Get validator information
+    const validatorsResponse = await axios.get(`${RPC_ENDPOINT}/validators`);
+    const validatorsData = validatorsResponse.data.result;
+    
+    // Calculate total bonded tokens
+    let totalBondedTokens = "0";
+    if (validatorsData && validatorsData.validators) {
+      totalBondedTokens = validatorsData.validators.reduce(
+        (sum: string, validator: any) => {
+          const power = validator.votingPower || BigInt(0);
+          return (BigInt(sum) + power).toString();
+        },
+        "0"
+      );
     }
-
-    let blockTime = 0;
-    if (latestBlocks.length > 1) {
-      // Calculate average block time (in seconds)
-      const times = latestBlocks.map((block) => new Date(block.time).getTime());
-      let totalDiff = 0;
-
-      for (let i = 0; i < times.length - 1; i++) {
-        totalDiff += (times[i] - times[i + 1]) / 1000; // Convert ms to seconds
-      }
-
-      blockTime = totalDiff / (times.length - 1);
-    }
-
+    
     return {
-      chainId,
-      height,
-      blockTime: blockTime.toFixed(2),
-      latestBlockTime: latestBlocks.length > 0 ? latestBlocks[0].time : new Date().toISOString(),
+      chainId: statusData.node_info.network,
+      blockHeight: parseInt(statusData.sync_info.latest_block_height),
+      blockTime: parseFloat(statusData.result?.block_time || "0"),
+      validatorCount: validatorsData?.validators?.length || 0,
+      bondedTokens: totalBondedTokens,
+      nodeInfo: statusData.node_info
     };
   } catch (error) {
-    console.error("Error fetching chain info:", error);
-    return null;
+    return handleApiError(error, 'Failed to fetch chain info');
   }
 };
 
@@ -620,17 +612,8 @@ export const getLatestTransactions = async (count = 5) => {
     console.log(`Fetching latest transactions from ${RPC_ENDPOINT}`);
     
     try {
-      const statusResponse = await axios.get(`${RPC_ENDPOINT}/status`, {
-        timeout: 5000 // Add timeout to prevent hanging requests
-      });
-      
-      if (!statusResponse.data || !statusResponse.data.result || !statusResponse.data.result.sync_info) {
-        console.error('Invalid status response:', statusResponse.data);
-        return handleApiError(new Error('Invalid status response'), 'getLatestTransactions');
-      }
-      
+      const statusResponse = await axios.get(`${RPC_ENDPOINT}/status`);
       const latestHeight = parseInt(statusResponse.data.result.sync_info.latest_block_height);
-      console.log(`Latest block height: ${latestHeight}`);
       
       // We'll search through the latest 20 blocks to find transactions
       const blocksToSearch = 20;

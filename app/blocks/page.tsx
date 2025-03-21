@@ -5,7 +5,13 @@ import { getLatestBlocks } from '../services/api';
 import BlockCard from '../components/BlockCard';
 
 export default function BlocksPage() {
-  const [blocks, setBlocks] = useState<any[]>([]);
+  const [blocks, setBlocks] = useState<{
+    height: number;
+    time: string;
+    proposer: string;
+    numTxs: number;
+    hash: string;
+  }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,11 +24,21 @@ export default function BlocksPage() {
       
       const latestBlocks = await getLatestBlocks(20);
       console.log(`Received ${latestBlocks.length} blocks`);
-      setBlocks(latestBlocks);
+      
+      // Ensure the blocks match the expected type
+      const formattedBlocks = latestBlocks.map(block => ({
+        height: block.height,
+        time: block.time,
+        proposer: block.proposer,
+        numTxs: block.numTxs,
+        hash: block.hash
+      }));
+      
+      setBlocks(formattedBlocks);
       setLoading(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching blocks:', err);
-      setError(err.message || 'Failed to load blocks. Please try again later.');
+      setError(err instanceof Error ? err.message : 'Failed to load blocks. Please try again later.');
       setLoading(false);
     }
   };
@@ -77,7 +93,7 @@ export default function BlocksPage() {
                 height={block.height}
                 hash={block.hash}
                 time={block.time}
-                txCount={block.txCount}
+                txCount={block.numTxs}
               />
             ))
           ) : (

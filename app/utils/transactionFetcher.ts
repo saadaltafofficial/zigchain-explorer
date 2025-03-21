@@ -38,11 +38,11 @@ export const fetchTransactions = async (blocksBack = 50, limit = 10): Promise<Tr
 
     console.log(`Fetching blocks from ${endBlock} to ${startBlock}...`);
 
-    let allTransactions: Transaction[] = [];
+    const allTransactions: Transaction[] = [];
 
     // Step 2: Fetch transactions from latestBlock to (latestBlock - blocksBack)
-    for (let block = startBlock; block >= endBlock && allTransactions.length < limit; block--) {
-      const response = await axios.get(`http://localhost:26657/block?height=${block}`);
+    for (let currentBlock = startBlock; currentBlock >= endBlock && allTransactions.length < limit; currentBlock--) {
+      const response = await axios.get(`http://localhost:26657/block?height=${currentBlock}`);
       const txs = response.data.result.block.data.txs || [];
       const blockTime = response.data.result.block.header.time;
 
@@ -70,15 +70,15 @@ export const fetchTransactions = async (blocksBack = 50, limit = 10): Promise<Tr
               
               if (txData.tx_result && txData.tx_result.events) {
                 // Look for transfer events
-                const transferEvents = txData.tx_result.events.filter((event: any) => event.type === 'transfer');
+                const transferEvents = txData.tx_result.events.filter((event: { type: string }) => event.type === 'transfer');
                 
                 if (transferEvents.length > 0) {
                   const transferEvent = transferEvents[0];
                   
                   // Extract sender and recipient from attributes
-                  const senderAttr = transferEvent.attributes.find((attr: any) => attr.key === 'sender');
-                  const recipientAttr = transferEvent.attributes.find((attr: any) => attr.key === 'recipient');
-                  const amountAttr = transferEvent.attributes.find((attr: any) => attr.key === 'amount');
+                  const senderAttr = transferEvent.attributes.find((attr: { key: string; value: string }) => attr.key === 'sender');
+                  const recipientAttr = transferEvent.attributes.find((attr: { key: string; value: string }) => attr.key === 'recipient');
+                  const amountAttr = transferEvent.attributes.find((attr: { key: string; value: string }) => attr.key === 'amount');
                   
                   if (senderAttr && senderAttr.value) {
                     sender = senderAttr.value;
@@ -96,7 +96,7 @@ export const fetchTransactions = async (blocksBack = 50, limit = 10): Promise<Tr
 
               allTransactions.push({
                 hash: txHash,
-                height: block.toString(),
+                height: currentBlock.toString(),
                 time: blockTime,
                 tx: tx,
                 tx_result: {
@@ -117,7 +117,7 @@ export const fetchTransactions = async (blocksBack = 50, limit = 10): Promise<Tr
             // Add basic transaction info without details
             allTransactions.push({
               hash: txHash,
-              height: block.toString(),
+              height: currentBlock.toString(),
               time: blockTime,
               tx: tx,
               tx_result: {
@@ -181,15 +181,15 @@ export const fetchTransactionByHash = async (hash: string): Promise<Transaction 
     
     if (txData.tx_result && txData.tx_result.events) {
       // Look for transfer events
-      const transferEvents = txData.tx_result.events.filter((event: any) => event.type === 'transfer');
+      const transferEvents = txData.tx_result.events.filter((event: { type: string }) => event.type === 'transfer');
       
       if (transferEvents.length > 0) {
         const transferEvent = transferEvents[0];
         
         // Extract sender and recipient from attributes
-        const senderAttr = transferEvent.attributes.find((attr: any) => attr.key === 'sender');
-        const recipientAttr = transferEvent.attributes.find((attr: any) => attr.key === 'recipient');
-        const amountAttr = transferEvent.attributes.find((attr: any) => attr.key === 'amount');
+        const senderAttr = transferEvent.attributes.find((attr: { key: string; value: string }) => attr.key === 'sender');
+        const recipientAttr = transferEvent.attributes.find((attr: { key: string; value: string }) => attr.key === 'recipient');
+        const amountAttr = transferEvent.attributes.find((attr: { key: string; value: string }) => attr.key === 'amount');
         
         if (senderAttr && senderAttr.value) {
           sender = senderAttr.value;
@@ -208,7 +208,7 @@ export const fetchTransactionByHash = async (hash: string): Promise<Transaction 
     // Create the transaction object
     const transaction: Transaction = {
       hash: hash.toUpperCase(),
-      height: height,
+      height: height.toString(),
       time: blockTime,
       tx: txData.tx,
       tx_result: {
