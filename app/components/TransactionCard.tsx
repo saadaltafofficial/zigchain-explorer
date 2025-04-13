@@ -2,7 +2,26 @@ import React from 'react';
 import Link from 'next/link';
 import { formatDate, truncateString } from '../utils/format';
 import HashDisplay from './HashDisplay';
-import { CheckCircle, XCircle, Database, ArrowRight } from 'lucide-react';
+import { CheckCircle, XCircle, Database, ArrowRight, Clock, Hash, User } from 'lucide-react';
+
+// Format time to "X seconds/minutes/hours ago" format to match BlockCard
+const formatTimeAgo = (time: string | number): string => {
+  if (!time) return 'Unknown';
+  
+  const txTime = typeof time === 'string' ? new Date(time) : new Date(time);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - txTime.getTime()) / 1000);
+  
+  if (diffInSeconds < 60) {
+    return `${diffInSeconds} seconds ago`;
+  } else if (diffInSeconds < 3600) {
+    return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+  } else if (diffInSeconds < 86400) {
+    return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+  } else {
+    return `${Math.floor(diffInSeconds / 86400)} days ago`;
+  }
+};
 
 interface TransactionCardProps {
   hash: string;
@@ -51,67 +70,62 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
   };
   
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow">
-      <div className="flex justify-between items-start">
-        <div className="w-full">
-          <Link 
-            href={`/tx/${encodeURIComponent(displayHash)}`} 
-            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors text-lg font-semibold"
-            onClick={setReferrer}
-          >
-            <HashDisplay hash={displayUppercaseHash} truncateLength={10} showCopyButton={false} />
-          </Link>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{formatDate(safeTime)}</p>
+    <div className="px-6 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+        <div className="flex items-center">
+          <div className="mr-3 bg-green-50 dark:bg-green-900/20 rounded-full">
+            <Hash size={18} className="text-green-600 dark:text-green-400" />
+          </div>
+          <div>
+            <Link 
+              href={`/tx/${encodeURIComponent(displayHash)}`} 
+              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors text-lg font-semibold"
+              onClick={setReferrer}
+            >
+              <span className="truncate max-w-[220px] inline-block">
+                {displayUppercaseHash.length > 16 ? 
+                  `${displayUppercaseHash.substring(0, 8)}...${displayUppercaseHash.substring(displayUppercaseHash.length - 8)}` : 
+                  displayUppercaseHash}
+              </span>
+            </Link>
+            <div className="flex items-center text-gray-500 dark:text-gray-400 text-sm ">
+              <Clock size={14} className="mr-1" />     
+              <span>{formatTimeAgo(safeTime)}</span>
+            </div>
+          </div>
         </div>
-        <div className="flex-shrink-0 ml-2">
+        
+        <div className="flex flex-wrap gap-3 items-center">
           {safeStatus === 'success' ? (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
               <CheckCircle className="h-3 w-3 mr-1" />
               Success
             </span>
           ) : (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300">
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300">
               <XCircle className="h-3 w-3 mr-1" />
               Failed
             </span>
           )}
+          
           {blockHeight && (
-            <div className="flex items-center mt-2 text-sm text-gray-600 dark:text-gray-400">
-              <Database className="h-4 w-4 mr-1" />
+            <div className="inline-flex items-center text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2.5 py-1 rounded-full">
+              <Database className="h-3 w-3 mr-1" />
               <span>Block: {blockHeight}</span>
             </div>
           )}
+          
+          <Link 
+            href={`/tx/${encodeURIComponent(displayHash)}`}
+            className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+            onClick={setReferrer}
+          >
+            View Details
+          </Link>
         </div>
       </div>
-      {(safeFrom || safeTo) && (
-        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-            <div className="text-sm text-gray-600 dark:text-gray-400 mb-2 sm:mb-0">
-              {(safeFrom || safeTo) && (
-                <span className="inline-flex items-center flex-wrap">
-                  <ArrowRight className="h-4 w-4 mr-1" />
-                  <span>
-                    {safeFrom && (
-                      <span className="mr-2">From: {truncateString(safeFrom, 8)} </span>
-                    )}
-                    {safeTo && (
-                      <span>To: {truncateString(safeTo, 8)}</span>
-                    )}
-                  </span>
-                </span>
-              )} 
-            </div>
-            <Link 
-              href={`/tx/${encodeURIComponent(displayHash)}`}
-              className="inline-flex items-center text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
-              onClick={setReferrer}
-            >
-              View Details
-              <ArrowRight className="ml-1 h-4 w-4" />
-            </Link>
-          </div>
-        </div>
-      )}
+      
+      {/* From and To details removed as requested */}
     </div>
   );
 };

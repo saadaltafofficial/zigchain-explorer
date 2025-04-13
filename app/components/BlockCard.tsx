@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { formatDate, formatNumber } from '../utils/format';
+import { Clock, Database, Hash } from 'lucide-react';
 
 interface BlockCardProps {
   height: number;
@@ -17,24 +18,45 @@ const BlockCard: React.FC<BlockCardProps> = ({ height, hash, time, txCount }) =>
   const safeTxCount = txCount || 0;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow">
-      <div className="flex justify-between items-start">
-        <div>
-          <Link href={`/blocks/${safeHeight}`} className="text-blue-600 hover:text-blue-800 text-lg font-semibold">
-            Block #{formatNumber(safeHeight)}
+    <div className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+        <div className="flex items-center">
+          <div className="mr-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-full">
+            <Database size={18} className="text-blue-600 dark:text-blue-400" />
+          </div>
+          <div>
+            <Link 
+              href={`/blocks/${safeHeight}`} 
+              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-lg font-semibold transition-colors"
+            >
+              Block #{formatNumber(safeHeight)}
+            </Link>
+            <div className="flex items-center text-gray-500 dark:text-gray-400 text-sm mt-1">
+              <Clock size={14} className="mr-1" />
+              <span>{time}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex flex-wrap gap-3 items-center">
+          <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+            <Hash size={16} className="mr-1 text-gray-400 dark:text-gray-500" />
+            <span className="truncate max-w-[150px]">
+              {safeHash.length > 16 ? `${safeHash.substring(0, 8)}...${safeHash.substring(safeHash.length - 8)}` : safeHash}
+            </span>
+          </div>
+          
+          <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-medium">
+            {safeTxCount} {safeTxCount === 1 ? 'Tx' : 'Txs'}
+          </div>
+          
+          <Link 
+            href={`/blocks/${safeHeight}`}
+            className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+          >
+            View Details
           </Link>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-            {formatDate(safeTime)}
-          </p>
         </div>
-        <div className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm">
-          {safeTxCount} {safeTxCount === 1 ? 'Tx' : 'Txs'}
-        </div>
-      </div>
-      <div className="mt-3">
-        <p className="text-gray-600 dark:text-gray-300 text-sm">
-          <span className="font-medium">Hash:</span> {safeHash.length > 20 ? `${safeHash.substring(0, 20)}...` : safeHash}
-        </p>
       </div>
     </div>
   );

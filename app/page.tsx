@@ -1,11 +1,18 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { getLatestBlocks, getChainInfo } from './services/api';
 import BlockCard from './components/BlockCard';
 import TransactionCard from './components/TransactionCard';
+import PriceChart from './components/PriceChart';
+import NetworkActivity from './components/NetworkActivity';
+import HomeStats from './components/HomeStats';
 import { fetchTransactions } from './utils/transactionFetcher';
+import { ArrowRight, TrendingUp } from 'lucide-react';
+import { realTimeService, RealTimeEventType } from './services/realTimeService';
+import ConnectionStatus from './components/ConnectionStatus';
+import ZigPrice from './components/ZigPrice';
 
 // Define types for the state
 interface Block {
@@ -42,60 +49,163 @@ interface ChainInfo {
 }
 
 export default function Home() {
+  const [loading, setLoading] = useState(true);
   const [latestBlocks, setLatestBlocks] = useState<Block[]>([]);
   const [latestTransactions, setLatestTransactions] = useState<Transaction[]>([]);
   const [chainInfo, setChainInfo] = useState<ChainInfo | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const fetchData = async () => {
+  const [wsConnected, setWsConnected] = useState(false);
+  const [wsReconnecting, setWsReconnecting] = useState(false);
+  
+  // Function to fetch initial data
+  const fetchInitialData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
-      console.log('Fetching data for home page...');
+      console.log('Fetching initial data for home page...');
       
       // Fetch latest blocks
-      const blocks = await getLatestBlocks(5);
-      console.log('Received blocks:', blocks);
+      const blocks = await getLatestBlocks(10);
+      console.log('Received initial blocks:', blocks);
       setLatestBlocks(blocks);
       
       // Fetch latest transactions using the common utility
-      const transactions = await fetchTransactions(200, 5); // Search in last 20 blocks, limit to 5 transactions
-      console.log('Received transactions:', transactions);
+      const transactions = await fetchTransactions(200, 10); // Search in last 200 blocks, limit to 10 transactions
+      console.log('Received initial transactions:', transactions);
       setLatestTransactions(transactions);
       
       // Fetch chain info
       const info = await getChainInfo();
-      console.log('Received chain info:', info);
+      console.log('Received initial chain info:', info);
       setChainInfo(info);
       
       setLoading(false);
     } catch (err: unknown) {
-      console.error('Error fetching data:', err);
+      console.error('Error fetching initial data:', err);
       setError(err instanceof Error ? err.message : 'Failed to load blockchain data. Please try again later.');
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchData();
   }, []);
 
+  // Set up WebSocket event handlers
+  useEffect(() => {
+    // Handler for new blocks
+    const handleNewBlock = (block: Block) => {
+      console.log('New block received via WebSocket:', block);
+      setLatestBlocks(prevBlocks => {
+        // Check if we already have this block
+        if (prevBlocks.some(b => b.height === block.height)) {
+          return prevBlocks;
+        }
+        // Add new block and keep only the latest 10
+        return [block, ...prevBlocks].slice(0, 10);
+      });
+    };
+
+    // Handler for new transactions
+    const handleNewTransaction = (tx: Transaction) => {
+      console.log('New transaction received via WebSocket:', tx);
+      setLatestTransactions(prevTxs => {
+        // Check if we already have this transaction
+        if (prevTxs.some(t => t.hash === tx.hash)) {
+          return prevTxs;
+        }
+        // Add new transaction and keep only the latest 10
+        return [tx, ...prevTxs].slice(0, 10);
+      });
+    };
+
+    // Handler for chain updates
+    const handleChainUpdate = (update: any) => {
+      console.log('Chain update received via WebSocket:', update);
+      setChainInfo(prevInfo => {
+        if (!prevInfo) return prevInfo;
+        return { ...prevInfo, ...update };
+      });
+    };
+
+    // Handler for connection status
+    const handleConnectionStatus = (status: { connected: boolean, reconnecting: boolean, error?: string }) => {
+      console.log('WebSocket connection status:', status);
+      setWsConnected(status.connected);
+      setWsReconnecting(status.reconnecting);
+      
+      if (!status.connected && !status.reconnecting && status.error) {
+        setError(`WebSocket connection error: ${status.error}`);
+      } else if (status.connected) {
+        // Clear any WebSocket-related errors when connected
+        setError(prev => prev?.includes('WebSocket') ? null : prev);
+      }
+    };
+
+    // Register event listeners
+    realTimeService.on(RealTimeEventType.NewBlock, handleNewBlock);
+    realTimeService.on(RealTimeEventType.NewTransaction, handleNewTransaction);
+    realTimeService.on(RealTimeEventType.ChainUpdate, handleChainUpdate);
+    realTimeService.on(RealTimeEventType.ConnectionStatus, handleConnectionStatus);
+
+    // Connect to WebSocket
+    realTimeService.connect();
+
+    // Fetch initial data
+    fetchInitialData();
+
+    // Clean up on component unmount
+    return () => {
+      realTimeService.off(RealTimeEventType.NewBlock, handleNewBlock);
+      realTimeService.off(RealTimeEventType.NewTransaction, handleNewTransaction);
+      realTimeService.off(RealTimeEventType.ChainUpdate, handleChainUpdate);
+      realTimeService.off(RealTimeEventType.ConnectionStatus, handleConnectionStatus);
+    };
+  }, [fetchInitialData]);
+
   const handleRetry = () => {
-    fetchData();
+    fetchInitialData();
+    // Also try to reconnect WebSocket if it's not connected
+    if (!wsConnected) {
+      realTimeService.connect();
+    }
+  };
+
+  const formatBlockTime = (time: string | number): string => {
+    if (!time) return 'Unknown';
+    
+    const blockTime = typeof time === 'string' ? new Date(time) : new Date(time);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - blockTime.getTime()) / 1000);
+    
+    if (diffInSeconds < 60) {
+      return `${diffInSeconds} seconds ago`;
+    } else if (diffInSeconds < 3600) {
+      return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+    } else if (diffInSeconds < 86400) {
+      return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+    } else {
+      return `${Math.floor(diffInSeconds / 86400)} days ago`;
+    }
   };
 
   const LatestBlocks = ({ blocks }: { blocks: Block[] }) => {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Latest Blocks</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center">
+            <h2 className="text-xl font-bold flex items-center">
+              <span className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-full mr-3">
+                <TrendingUp size={18} className="text-blue-600 dark:text-blue-400" />
+              </span>
+              Latest Blocks
+            </h2>
+            <div className="ml-3">
+              <ConnectionStatus isConnected={wsConnected} isReconnecting={wsReconnecting} />
+            </div>
+          </div>
           <Link 
             href="/blocks" 
-            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors flex items-center text-sm font-medium"
           >
-            View All Blocks →
+            View All <ArrowRight size={16} className="ml-1" />
           </Link>
         </div>
         
@@ -104,8 +214,8 @@ export default function Home() {
             No blocks found
           </div>
         ) : (
-          <div className="space-y-4">
-            {blocks.map((block) => (
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
+            {blocks.slice(0, 5).map((block) => (
               <BlockCard 
                 key={block.height}
                 height={block.height}
@@ -129,14 +239,21 @@ export default function Home() {
     };
 
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Latest Transactions</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-xl font-bold flex items-center">
+            <span className="bg-green-100 dark:bg-green-900/30 p-2 rounded-full mr-3">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </span>
+            Latest Transactions
+          </h2>
           <Link 
             href="/transactions" 
-            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors flex items-center text-sm font-medium"
           >
-            View All Transactions →
+            View All <ArrowRight size={16} className="ml-1" />
           </Link>
         </div>
         
@@ -145,8 +262,8 @@ export default function Home() {
             No transactions found
           </div>
         ) : (
-          <div className="space-y-4">
-            {transactions.map((tx, index) => (
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
+            {transactions.slice(0, 5).map((tx, index) => (
               <div key={tx.hash || index} onClick={setTxReferrer}>
                 <TransactionCard 
                   hash={tx.hash}
@@ -165,14 +282,14 @@ export default function Home() {
   };
 
   const LoadingBlocks = () => (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+      <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-700">
         <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3 animate-pulse"></div>
         <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-1/4 animate-pulse"></div>
       </div>
-      <div className="space-y-4">
+      <div className="divide-y divide-gray-200 dark:divide-gray-700">
         {[...Array(5)].map((_, i) => (
-          <div key={i} className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 animate-pulse">
+          <div key={i} className="p-4 animate-pulse">
             <div className="flex justify-between items-start">
               <div>
                 <div className="h-5 bg-gray-200 dark:bg-gray-600 rounded w-24 mb-2"></div>
@@ -187,14 +304,14 @@ export default function Home() {
   );
 
   const LoadingTransactions = () => (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+      <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-700">
         <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3 animate-pulse"></div>
         <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-1/4 animate-pulse"></div>
       </div>
-      <div className="space-y-4">
+      <div className="divide-y divide-gray-200 dark:divide-gray-700">
         {[...Array(5)].map((_, i) => (
-          <div key={i} className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 animate-pulse">
+          <div key={i} className="p-4 animate-pulse">
             <div className="flex justify-between items-start">
               <div>
                 <div className="h-5 bg-gray-200 dark:bg-gray-600 rounded w-40 mb-2"></div>
@@ -207,82 +324,6 @@ export default function Home() {
       </div>
     </div>
   );
-
-  const formatBlockTime = (time: string | number): string => {
-    if (!time) return 'Unknown';
-    
-    const blockTime = typeof time === 'string' ? new Date(time) : new Date(time);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - blockTime.getTime()) / 1000);
-    
-    if (diffInSeconds < 60) {
-      return `${diffInSeconds} seconds ago`;
-    } else if (diffInSeconds < 3600) {
-      return `${Math.floor(diffInSeconds / 60)} minutes ago`;
-    } else if (diffInSeconds < 86400) {
-      return `${Math.floor(diffInSeconds / 3600)} hours ago`;
-    } else {
-      return `${Math.floor(diffInSeconds / 86400)} days ago`;
-    }
-  };
-
-  const safeParseFloat = (value: string | number): number => {
-    if (typeof value === 'number') return value;
-    try {
-      return parseFloat(value);
-    } catch {
-      return 0;
-    }
-  };
-
-  const formatNumber = (num: number | string): string => {
-    const parsedNum = typeof num === 'string' ? safeParseFloat(num) : num;
-    if (isNaN(parsedNum)) return '0';
-      
-    if (parsedNum >= 1000000) {
-      return `${(parsedNum / 1000000).toFixed(2)}M`;
-    } else if (parsedNum >= 1000) {
-      return `${(parsedNum / 1000).toFixed(2)}K`;
-    } else {
-      return parsedNum.toString();
-    }
-  };
-
-  const ChainStats = () => {
-    if (!chainInfo) return null;
-    
-    return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
-        <h2 className="text-2xl font-bold mb-4">Chain Info</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400">Chain ID</p>
-            <p className="text-xl font-semibold">{chainInfo.chainId || 'Unknown'}</p>
-          </div>
-          <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400">Latest Block</p>
-            <p className="text-xl font-semibold">{formatNumber(chainInfo.blockHeight)}</p>
-          </div>
-          <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400">Node Version</p>
-            <p className="text-xl font-semibold">{chainInfo.nodeInfo?.version || 'Unknown'}</p>
-          </div>
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400">Block Time</p>
-            <p className="text-xl font-semibold">{formatNumber(chainInfo.blockTime)}s</p>
-          </div>
-          <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400">Validators</p>
-            <p className="text-xl font-semibold">{formatNumber(chainInfo.validatorCount)}</p>
-          </div>
-          <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400">Bonded Tokens</p>
-            <p className="text-xl font-semibold">{formatNumber(chainInfo.bondedTokens)} ZIG</p>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="space-y-8">
@@ -301,13 +342,21 @@ export default function Home() {
             </div>
           )}
           
-          {/* Chain Info Section */}
-          {chainInfo && (
-            <ChainStats />
-          )}
+          {/* Overview Stats Section */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold mb-6">ZIGChain Explorer</h1>
+            <HomeStats chainInfo={chainInfo} isLoading={loading} />
+          </div>
+          
+          {/* Price Chart and Network Activity */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <PriceChart coinId="zignaly" currency="usd" displayName="ZIG" />
+            
+            <NetworkActivity isLoading={false} />
+          </div>
           
           {/* Blocks and Transactions Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             {/* Latest Blocks Column */}
             <div>
               {loading ? (
