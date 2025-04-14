@@ -8,7 +8,7 @@ import {
   ConnectionStatusEvent 
 } from '../services/websocket';
 
-interface UseRealTimeDataOptions<TBlock = NewBlockEvent, TTx = NewTransactionEvent, TChainInfo = ChainInfoEvent> {
+interface UseRealTimeDataOptions<TBlock extends NewBlockEvent = NewBlockEvent, TTx extends NewTransactionEvent = NewTransactionEvent, TChainInfo extends ChainInfoEvent = ChainInfoEvent> {
   subscribeToBlocks?: boolean;
   subscribeToTransactions?: boolean;
   subscribeToChainInfo?: boolean;
@@ -19,7 +19,7 @@ interface UseRealTimeDataOptions<TBlock = NewBlockEvent, TTx = NewTransactionEve
   maxTransactions?: number;
 }
 
-interface UseRealTimeDataResult<TBlock = NewBlockEvent, TTx = NewTransactionEvent, TChainInfo = ChainInfoEvent> {
+interface UseRealTimeDataResult<TBlock extends NewBlockEvent = NewBlockEvent, TTx extends NewTransactionEvent = NewTransactionEvent, TChainInfo extends ChainInfoEvent = ChainInfoEvent> {
   blocks: TBlock[];
   transactions: TTx[];
   chainInfo: TChainInfo | null;
@@ -31,7 +31,7 @@ interface UseRealTimeDataResult<TBlock = NewBlockEvent, TTx = NewTransactionEven
 /**
  * A custom hook for subscribing to real-time blockchain data via WebSockets
  */
-export function useRealTimeData<TBlock = NewBlockEvent, TTx = NewTransactionEvent, TChainInfo = ChainInfoEvent>(
+export function useRealTimeData<TBlock extends NewBlockEvent = NewBlockEvent, TTx extends NewTransactionEvent = NewTransactionEvent, TChainInfo extends ChainInfoEvent = ChainInfoEvent>(
   options: UseRealTimeDataOptions<TBlock, TTx, TChainInfo> = {}
 ): UseRealTimeDataResult<TBlock, TTx, TChainInfo> {
   const {
@@ -45,9 +45,9 @@ export function useRealTimeData<TBlock = NewBlockEvent, TTx = NewTransactionEven
     maxTransactions = 10
   } = options;
 
-  const [blocks, setBlocks] = useState<NewBlockEvent[]>(initialBlocks);
-  const [transactions, setTransactions] = useState<NewTransactionEvent[]>(initialTransactions);
-  const [chainInfo, setChainInfo] = useState<ChainInfoEvent | null>(initialChainInfo);
+  const [blocks, setBlocks] = useState<TBlock[]>(initialBlocks);
+  const [transactions, setTransactions] = useState<TTx[]>(initialTransactions);
+  const [chainInfo, setChainInfo] = useState<TChainInfo | null>(initialChainInfo);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatusEvent>({
     connected: false,
     reconnecting: false
@@ -64,7 +64,7 @@ export function useRealTimeData<TBlock = NewBlockEvent, TTx = NewTransactionEven
             return prevBlocks;
           }
           // Add the new block to the beginning and limit to maxBlocks
-          return [block, ...prevBlocks].slice(0, maxBlocks);
+          return [block as TBlock, ...prevBlocks].slice(0, maxBlocks);
         });
       }
     };
@@ -78,7 +78,7 @@ export function useRealTimeData<TBlock = NewBlockEvent, TTx = NewTransactionEven
             return prevTxs;
           }
           // Add the new transaction to the beginning and limit to maxTransactions
-          return [tx, ...prevTxs].slice(0, maxTransactions);
+          return [tx as TTx, ...prevTxs].slice(0, maxTransactions);
         });
       }
     };
@@ -87,8 +87,8 @@ export function useRealTimeData<TBlock = NewBlockEvent, TTx = NewTransactionEven
     const handleChainInfo = (info: Partial<ChainInfoEvent>) => {
       if (subscribeToChainInfo) {
         setChainInfo(prevInfo => {
-          if (!prevInfo) return info as ChainInfoEvent;
-          return { ...prevInfo, ...info };
+          if (!prevInfo) return info as TChainInfo;
+          return { ...prevInfo, ...info } as TChainInfo;
         });
       }
     };
