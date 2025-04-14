@@ -37,7 +37,7 @@ interface Transaction {
 
 // Constants
 const DENOM = 'uzig';
-const REMOTE_RPC_ENDPOINT = process.env.RPC_URL || 'http://localhost:26657';
+const REMOTE_RPC_ENDPOINT = process.env.RPC_URL || 'http://167.86.79.37:26657';
 const REMOTE_API_ENDPOINT = process.env.REMOTE_API_ENDPOINT || 'https://testnet-api.ZIGChain.com/';
 
 // Use the appropriate endpoints

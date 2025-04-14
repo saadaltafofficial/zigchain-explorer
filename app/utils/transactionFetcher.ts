@@ -3,7 +3,7 @@ import { fromBase64 } from "@cosmjs/encoding";
 import { sha256 } from "@cosmjs/crypto";
 
 // Get the RPC URL from environment variables
-const RPC_URL = process.env.RPC_URL || 'http://localhost:26657';
+const RPC_URL = process.env.RPC_URL || 'http://167.86.79.37:26657';
 
 export interface Transaction {
   hash: string;

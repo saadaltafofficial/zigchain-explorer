@@ -8,7 +8,7 @@ import { fetchTransactions, Transaction } from "../utils/transactionFetcher";
 import TransactionDetailView from "../components/TransactionDetailView";
 
 // Get the RPC URL from environment variables
-const RPC_URL = process.env.RPC_URL || 'http://localhost:26657';
+const RPC_URL = process.env.RPC_URL || 'http://167.86.79.37:26657';
 
 interface TransactionDetail extends Transaction {
   tx_result: {

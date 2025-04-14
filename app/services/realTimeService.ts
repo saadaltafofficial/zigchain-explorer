@@ -30,7 +30,7 @@ class RealTimeService {
 
   private constructor() {
     // Get the WebSocket URL from environment or use default
-    this.url = process.env.NEXT_PUBLIC_WS_ENDPOINT || 'ws://localhost:26657/websocket';
+    this.url = process.env.NEXT_PUBLIC_WS_ENDPOINT || 'ws://167.86.79.37:26657/websocket';
   }
 
   public static getInstance(): RealTimeService {

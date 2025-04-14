@@ -50,6 +50,9 @@ importers:
       recharts:
         specifier: ^2.15.2
         version: 2.15.2(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      ws:
+        specifier: ^8.18.1
+        version: 8.18.1
     devDependencies:
       '@eslint/eslintrc':
         specifier: ^3
@@ -2053,6 +2056,18 @@ packages:
     peerDependencies:
       bufferutil: ^4.0.1
       utf-8-validate: ^5.0.2
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+
+  ws@8.18.1:
+    resolution: {integrity: sha512-RKW2aJZMXeMxVpnZ6bck+RswznaxmzdULiBr6KY7XkTnW8uvt0iT9H5DkHUChXrc+uurzwa0rVI16n/Xzjdz1w==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
     peerDependenciesMeta:
       bufferutil:
         optional: true
@@ -4337,6 +4352,8 @@ snapshots:
   word-wrap@1.2.5: {}
 
   ws@7.5.10: {}
+
+  ws@8.18.1: {}
 
   xstream@11.14.0:
     dependencies:
