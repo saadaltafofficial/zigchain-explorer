@@ -41,7 +41,7 @@ const DENOM = 'uzig';
 const isProduction = process.env.NODE_ENV === 'production';
 const REMOTE_RPC_ENDPOINT = isProduction
   ? '/api/proxy'
-  : process.env.RPC_URL || 'http://167.86.79.37:26657';
+  : process.env.RPC_URL || 'https://testnet-rpc.zigchain.com';
 const REMOTE_API_ENDPOINT = process.env.REMOTE_API_ENDPOINT || 'https://testnet-api.ZIGChain.com/';
 
 // Use the appropriate endpoints

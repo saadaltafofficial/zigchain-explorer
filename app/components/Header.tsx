@@ -2,6 +2,7 @@
 
 import React, { Suspense, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import SearchBar from './SearchBar';
 import ThemeSwitcher from './ThemeSwitcher';
 
@@ -20,10 +21,16 @@ const Header: React.FC = () => {
           {/* Top navigation bar */}
           <div className="flex justify-between items-center">
             <div className="flex items-center">
-              <Link href="/" className="text-2xl font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors">
-                ZIGChain
+              <Link href="/" className="flex items-center">
+                <Image 
+                  src="/images/zigchain-logo.png" 
+                  alt="ZIGChain Logo" 
+                  width={120} 
+                  height={40} 
+                  className="h-8 w-auto" 
+                />
+                <span className="ml-2 px-2 py-1 text-xs text-white bg-blue-600 dark:bg-blue-700 rounded-md">Testnet</span>
               </Link>
-              <span className="ml-2 px-2 py-1 text-xs text-white bg-blue-600 dark:bg-blue-700 rounded-md">Testnet</span>
             </div>
             
             {/* Desktop Navigation */}

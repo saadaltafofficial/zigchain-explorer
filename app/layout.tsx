@@ -12,6 +12,8 @@ export const metadata: Metadata = {
   description: "Explore the ZIGChain blockchain - blocks, transactions, validators, and more",
   icons: {
     icon: '/favicon.ico',
+    apple: '/images/zigchain-icon.png',
+    shortcut: '/images/zigchain-icon.png',
   },
 };
 

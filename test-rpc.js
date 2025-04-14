@@ -1,7 +1,7 @@
 // Simple script to test RPC endpoint connectivity
 const axios = require('axios');
 
-const RPC_URL = 'http://167.86.79.37:26657';
+const RPC_URL = 'https://testnet-rpc.zigchain.com';
 
 async function testRpcConnection() {
   try {

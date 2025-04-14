@@ -6,7 +6,7 @@ import { sha256 } from "@cosmjs/crypto";
 const isProduction = process.env.NODE_ENV === 'production';
 const RPC_URL = isProduction
   ? '/api/proxy'
-  : process.env.RPC_URL || 'http://167.86.79.37:26657';
+  : process.env.RPC_URL || 'https://testnet-rpc.zigchain.com';
 
 export interface Transaction {
   hash: string;

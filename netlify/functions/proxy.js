@@ -2,7 +2,7 @@ const axios = require('axios');
 
 exports.handler = async (event) => {
   // Get the RPC URL from environment variables
-  const RPC_URL = process.env.RPC_URL || 'http://167.86.79.37:26657';
+  const RPC_URL = process.env.RPC_URL || 'https://testnet-rpc.zigchain.com';
   
   try {
     // Parse the path and parameters from the request
