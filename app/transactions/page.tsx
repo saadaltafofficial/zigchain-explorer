@@ -7,8 +7,11 @@ import { ArrowRight, Clock, Database, Hash, ChevronLeft, ChevronRight, Copy, Che
 import { fetchTransactions, Transaction } from "../utils/transactionFetcher";
 import TransactionDetailView from "../components/TransactionDetailView";
 
-// Get the RPC URL from environment variables
-const RPC_URL = process.env.RPC_URL || 'http://167.86.79.37:26657';
+// In production, use the proxy API to avoid mixed content issues
+const isProduction = process.env.NODE_ENV === 'production';
+const RPC_URL = isProduction
+  ? '/api/proxy'
+  : process.env.RPC_URL || 'http://167.86.79.37:26657';
 
 interface TransactionDetail extends Transaction {
   tx_result: {

@@ -2,8 +2,11 @@ import axios from 'axios';
 import { fromBase64 } from "@cosmjs/encoding";
 import { sha256 } from "@cosmjs/crypto";
 
-// Get the RPC URL from environment variables
-const RPC_URL = process.env.RPC_URL || 'http://167.86.79.37:26657';
+// In production, use the proxy API to avoid mixed content issues
+const isProduction = process.env.NODE_ENV === 'production';
+const RPC_URL = isProduction
+  ? '/api/proxy'
+  : process.env.RPC_URL || 'http://167.86.79.37:26657';
 
 export interface Transaction {
   hash: string;
