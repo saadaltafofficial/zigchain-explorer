@@ -37,10 +37,10 @@ interface Transaction {
 
 // Constants
 const DENOM = 'uzig';
-// In production, use the proxy API to avoid mixed content issues
+// Use secure endpoints for all environments
 const isProduction = process.env.NODE_ENV === 'production';
 const REMOTE_RPC_ENDPOINT = isProduction
-  ? '/api/proxy'
+  ? '/api/proxy' // Use our proxy in production to avoid CORS issues
   : process.env.RPC_URL || 'https://testnet-rpc.zigchain.com';
 const REMOTE_API_ENDPOINT = process.env.REMOTE_API_ENDPOINT || 'https://testnet-api.ZIGChain.com/';
 

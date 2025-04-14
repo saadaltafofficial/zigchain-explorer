@@ -67,22 +67,20 @@ class WebSocketService {
     const isProduction = process.env.NODE_ENV === 'production';
     
     if (isProduction && typeof window !== 'undefined') {
-      // For production, we would ideally use a secure WebSocket proxy
-      // Since direct WSS isn't available, we'll use the same WS endpoint
-      // Note: This will likely be blocked by browsers due to mixed content security
-      console.warn('WebSocket connections may be blocked in production due to mixed content security policies');
-      
-      // If the page is loaded over HTTPS, try to use WSS
+      // For production, we use a secure WebSocket endpoint or proxy
       if (window.location.protocol === 'https:') {
-        const wsEndpoint = process.env.NEXT_PUBLIC_WS_ENDPOINT || 'ws://167.86.79.37:26657/websocket';
-        this.url = wsEndpoint.replace('ws://', 'wss://');
+        // Use the secure WebSocket endpoint that matches our new RPC URL
+        // Replace http:// with wss:// for the WebSocket connection
+        const baseUrl = 'https://testnet-rpc.zigchain.com';
+        this.url = baseUrl.replace('https://', 'wss://') + '/websocket';
         console.log(`Using secure WebSocket URL: ${this.url}`);
       } else {
-        this.url = process.env.NEXT_PUBLIC_WS_ENDPOINT || 'ws://167.86.79.37:26657/websocket';
+        // Fallback for non-HTTPS connections
+        this.url = 'wss://testnet-rpc.zigchain.com/websocket';
       }
     } else {
-      // For development, use the regular WebSocket endpoint
-      this.url = process.env.NEXT_PUBLIC_WS_ENDPOINT || 'ws://167.86.79.37:26657/websocket';
+      // For development, use the secure WebSocket endpoint
+      this.url = 'wss://testnet-rpc.zigchain.com/websocket';
     }
   }
 

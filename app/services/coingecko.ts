@@ -1,6 +1,43 @@
 import axios from 'axios';
 
-// CoinGecko API base URL
+// Create a custom axios instance with timeout and headers
+const api = axios.create({
+  timeout: 10000, // 10 second timeout
+  headers: {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
+  }
+});
+
+// Simple in-memory cache
+const cache: Record<string, { data: any; timestamp: number }> = {};
+const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
+
+// Helper function to get or set cache
+const getOrSetCache = async (key: string, fetcher: () => Promise<any>) => {
+  const now = Date.now();
+  const cached = cache[key];
+  
+  if (cached && now - cached.timestamp < CACHE_TTL) {
+    console.log(`Using cached data for ${key}`);
+    return cached.data;
+  }
+  
+  try {
+    const data = await fetcher();
+    cache[key] = { data, timestamp: now };
+    return data;
+  } catch (error) {
+    // If we have stale cache, return it in case of error
+    if (cached) {
+      console.log(`Using stale cached data for ${key} due to error`);
+      return cached.data;
+    }
+    throw error;
+  }
+};
+
+// CoinGecko API base URL and configuration
 const COINGECKO_API_URL = 'https://api.coingecko.com/api/v3';
 const API_KEY = 'CG-1GJ74LknZhC7x1MsvtehVPk6';
 
@@ -35,9 +72,13 @@ export interface HistoricalPriceData {
  * @param currency - The currency to get prices in (default: 'usd')
  */
 export const getCoinPriceData = async (coinId: string, currency = 'usd'): Promise<CoinPriceData | null> => {
+  const cacheKey = `price_${coinId}_${currency}`;
+  
   try {
-    const response = await axios.get(`${COINGECKO_API_URL}/coins/markets`, {
-      params: {
+    return await getOrSetCache(cacheKey, async () => {
+      console.log(`Fetching price data for ${coinId} in ${currency}`);
+      
+      const params: Record<string, any> = {
         vs_currency: currency,
         ids: coinId,
         order: 'market_cap_desc',
@@ -46,15 +87,27 @@ export const getCoinPriceData = async (coinId: string, currency = 'usd'): Promis
         sparkline: false,
         price_change_percentage: '24h,7d,30d',
         x_cg_api_key: API_KEY
-      }
-    });
+      };
+      
+      const response = await api.get(`${COINGECKO_API_URL}/coins/markets`, { params });
 
-    if (response.data && response.data.length > 0) {
-      return response.data[0];
-    }
-    return null;
+      if (response.data && response.data.length > 0) {
+        console.log('Price data received successfully');
+        return response.data[0];
+      }
+      console.log('No price data received');
+      return null;
+    });
   } catch (error) {
     console.error('Error fetching coin price data:', error);
+    if (axios.isAxiosError(error)) {
+      console.error('API Error Details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
+    }
     return null;
   }
 };
@@ -70,27 +123,31 @@ export const getHistoricalPriceData = async (
   days: number | 'max' = 30, 
   currency = 'usd'
 ): Promise<HistoricalPriceData | null> => {
+  const cacheKey = `history_${coinId}_${days}_${currency}`;
+  
   try {
-    console.log(`Fetching historical price data for ${coinId} over ${days} days in ${currency}`);
-    const url = `${COINGECKO_API_URL}/coins/${coinId}/market_chart`;
-    console.log('API URL:', url);
-    
-    const params = {
-      vs_currency: currency,
-      days: days,
-      interval: days === 1 ? 'hourly' : 'daily',
-      x_cg_api_key: API_KEY
-    };
-    console.log('Request params:', params);
-    
-    const response = await axios.get(url, { params });
+    return await getOrSetCache(cacheKey, async () => {
+      console.log(`Fetching historical price data for ${coinId} over ${days} days in ${currency}`);
+      const url = `${COINGECKO_API_URL}/coins/${coinId}/market_chart`;
+      
+      const params: Record<string, any> = {
+        vs_currency: currency,
+        days: days,
+        interval: days === 1 ? 'hourly' : 'daily',
+        x_cg_api_key: API_KEY
+      };
+      
+      console.log('Request params:', params);
+      
+      const response = await api.get(url, { params });
 
-    if (response.data) {
-      console.log('Historical price data received successfully');
-      return response.data;
-    }
-    console.log('No data received from API');
-    return null;
+      if (response.data) {
+        console.log('Historical price data received successfully');
+        return response.data;
+      }
+      console.log('No data received from API');
+      return null;
+    });
   } catch (error) {
     console.error('Error fetching historical price data:', error);
     // Add more detailed error logging
@@ -98,8 +155,32 @@ export const getHistoricalPriceData = async (
       console.error('API Error Details:', {
         status: error.response?.status,
         statusText: error.response?.statusText,
-        data: error.response?.data
+        data: error.response?.data,
+        message: error.message,
+        code: error.code
       });
+      
+      // If rate limited, wait and retry once
+      if (error.response?.status === 429) {
+        console.log('Rate limited, retrying after 2 seconds...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        try {
+          const url = `${COINGECKO_API_URL}/coins/${coinId}/market_chart`;
+          const params: Record<string, any> = {
+            vs_currency: currency,
+            days: days,
+            interval: days === 1 ? 'hourly' : 'daily',
+            x_cg_api_key: API_KEY
+          };
+          const retryResponse = await api.get(url, { params });
+          if (retryResponse.data) {
+            console.log('Retry successful');
+            return retryResponse.data;
+          }
+        } catch (retryError) {
+          console.error('Retry failed:', retryError);
+        }
+      }
     }
     return null;
   }
@@ -110,20 +191,27 @@ export const getHistoricalPriceData = async (
  * @param query - Search query
  */
 export const searchCoins = async (query: string): Promise<any[]> => {
+  const cacheKey = `search_${query}`;
+  
   try {
-    const response = await axios.get(`${COINGECKO_API_URL}/search`, {
-      params: {
-        query: query,
+    return await getOrSetCache(cacheKey, async () => {
+      const params: Record<string, any> = { 
+        query,
         x_cg_api_key: API_KEY
-      }
-    });
+      };
+      
+      const response = await api.get(`${COINGECKO_API_URL}/search`, { params });
 
-    if (response.data && response.data.coins) {
-      return response.data.coins;
-    }
-    return [];
+      if (response.data && response.data.coins) {
+        return response.data.coins;
+      }
+      return [];
+    });
   } catch (error) {
     console.error('Error searching coins:', error);
+    if (axios.isAxiosError(error)) {
+      console.error('Search API Error:', error.message);
+    }
     return [];
   }
 };
@@ -132,19 +220,26 @@ export const searchCoins = async (query: string): Promise<any[]> => {
  * Get global cryptocurrency market data
  */
 export const getGlobalMarketData = async (): Promise<any | null> => {
+  const cacheKey = 'global_market';
+  
   try {
-    const response = await axios.get(`${COINGECKO_API_URL}/global`, {
-      params: {
+    return await getOrSetCache(cacheKey, async () => {
+      const params: Record<string, any> = {
         x_cg_api_key: API_KEY
-      }
-    });
+      };
+      
+      const response = await api.get(`${COINGECKO_API_URL}/global`, { params });
 
-    if (response.data) {
-      return response.data;
-    }
-    return null;
+      if (response.data) {
+        return response.data;
+      }
+      return null;
+    });
   } catch (error) {
     console.error('Error fetching global market data:', error);
+    if (axios.isAxiosError(error)) {
+      console.error('Global Market API Error:', error.message);
+    }
     return null;
   }
 };

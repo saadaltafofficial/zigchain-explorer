@@ -29,8 +29,19 @@ class RealTimeService {
   private reconnectTimer: NodeJS.Timeout | null = null;
 
   private constructor() {
-    // Get the WebSocket URL from environment or use default
-    this.url = process.env.NEXT_PUBLIC_WS_ENDPOINT || 'ws://167.86.79.37:26657/websocket';
+    // Use secure WebSocket endpoint that matches our RPC URL
+    const isProduction = process.env.NODE_ENV === 'production';
+    const isClient = typeof window !== 'undefined';
+    
+    if (isClient && isProduction) {
+      // For production deployments, use secure WebSocket
+      this.url = 'wss://testnet-rpc.zigchain.com/websocket';
+    } else {
+      // For development or if environment variable is set
+      this.url = process.env.NEXT_PUBLIC_WS_ENDPOINT || 'wss://testnet-rpc.zigchain.com/websocket';
+    }
+    
+    console.log(`RealTimeService initialized with WebSocket URL: ${this.url}`);
   }
 
   public static getInstance(): RealTimeService {

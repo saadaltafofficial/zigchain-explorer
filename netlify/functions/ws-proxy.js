@@ -1,8 +1,11 @@
-// Note: This is a simplified example. Full WebSocket proxying in serverless
-// environments like Netlify Functions is challenging and has limitations.
-// For production, consider using a dedicated WebSocket service.
+// WebSocket information endpoint for ZigChain Explorer
+// Since Netlify Functions don't directly support WebSocket connections,
+// we're using a direct secure WebSocket connection to the blockchain node
 
 exports.handler = async (event) => {
+  // Get the WebSocket URL from environment variables or use the default secure endpoint
+  const WS_URL = process.env.NEXT_PUBLIC_WS_ENDPOINT || 'wss://testnet-rpc.zigchain.com/websocket';
+  
   return {
     statusCode: 200,
     headers: {
@@ -12,8 +15,10 @@ exports.handler = async (event) => {
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     },
     body: JSON.stringify({
-      message: "WebSocket proxying requires additional infrastructure.",
-      recommendation: "For WebSocket support in production, consider using a dedicated WebSocket service or implementing server-sent events (SSE)."
+      status: "active",
+      message: "WebSocket connection information",
+      websocketEndpoint: WS_URL,
+      info: "The application is configured to connect directly to a secure WebSocket endpoint"
     }),
   };
 };
