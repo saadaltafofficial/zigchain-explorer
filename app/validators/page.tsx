@@ -135,9 +135,7 @@ export default function ValidatorsPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Validator
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Voting Power
-                  </th>
+                  
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Commission
                   </th>
@@ -173,9 +171,7 @@ export default function ValidatorsPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      {formatTokens(validator.tokens)} ZIG
-                    </td>
+                    
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {(parseFloat(validator.commission?.commission_rates?.rate || '0') * 100).toFixed(2)}%
                     </td>

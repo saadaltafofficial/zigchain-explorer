@@ -229,7 +229,7 @@ const SearchBar: React.FC = () => {
             type="search"
             id="default-search"
             className="block w-full py-3 pl-5 pr-24 text-base text-gray-900 border-0 rounded-full bg-white shadow-lg focus:ring-2 focus:ring-blue-500 focus:outline-none dark:bg-gray-800 dark:text-white dark:placeholder-gray-400 dark:focus:ring-blue-400"
-            placeholder="Search by Block Height, Transaction Hash, or Address..."
+            placeholder="Search blocks, tx, address..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onFocus={() => setShowSuggestions(true)}

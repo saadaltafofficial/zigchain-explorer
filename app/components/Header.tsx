@@ -4,7 +4,7 @@ import React, { Suspense, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import SearchBar from './SearchBar';
-import ThemeSwitcher from './ThemeSwitcher';
+
 
 const Header: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -88,12 +88,12 @@ const Header: React.FC = () => {
                   </div>
                 </div>
               </nav>
-              <ThemeSwitcher />
+        
             </div>
 
             {/* Mobile menu button */}
             <div className="md:hidden flex items-center">
-              <ThemeSwitcher />
+        
               <button 
                 onClick={toggleMobileMenu}
                 className="ml-2 p-2 rounded-md text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none"

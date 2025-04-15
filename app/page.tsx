@@ -11,7 +11,7 @@ import HomeStats from './components/HomeStats';
 import { fetchTransactions } from './utils/transactionFetcher';
 import { ArrowRight, TrendingUp } from 'lucide-react';
 
-import ZigPrice from './components/ZigPrice';
+
 
 // Define types for the state
 interface Block {
@@ -277,9 +277,13 @@ export default function Home() {
           
           {/* Price Chart and Network Activity */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            <PriceChart coinId="zignaly" currency="usd" displayName="ZIG" />
-            
-            <NetworkActivity isLoading={false} />
+            {/* Only show PriceChart on large screens and above */}
+            <div className="hidden lg:block">
+              <PriceChart coinId="zignaly" currency="usd" displayName="ZIG" />
+            </div>
+            <div className="block w-full">
+              <NetworkActivity isLoading={false} />
+            </div>
           </div>
           
           {/* Blocks and Transactions Grid */}

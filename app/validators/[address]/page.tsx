@@ -41,12 +41,12 @@ interface Validator {
 
 // Define the correct props type for Next.js App Router
 type Props = {
-  params: Promise<{ address: string }>;
-  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+  params: { address: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
 };
 
-export default async function ValidatorDetailPage({ params }: Props) {
-  const { address } = await params;
+export default function ValidatorDetailPage({ params }: Props) {
+  const { address } = params;
   
   const [validator, setValidator] = useState<Validator | null>(null);
   const [loading, setLoading] = useState(true);
@@ -253,14 +253,6 @@ export default async function ValidatorDetailPage({ params }: Props) {
             <p className="text-sm text-gray-500 dark:text-gray-400">Operator Address</p>
             <p className="font-mono text-sm break-all">{operator_address}</p>
           </div>
-          {consensus_pubkey && (
-            <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Consensus Public Key</p>
-              <p className="font-mono text-sm break-all">
-                {consensus_pubkey['@type']}: {consensus_pubkey.key}
-              </p>
-            </div>
-          )}
           {description?.details && (
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">Details</p>

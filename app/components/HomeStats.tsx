@@ -34,20 +34,12 @@ const HomeStats: React.FC<HomeStatsProps> = ({ chainInfo, isLoading }) => {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
       <StatCard
         title="Latest Block"
-        value={isLoading ? '...' : formatNumber(chainInfo?.blockHeight || 0)}
+        value={isLoading ? '...' : chainInfo?.blockHeight || 0}
         icon={<Layers size={20} />}
         color="blue"
         link="/blocks"
         isLoading={isLoading}
         tooltip="The most recent block added to the blockchain"
-      />
-      <StatCard
-        title="Block Time"
-        value={isLoading ? '...' : `${chainInfo?.blockTime || 0}s`}
-        icon={<Clock size={20} />}
-        color="purple"
-        isLoading={isLoading}
-        tooltip="Average time between blocks"
       />
       <StatCard
         title="Validators"
@@ -64,14 +56,6 @@ const HomeStats: React.FC<HomeStatsProps> = ({ chainInfo, isLoading }) => {
         icon={<Database size={20} />}
         color="orange"
         isLoading={isLoading}
-      />
-      <StatCard
-        title="Bonded Tokens"
-        value={isLoading ? '...' : `${formatNumber(chainInfo?.bondedTokens || '0')} ZIG`}
-        icon={<BarChart2 size={20} />}
-        color="indigo"
-        isLoading={isLoading}
-        tooltip="Total tokens staked by validators"
       />
       <StatCard
         title="Node Version"

@@ -38,7 +38,7 @@ interface Transaction {
 // Constants
 const DENOM = 'uzig';
 // Use direct secure endpoints for all environments
-const REMOTE_RPC_ENDPOINT = process.env.RPC_URL || 'https://testnet-rpc.zigchain.com' || 'http://localhost:26657';
+const REMOTE_RPC_ENDPOINT = process.env.RPC_URL || 'https://testnet-rpc.zigchain.com';
 const REMOTE_API_ENDPOINT = process.env.REMOTE_API_ENDPOINT || 'https://testnet-api.ZIGChain.com/';
 
 // Use the appropriate endpoints
@@ -77,21 +77,17 @@ export const getLatestBlocks = async (count = 10) => {
     const { RPC_ENDPOINT } = getEndpoints();
     
     // Get latest block height
-    const statusResponse = await axios.get(`${RPC_ENDPOINT}/status`);
+    // Use the proxy endpoint for all RPC requests
+    const statusResponse = await axios.get(`/api/rpc?path=/status`);
     const latestHeight = parseInt(statusResponse.data.result.sync_info.latest_block_height);
     
     // Fetch blocks
     const blocks = [];
-    
     for (let i = 0; i < count && latestHeight - i > 0; i++) {
       const height = latestHeight - i;
-      const blockResponse = await axios.get(`${RPC_ENDPOINT}/block`, {
-        params: { height }
-      });
-      
+      const blockResponse = await axios.get(`/api/rpc?path=/block&height=${height}`);
       const blockData = blockResponse.data.result;
       const txCount = blockData.block.data.txs ? blockData.block.data.txs.length : 0;
-      
       blocks.push({
         height: height,
         hash: blockData.block_id.hash,
