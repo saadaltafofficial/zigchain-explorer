@@ -142,12 +142,7 @@ const NetworkActivity: React.FC<NetworkActivityProps> = ({
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">Network Activity</h2>
-        <Link 
-          href="/analytics/network" 
-          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
-        >
-          View Details →
-        </Link>
+        
       </div>
 
       <div className="flex space-x-2 mb-6">
