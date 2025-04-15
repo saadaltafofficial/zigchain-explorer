@@ -62,11 +62,16 @@ class WebSocketService {
   private isConnecting = false;
   private reconnectTimer: NodeJS.Timeout | null = null;
 
-  private constructor() {
-    // Disable WebSocket connections for now
-    this.url = '';
-    console.log('WebSocketService connections disabled');
+  private constructor(url?: string) {
+    // Allow explicit URL, fallback to environment variable
+    this.url = (url || process.env.NEXT_PUBLIC_WS_ENDPOINT) || 'wss://testnet-rpc.zigchain.com/websocket';
+    if (!this.url) {
+      console.log('WebSocketService connections disabled: No URL provided');
+    } else {
+      console.log('WebSocketService connecting to', this.url);
+    }
   }
+
 
   public static getInstance(): WebSocketService {
     if (!WebSocketService.instance) {

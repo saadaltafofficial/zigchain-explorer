@@ -10,7 +10,7 @@ import NetworkActivity from './components/NetworkActivity';
 import HomeStats from './components/HomeStats';
 import { fetchTransactions } from './utils/transactionFetcher';
 import { ArrowRight, TrendingUp } from 'lucide-react';
-import { realTimeService, RealTimeEventType } from './services/realTimeService';
+import { wsService, WebSocketEventType } from './services/websocket';
 import ConnectionStatus from './components/ConnectionStatus';
 import ZigPrice from './components/ZigPrice';
 
@@ -140,23 +140,23 @@ export default function Home() {
     };
 
     // Register event listeners
-    realTimeService.on(RealTimeEventType.NewBlock, handleNewBlock);
-    realTimeService.on(RealTimeEventType.NewTransaction, handleNewTransaction);
-    realTimeService.on(RealTimeEventType.ChainUpdate, handleChainUpdate);
-    realTimeService.on(RealTimeEventType.ConnectionStatus, handleConnectionStatus);
+    wsService.on(WebSocketEventType.NewBlock, handleNewBlock);
+    wsService.on(WebSocketEventType.NewTransaction, handleNewTransaction);
+    wsService.on(WebSocketEventType.ChainInfo, handleChainUpdate); // ChainInfo is the closest equivalent
+    wsService.on(WebSocketEventType.ConnectionStatus, handleConnectionStatus);
 
     // Connect to WebSocket
-    realTimeService.connect();
+    wsService.connect();
 
     // Fetch initial data
     fetchInitialData();
 
     // Clean up on component unmount
     return () => {
-      realTimeService.off(RealTimeEventType.NewBlock, handleNewBlock);
-      realTimeService.off(RealTimeEventType.NewTransaction, handleNewTransaction);
-      realTimeService.off(RealTimeEventType.ChainUpdate, handleChainUpdate);
-      realTimeService.off(RealTimeEventType.ConnectionStatus, handleConnectionStatus);
+      wsService.off(WebSocketEventType.NewBlock, handleNewBlock);
+      wsService.off(WebSocketEventType.NewTransaction, handleNewTransaction);
+      wsService.off(WebSocketEventType.ChainInfo, handleChainUpdate);
+      wsService.off(WebSocketEventType.ConnectionStatus, handleConnectionStatus);
     };
   }, [fetchInitialData]);
 
@@ -164,7 +164,7 @@ export default function Home() {
     fetchInitialData();
     // Also try to reconnect WebSocket if it's not connected
     if (!wsConnected) {
-      realTimeService.connect();
+      wsService.connect();
     }
   };
 
