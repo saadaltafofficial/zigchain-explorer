@@ -10,8 +10,7 @@ import NetworkActivity from './components/NetworkActivity';
 import HomeStats from './components/HomeStats';
 import { fetchTransactions } from './utils/transactionFetcher';
 import { ArrowRight, TrendingUp } from 'lucide-react';
-import { wsService, WebSocketEventType } from './services/websocket';
-import ConnectionStatus from './components/ConnectionStatus';
+
 import ZigPrice from './components/ZigPrice';
 
 // Define types for the state
@@ -54,8 +53,7 @@ export default function Home() {
   const [latestTransactions, setLatestTransactions] = useState<Transaction[]>([]);
   const [chainInfo, setChainInfo] = useState<ChainInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [wsConnected, setWsConnected] = useState(false);
-  const [wsReconnecting, setWsReconnecting] = useState(false);
+
   
   // Function to fetch initial data
   const fetchInitialData = useCallback(async () => {
@@ -88,84 +86,13 @@ export default function Home() {
     }
   }, []);
 
-  // Set up WebSocket event handlers
+  // Fetch initial data on mount
   useEffect(() => {
-    // Handler for new blocks
-    const handleNewBlock = (block: Block) => {
-      console.log('New block received via WebSocket:', block);
-      setLatestBlocks(prevBlocks => {
-        // Check if we already have this block
-        if (prevBlocks.some(b => b.height === block.height)) {
-          return prevBlocks;
-        }
-        // Add new block and keep only the latest 10
-        return [block, ...prevBlocks].slice(0, 10);
-      });
-    };
-
-    // Handler for new transactions
-    const handleNewTransaction = (tx: Transaction) => {
-      console.log('New transaction received via WebSocket:', tx);
-      setLatestTransactions(prevTxs => {
-        // Check if we already have this transaction
-        if (prevTxs.some(t => t.hash === tx.hash)) {
-          return prevTxs;
-        }
-        // Add new transaction and keep only the latest 10
-        return [tx, ...prevTxs].slice(0, 10);
-      });
-    };
-
-    // Handler for chain updates
-    const handleChainUpdate = (update: any) => {
-      console.log('Chain update received via WebSocket:', update);
-      setChainInfo(prevInfo => {
-        if (!prevInfo) return prevInfo;
-        return { ...prevInfo, ...update };
-      });
-    };
-
-    // Handler for connection status
-    const handleConnectionStatus = (status: { connected: boolean, reconnecting: boolean, error?: string }) => {
-      console.log('WebSocket connection status:', status);
-      setWsConnected(status.connected);
-      setWsReconnecting(status.reconnecting);
-      
-      if (!status.connected && !status.reconnecting && status.error) {
-        setError(`WebSocket connection error: ${status.error}`);
-      } else if (status.connected) {
-        // Clear any WebSocket-related errors when connected
-        setError(prev => prev?.includes('WebSocket') ? null : prev);
-      }
-    };
-
-    // Register event listeners
-    wsService.on(WebSocketEventType.NewBlock, handleNewBlock);
-    wsService.on(WebSocketEventType.NewTransaction, handleNewTransaction);
-    wsService.on(WebSocketEventType.ChainInfo, handleChainUpdate); // ChainInfo is the closest equivalent
-    wsService.on(WebSocketEventType.ConnectionStatus, handleConnectionStatus);
-
-    // Connect to WebSocket
-    wsService.connect();
-
-    // Fetch initial data
     fetchInitialData();
-
-    // Clean up on component unmount
-    return () => {
-      wsService.off(WebSocketEventType.NewBlock, handleNewBlock);
-      wsService.off(WebSocketEventType.NewTransaction, handleNewTransaction);
-      wsService.off(WebSocketEventType.ChainInfo, handleChainUpdate);
-      wsService.off(WebSocketEventType.ConnectionStatus, handleConnectionStatus);
-    };
   }, [fetchInitialData]);
 
   const handleRetry = () => {
     fetchInitialData();
-    // Also try to reconnect WebSocket if it's not connected
-    if (!wsConnected) {
-      wsService.connect();
-    }
   };
 
   const formatBlockTime = (time: string | number): string => {
@@ -198,7 +125,7 @@ export default function Home() {
               Latest Blocks
             </h2>
             <div className="ml-3">
-              <ConnectionStatus isConnected={wsConnected} isReconnecting={wsReconnecting} />
+          
             </div>
           </div>
           <Link 
