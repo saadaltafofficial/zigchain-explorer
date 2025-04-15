@@ -1,0 +1,13 @@
+# ZigChain Explorer Environment Variables
+
+# RPC URL for the ZigChain testnet
+RPC_URL=https://testnet-rpc.zigchain.com
+
+# WebSocket endpoint for real-time updates
+NEXT_PUBLIC_WS_ENDPOINT=wss://testnet-rpc.zigchain.com/websocket
+
+# Remote API endpoint for additional data
+REMOTE_API_ENDPOINT=https://testnet-api.ZIGChain.com/
+
+# Optional: Set to 'production' for production environment
+NODE_ENV=development

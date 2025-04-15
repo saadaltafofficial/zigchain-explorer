@@ -63,25 +63,9 @@ class WebSocketService {
   private reconnectTimer: NodeJS.Timeout | null = null;
 
   private constructor() {
-    // In production, we need special handling for WebSocket connections
-    const isProduction = process.env.NODE_ENV === 'production';
-    
-    if (isProduction && typeof window !== 'undefined') {
-      // For production, we use a secure WebSocket endpoint or proxy
-      if (window.location.protocol === 'https:') {
-        // Use the secure WebSocket endpoint that matches our new RPC URL
-        // Replace http:// with wss:// for the WebSocket connection
-        const baseUrl = 'https://testnet-rpc.zigchain.com';
-        this.url = baseUrl.replace('https://', 'wss://') + '/websocket';
-        console.log(`Using secure WebSocket URL: ${this.url}`);
-      } else {
-        // Fallback for non-HTTPS connections
-        this.url = 'wss://testnet-rpc.zigchain.com/websocket';
-      }
-    } else {
-      // For development, use the secure WebSocket endpoint
-      this.url = 'wss://testnet-rpc.zigchain.com/websocket';
-    }
+    // Disable WebSocket connections for now
+    this.url = '';
+    console.log('WebSocketService connections disabled');
   }
 
   public static getInstance(): WebSocketService {
@@ -92,6 +76,11 @@ class WebSocketService {
   }
 
   public connect(): void {
+    // Don't attempt to connect on the server side or if URL is empty
+    if (typeof window === 'undefined' || !this.url) {
+      return;
+    }
+    
     if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
       return; // Already connected or connecting
     }

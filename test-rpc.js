@@ -1,7 +1,8 @@
 // Simple script to test RPC endpoint connectivity
 const axios = require('axios');
+require('dotenv').config();
 
-const RPC_URL = 'https://testnet-rpc.zigchain.com';
+const RPC_URL = process.env.RPC_URL || 'https://testnet-rpc.zigchain.com';
 
 async function testRpcConnection() {
   try {

@@ -1,8 +1,9 @@
 // Script to test secure WebSocket connection to ZigChain testnet
 const WebSocket = require('ws');
+require('dotenv').config();
 
-// Use the secure WebSocket endpoint
-const WS_URL = 'wss://testnet-rpc.zigchain.com/websocket';
+// Use the secure WebSocket endpoint from environment variable
+const WS_URL = process.env.NEXT_PUBLIC_WS_ENDPOINT || 'wss://testnet-rpc.zigchain.com/websocket';
 
 console.log(`Attempting to connect to secure WebSocket at: ${WS_URL}`);
 

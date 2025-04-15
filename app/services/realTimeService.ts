@@ -29,19 +29,9 @@ class RealTimeService {
   private reconnectTimer: NodeJS.Timeout | null = null;
 
   private constructor() {
-    // Use secure WebSocket endpoint that matches our RPC URL
-    const isProduction = process.env.NODE_ENV === 'production';
-    const isClient = typeof window !== 'undefined';
-    
-    if (isClient && isProduction) {
-      // For production deployments, use secure WebSocket
-      this.url = 'wss://testnet-rpc.zigchain.com/websocket';
-    } else {
-      // For development or if environment variable is set
-      this.url = process.env.NEXT_PUBLIC_WS_ENDPOINT || 'wss://testnet-rpc.zigchain.com/websocket';
-    }
-    
-    console.log(`RealTimeService initialized with WebSocket URL: ${this.url}`);
+    // Disable WebSocket connections for now
+    this.url = '';
+    console.log('RealTimeService WebSocket connections disabled');
   }
 
   public static getInstance(): RealTimeService {
@@ -52,6 +42,11 @@ class RealTimeService {
   }
 
   public connect(): void {
+    // Don't attempt to connect on the server side
+    if (typeof window === 'undefined' || !this.url) {
+      return;
+    }
+    
     if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
       return; // Already connected or connecting
     }
@@ -231,11 +226,20 @@ class RealTimeService {
       reconnecting: true
     });
     
-    this.handleReconnect();
+    // Only attempt to reconnect if we're in a browser environment
+    if (typeof window !== 'undefined') {
+      this.handleReconnect();
+    }
   }
 
   private handleError(event: Event): void {
     console.error('WebSocket error:', event);
+    
+    // Don't try to reconnect if we're not in a browser environment
+    if (typeof window === 'undefined') {
+      return;
+    }
+    
     this.emitConnectionStatus({
       connected: false,
       reconnecting: true,

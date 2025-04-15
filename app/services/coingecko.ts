@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create a custom axios instance with timeout and headers
 const api = axios.create({
-  timeout: 10000, // 10 second timeout
+  timeout: 15000, // 15 second timeout
   headers: {
     'Accept': 'application/json',
     'Content-Type': 'application/json'

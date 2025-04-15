@@ -2,11 +2,8 @@ import axios from 'axios';
 import { fromBase64 } from "@cosmjs/encoding";
 import { sha256 } from "@cosmjs/crypto";
 
-// In production, use the proxy API to avoid mixed content issues
-const isProduction = process.env.NODE_ENV === 'production';
-const RPC_URL = isProduction
-  ? '/api/proxy'
-  : process.env.RPC_URL || 'https://testnet-rpc.zigchain.com';
+// Use the RPC URL from environment variable
+const RPC_URL = process.env.RPC_URL || 'https://testnet-rpc.zigchain.com' || 'http://localhost:26657';
 
 export interface Transaction {
   hash: string;

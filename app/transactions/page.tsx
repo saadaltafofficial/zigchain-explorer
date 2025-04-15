@@ -7,11 +7,8 @@ import { ArrowRight, Clock, Database, Hash, ChevronLeft, ChevronRight, Copy, Che
 import { fetchTransactions, Transaction } from "../utils/transactionFetcher";
 import TransactionDetailView from "../components/TransactionDetailView";
 
-// In production, use the proxy API to avoid mixed content issues
-const isProduction = process.env.NODE_ENV === 'production';
-const RPC_URL = isProduction
-  ? '/api/proxy'
-  : process.env.RPC_URL || 'https://testnet-rpc.zigchain.com';
+// Use the RPC URL from environment variable
+const RPC_URL = process.env.RPC_URL || 'https://testnet-rpc.zigchain.com' || 'http://localhost:26657';
 
 interface TransactionDetail extends Transaction {
   tx_result: {
