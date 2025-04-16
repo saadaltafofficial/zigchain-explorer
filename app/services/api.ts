@@ -38,7 +38,7 @@ interface Transaction {
 // Constants
 const DENOM = 'uzig';
 // Use direct secure endpoints for all environments
-const REMOTE_RPC_ENDPOINT = process.env.RPC_URL || 'https://testnet-rpc.zigchain.com';
+const REMOTE_RPC_ENDPOINT = process.env.RPC_URL || 'https://zigscan.net/';
 const REMOTE_API_ENDPOINT = process.env.REMOTE_API_ENDPOINT || 'https://testnet-api.ZIGChain.com/';
 
 // Use the appropriate endpoints

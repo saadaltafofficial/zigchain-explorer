@@ -3,7 +3,7 @@ import { fromBase64 } from "@cosmjs/encoding";
 import { sha256 } from "@cosmjs/crypto";
 
 // Use the RPC URL from environment variable
-const RPC_URL = process.env.RPC_URL || 'https://testnet-rpc.zigchain.com' || 'http://localhost:26657';
+const RPC_URL = process.env.RPC_URL || 'https://zigscan.net/';
 
 export interface Transaction {
   hash: string;

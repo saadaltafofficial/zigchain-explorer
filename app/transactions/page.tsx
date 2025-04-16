@@ -8,7 +8,7 @@ import { fetchTransactions, Transaction } from "../utils/transactionFetcher";
 import TransactionDetailView from "../components/TransactionDetailView";
 
 // Use the RPC URL from environment variable
-const RPC_URL = process.env.RPC_URL || 'https://testnet-rpc.zigchain.com' || 'http://localhost:26657';
+const RPC_URL = process.env.RPC_URL || 'https://zigscan.net/';
 
 interface TransactionDetail extends Transaction {
   tx_result: {

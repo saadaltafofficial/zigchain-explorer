@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 
-const RPC_URL = process.env.RPC_URL || 'https://testnet-rpc.zigchain.com';
+const RPC_URL = process.env.RPC_URL || 'https://zigscan.net/';
 
 export async function GET(request: NextRequest) {
   try {
