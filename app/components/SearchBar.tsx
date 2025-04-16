@@ -137,7 +137,7 @@ const SearchBar: React.FC = () => {
           router.push(`/address/${searchValue}`);
           break;
         case 'transaction':
-          router.push(`/transactions/${searchValue}`);
+          router.push(`/tx/${searchValue}`);
           break;
         default:
           router.push(`/search?q=${encodeURIComponent(searchValue)}`);
@@ -161,7 +161,7 @@ const SearchBar: React.FC = () => {
         router.push(`/address/${suggestion.value}`);
         break;
       case 'transaction':
-        router.push(`/transactions/${suggestion.value}`);
+        router.push(`/tx/${suggestion.value}`);
         break;
       case 'recent':
         // For recent searches, we need to determine the type again
@@ -170,7 +170,7 @@ const SearchBar: React.FC = () => {
         } else if (suggestion.value.startsWith('zig1') || suggestion.value.startsWith('zigvaloper1')) {
           router.push(`/address/${suggestion.value}`);
         } else if (suggestion.value.length === 64) {
-          router.push(`/transactions/${suggestion.value}`);
+          router.push(`/tx/${suggestion.value}`);
         } else {
           router.push(`/search?q=${encodeURIComponent(suggestion.value)}`);
         }
@@ -273,14 +273,12 @@ const SearchBar: React.FC = () => {
       </form>
 
       {/* Search suggestions dropdown */}
-      {showSuggestions && suggestions.length > 0 && (
-        <div className="absolute z-10 w-full mt-2 bg-white rounded-lg shadow-xl dark:bg-gray-800 border border-gray-100 dark:border-gray-700 overflow-hidden">
+      {showSuggestions && (
+        <div className="absolute z-50 w-full mt-2 bg-white rounded-lg shadow-xl dark:bg-gray-800 border border-gray-100 dark:border-gray-700 overflow-hidden">
           <div className="py-2">
-            {suggestions.length > 0 && (
-              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-1 mb-1">
-                {searchTerm ? 'Suggestions' : 'Recent Searches'}
-              </div>
-            )}
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-1 mb-1">
+              {searchTerm ? 'Suggestions' : 'Recent Searches'}
+            </div>
             <ul className="max-h-72 overflow-y-auto">
               {suggestions.map((suggestion, index) => (
                 <li key={index}>

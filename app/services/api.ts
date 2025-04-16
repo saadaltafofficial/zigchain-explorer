@@ -35,8 +35,6 @@ interface Transaction {
   rawLog: string;
 }
 
-// Constants
-const DENOM = 'uzig';
 // Use direct secure endpoints for all environments
 const REMOTE_RPC_ENDPOINT = process.env.RPC_URL || 'https://zigscan.net/';
 const REMOTE_API_ENDPOINT = process.env.REMOTE_API_ENDPOINT || 'https://testnet-api.ZIGChain.com/';
@@ -71,23 +69,82 @@ export const getStargateClient = async () => {
   }
 };
 
-// Get latest blocks
-export const getLatestBlocks = async (count = 10) => {
+// Cache duration in milliseconds
+const CACHE_DURATION = 30000; // 30 seconds
+
+// Get latest blocks with caching and pagination support
+export const getLatestBlocks = async (count = 10, useCache = true, startFromHeight?: number) => {
   try {
+    // Check browser cache first if we're in a browser environment
+    if (typeof window !== 'undefined' && useCache) {
+      const cacheKey = `latest-blocks-${count}`;
+      const cached = localStorage.getItem(cacheKey);
+      
+      if (cached) {
+        try {
+          const { data, timestamp } = JSON.parse(cached);
+          // Use cache if it's fresh (less than CACHE_DURATION old)
+          if (Date.now() - timestamp < CACHE_DURATION) {
+            console.log(`[API] Using cached blocks (${data.length} blocks)`);
+            return data;
+          }
+          console.log(`[API] Cache expired, fetching fresh data`);
+        } catch (e) {
+          console.warn(`[API] Error parsing cache:`, e);
+          // Continue with fetching fresh data
+        }
+      }
+    }
+    
     const { RPC_ENDPOINT } = getEndpoints();
     
-    // Get latest block height
-    // Use the proxy endpoint for all RPC requests
-    const statusResponse = await axios.get(`/api/rpc?path=/status`);
-    const latestHeight = parseInt(statusResponse.data.result.sync_info.latest_block_height);
+    // Get latest block height if not specified
+    let startHeight: number;
+    if (startFromHeight) {
+      // Use the provided starting height for pagination
+      startHeight = startFromHeight;
+      console.log(`[API] Using provided start height: ${startHeight}`);
+    } else {
+      // Fetch the latest height from the blockchain
+      console.log(`[API] Fetching latest block height`);
+      const statusResponse = await axios.get(`/api/rpc?path=/status`);
+      startHeight = parseInt(statusResponse.data.result.sync_info.latest_block_height);
+      console.log(`[API] Latest block height: ${startHeight}`);
+    }
     
-    // Fetch blocks
+    // Fetch blocks with throttling
     const blocks = [];
-    for (let i = 0; i < count && latestHeight - i > 0; i++) {
-      const height = latestHeight - i;
+    console.log(`[API] Fetching ${count} blocks starting from height ${startHeight}`);
+    
+    // Create a cache key that includes the starting height for pagination
+    if (typeof window !== 'undefined' && useCache && startFromHeight) {
+      const pageCacheKey = `blocks-from-${startFromHeight}-count-${count}`;
+      const cachedPage = localStorage.getItem(pageCacheKey);
+      
+      if (cachedPage) {
+        try {
+          const { data, timestamp } = JSON.parse(cachedPage);
+          if (Date.now() - timestamp < CACHE_DURATION) {
+            console.log(`[API] Using cached page of blocks from height ${startFromHeight}`);
+            return data;
+          }
+        } catch (e) {
+          console.warn(`[API] Error parsing pagination cache:`, e);
+        }
+      }
+    }
+    
+    for (let i = 0; i < count && startHeight - i > 0; i++) {
+      const height = startHeight - i;
+      // Add slight throttling between requests to avoid overwhelming the RPC endpoint
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 100)); // 100ms delay between requests
+      }
+      
       const blockResponse = await axios.get(`/api/rpc?path=/block&height=${height}`);
       const blockData = blockResponse.data.result;
       const txCount = blockData.block.data.txs ? blockData.block.data.txs.length : 0;
+      
       blocks.push({
         height: height,
         hash: blockData.block_id.hash,
@@ -95,6 +152,16 @@ export const getLatestBlocks = async (count = 10) => {
         proposer: blockData.block.header.proposer_address,
         numTxs: txCount,
       });
+    }
+    
+    // Cache the result in browser localStorage if available
+    if (typeof window !== 'undefined' && useCache) {
+      const cacheKey = `latest-blocks-${count}`;
+      localStorage.setItem(cacheKey, JSON.stringify({
+        data: blocks,
+        timestamp: Date.now()
+      }));
+      console.log(`[API] Cached ${blocks.length} blocks`);
     }
     
     return blocks;

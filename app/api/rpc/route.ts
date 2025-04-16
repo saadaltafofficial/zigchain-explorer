@@ -7,23 +7,25 @@ export async function GET(request: NextRequest) {
     // Extract path and search params
     const { searchParams } = new URL(request.url);
     const path = searchParams.get('path') || '';
-    // Build proxied URL
-    const url = `${RPC_URL}${path.startsWith('/') ? path : '/' + path}${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
-    // Fetch from the real RPC endpoint
+    // Remove 'path' from params for the real request
+    searchParams.delete('path');
+    const queryString = searchParams.toString();
+    const url = `${RPC_URL}${path.startsWith('/') ? path : '/' + path}${queryString ? '?' + queryString : ''}`;
+    console.log('[RPC PROXY] Fetching:', url);
+    // Fetch from the real RPC endpoint (no Content-Type header for GET)
     const rpcRes = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        // Forward user-agent etc if needed
-      },
-      // No credentials, no cookies
     });
     const body = await rpcRes.text();
+    if (rpcRes.status !== 200) {
+      console.error('[RPC PROXY] Non-200 response:', rpcRes.status, body);
+    }
     return new Response(body, {
       status: rpcRes.status,
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (err) {
+    console.error('[RPC PROXY] Proxy error:', err);
     return new Response(JSON.stringify({ error: 'Proxy error', detail: String(err) }), { status: 502 });
   }
 }
