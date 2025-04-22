@@ -309,8 +309,8 @@ export default function Home() {
           )}
           
           {/* Overview Stats Section */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-6">ZIGChain Explorer</h1>
+          <div className="mb-16">
+            <h1 className="text-3xl font-bold mb-6">ZigChain Explorer</h1>
             <HomeStats chainInfo={chainInfo} isLoading={loading} />
           </div>
           

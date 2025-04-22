@@ -9,9 +9,9 @@ const Footer: React.FC = () => {
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
-            <h3 className="text-xl font-semibold mb-4 text-blue-600 dark:text-white">ZIGChain Explorer</h3>
+            <h3 className="text-xl font-semibold mb-4 text-blue-600 dark:text-white">ZigChain Explorer</h3>
             <p className="text-gray-700 dark:text-gray-400 mb-6">
-              A comprehensive blockchain explorer for the ZIGChain network.
+              A comprehensive blockchain explorer for the ZigChain network.
             </p>
             
             <div className="flex space-x-6 mb-4">
@@ -116,7 +116,7 @@ const Footer: React.FC = () => {
         
         <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
           <p className="text-center text-gray-700 dark:text-gray-400">
-            &copy; {new Date().getFullYear()} ZIGChain. All rights reserved.
+            Made with ❤ by CryptoComics &copy;{new Date().getFullYear()}
           </p>
         </div>
       </div>

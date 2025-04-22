@@ -45,9 +45,7 @@ const Header: React.FC = () => {
                 <Link href="/transactions" className="font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-white transition-colors">
                   Transactions
                 </Link>
-                <Link href="/validators" className="font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-white transition-colors">
-                  Validators
-                </Link>
+                {/* Validators link removed - feature under maintenance */}
                 <div className="relative group">
                   <button className="font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-white transition-colors flex items-center">
                     Analytics
@@ -133,13 +131,7 @@ const Header: React.FC = () => {
               >
                 Transactions
               </Link>
-              <Link 
-                href="/validators" 
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Validators
-              </Link>
+              {/* Validators link removed - feature under maintenance */}
               <Link 
                 href="/tokens" 
                 className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -160,7 +152,7 @@ const Header: React.FC = () => {
       </div>
       
       {/* Hero section with search bar */}
-      <div className="bg-gradient-to-r from-blue-900 via-indigo-800 to-purple-900 py-14 relative overflow-hidden">
+      <div className="bg-gradient-to-r from-blue-900 via-indigo-800 to-purple-900 py-14 relative overflow-visible">
         {/* Background pattern */}
         <div className="absolute inset-0 overflow-hidden opacity-10">
           <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-blue-400 blur-3xl"></div>
@@ -172,9 +164,11 @@ const Header: React.FC = () => {
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">Explore ZigChain Blockchain</h1>
             <p className="text-blue-100 text-lg max-w-2xl mx-auto">Search transactions, blocks, validators and more</p>
           </div>
-          <Suspense fallback={<div className="w-full max-w-3xl mx-auto px-4 py-3 bg-gray-700/50 rounded-full">Loading search...</div>}>
-            <SearchBar />
-          </Suspense>
+          <div className="relative z-[100] search-container">
+            <Suspense fallback={<div className="w-full max-w-3xl mx-auto px-4 py-3 bg-gray-700/50 rounded-full">Loading search...</div>}>
+              <SearchBar />
+            </Suspense>
+          </div>
         </div>
       </div>
     </header>

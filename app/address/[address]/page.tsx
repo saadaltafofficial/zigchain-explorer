@@ -1,12 +1,4 @@
-import React from 'react';
-import Link from 'next/link';
-
-type Props = {
-  params: { address: string };
-  searchParams?: { [key: string]: string | string[] | undefined };
-};
-
-export default function AddressPage({ params }: Props) {
+export default function AddressPage({ params }: { params: { address: string } }) {
   return (
     <div className="p-8">
       <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
@@ -18,9 +10,9 @@ export default function AddressPage({ params }: Props) {
       <h1 className="text-2xl font-bold mb-4">Address Details</h1>
       <p className="mb-4">Address: {params.address}</p>
       
-      <Link href="/" className="text-blue-500 hover:underline">
+      <a href="/" className="text-blue-500 hover:underline">
         Return to Home
-      </Link>
+      </a>
     </div>
   );
 }

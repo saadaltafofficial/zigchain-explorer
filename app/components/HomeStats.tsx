@@ -57,13 +57,7 @@ const HomeStats: React.FC<HomeStatsProps> = ({ chainInfo, isLoading }) => {
         color="orange"
         isLoading={isLoading}
       />
-      <StatCard
-        title="Node Version"
-        value={isLoading ? '...' : chainInfo?.nodeInfo?.version || 'Unknown'}
-        icon={<Cpu size={20} />}
-        color="red"
-        isLoading={isLoading}
-      />
+      
     </div>
   );
 };
