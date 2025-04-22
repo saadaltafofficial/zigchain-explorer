@@ -229,7 +229,7 @@ const SearchBar: React.FC = () => {
     <div className="relative w-full max-w-3xl mx-auto" ref={suggestionsRef} style={{ position: 'relative', zIndex: 1000 }}>
       <form onSubmit={handleSearch} className="relative">
         <div className="relative">
-          <div className="flex items-center bg-white dark:bg-gray-800 rounded-full shadow-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-200 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
+          <div className="flex items-center bg-gray-800 rounded-full shadow-md overflow-hidden border border-gray-700 hover:border-blue-500 transition-all duration-200 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
             <input
               ref={inputRef}
               type="text"
@@ -237,7 +237,7 @@ const SearchBar: React.FC = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
               onFocus={handleInputFocus}
               placeholder="Search blocks, tx, address..."
-              className="w-full px-5 py-3 text-gray-700 dark:text-gray-300 bg-transparent focus:outline-none"
+              className="w-full px-5 py-3 text-gray-300 bg-transparent focus:outline-none"
               aria-label="Search"
             />
             {searchTerm && (
@@ -278,9 +278,9 @@ const SearchBar: React.FC = () => {
 
       {/* Search suggestions dropdown */}
       {showSuggestions && (
-        <div className="fixed w-full max-w-3xl mt-2 bg-white rounded-lg shadow-xl dark:bg-gray-800 border border-gray-100 dark:border-gray-700 overflow-hidden" style={{ zIndex: 9999, left: '50%', transform: 'translateX(-50%)' }}>
+        <div className="fixed w-full max-w-3xl mt-2 bg-gray-800 rounded-lg shadow-xl border border-gray-700 overflow-hidden" style={{ zIndex: 9999, left: '50%', transform: 'translateX(-50%)' }}>
           <div className="py-2">
-            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 px-4 py-1 mb-1">
+            <div className="text-xs font-medium text-gray-400 px-4 py-1 mb-1">
               {searchTerm ? 'Suggestions' : 'Recent Searches'}
             </div>
             <ul className="max-h-72 overflow-y-auto">
@@ -289,12 +289,12 @@ const SearchBar: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleSuggestionClick(suggestion)}
-                    className="flex items-center w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors duration-150"
+                    className="flex items-center w-full px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-700 transition-colors duration-150"
                   >
                     <span className="mr-3 flex-shrink-0">{getIconForSuggestion(suggestion.type)}</span>
                     <div className="flex flex-col items-start">
                       <span className="font-medium truncate">{suggestion.label || suggestion.value}</span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                      <span className="text-xs text-gray-400">
                         {suggestion.type === 'block' ? 'Block' : 
                          suggestion.type === 'address' ? 'Address' : 
                          suggestion.type === 'transaction' ? 'Transaction' : 'Recent Search'}
@@ -305,10 +305,10 @@ const SearchBar: React.FC = () => {
               ))}
             </ul>
             {recentSearches.length > 0 && searchTerm === '' && (
-              <div className="mt-1 pt-2 border-t border-gray-200 dark:border-gray-700 px-4">
+              <div className="mt-1 pt-2 border-t border-gray-700 px-4">
                 <button 
                   onClick={clearRecentSearches}
-                  className="w-full text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-center py-1.5"
+                  className="w-full text-xs text-blue-400 hover:text-blue-300 text-center py-1.5"
                 >
                   Clear recent searches
                 </button>

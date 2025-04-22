@@ -16,7 +16,7 @@ const Header: React.FC = () => {
   return (
     <header className="z-50">
       {/* Navigation bar */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+      <div className="bg-gray-800 border-b border-gray-700 shadow-sm">
         <div className="container mx-auto px-4 py-3">
           {/* Top navigation bar */}
           <div className="flex justify-between items-center">
@@ -36,13 +36,13 @@ const Header: React.FC = () => {
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-6">
               <nav className="flex space-x-6">
-                <Link href="/" className="font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-white transition-colors">
+                <Link href="/" className="font-medium text-gray-300 hover:text-white transition-colors">
                   Home
                 </Link>
-                <Link href="/blocks" className="font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-white transition-colors">
+                <Link href="/blocks" className="font-medium text-gray-300 hover:text-white transition-colors">
                   Blocks
                 </Link>
-                <Link href="/transactions" className="font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-white transition-colors">
+                <Link href="/transactions" className="font-medium text-gray-300 hover:text-white transition-colors">
                   Transactions
                 </Link>
                 {/* Validators link removed - feature under maintenance */}
@@ -53,12 +53,12 @@ const Header: React.FC = () => {
                       <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                     </svg>
                   </button>
-                  <div className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 hidden group-hover:block z-50">
+                  <div className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-gray-800 ring-1 ring-black ring-opacity-5 hidden group-hover:block z-50">
                     <div className="py-1">
-                      <Link href="/analytics/tokens" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                      <Link href="/analytics/tokens" className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">
                         Token Analytics
                       </Link>
-                      <Link href="/analytics/network" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                      <Link href="/analytics/network" className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">
                         Network Stats
                       </Link>
                     </div>

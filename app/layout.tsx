@@ -23,23 +23,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="dark" data-theme="dark" suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                // On page load or when changing themes, best to add inline in \`head\` to avoid FOUC
-                if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                  document.documentElement.classList.add('dark');
-                  document.documentElement.setAttribute('data-theme', 'dark');
-                } else {
-                  document.documentElement.classList.remove('dark');
-                  document.documentElement.classList.add('light');
-                  document.documentElement.setAttribute('data-theme', 'light');
-                }
-                console.log('Initial theme set to:', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+                // Always force dark mode
+                document.documentElement.classList.add('dark');
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                console.log('Dark theme applied');
               } catch (_) {
                 console.error('Error setting initial theme');
               }
@@ -47,7 +42,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.className} flex flex-col min-h-screen`}>
+      <body className={`${inter.className} flex flex-col min-h-screen bg-gray-900 text-gray-200`}>
         <ThemeProvider>
           <Header />
           <main className="flex-grow container mx-auto px-4 py-8">

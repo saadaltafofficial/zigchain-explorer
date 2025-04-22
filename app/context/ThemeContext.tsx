@@ -13,57 +13,46 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // Initialize with a default theme to prevent hydration mismatch
-  const [theme, setTheme] = useState<Theme>('system');
-  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
+  // Always use dark theme
+  const [theme, setTheme] = useState<Theme>('dark');
+  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('dark');
   const [mounted, setMounted] = useState(false);
 
-  // Effect to initialize theme from localStorage after mount
+  // Effect to set dark mode after mount
   useEffect(() => {
     setMounted(true);
-    // Check if localStorage is available
+    // Force dark theme in localStorage
     if (typeof window !== 'undefined') {
       try {
-        const storedTheme = localStorage.getItem('theme');
-        if (storedTheme) {
-          setTheme(storedTheme as Theme);
-        }
+        localStorage.setItem('theme', 'dark');
       } catch {
         // Ignore localStorage errors
       }
     }
   }, []);
 
-  // Effect to apply theme changes
+  // Effect to apply dark theme
   useEffect(() => {
     if (!mounted) return;
 
-    // Save theme preference to localStorage
-    localStorage.setItem('theme', theme);
+    // Always save dark theme to localStorage
+    localStorage.setItem('theme', 'dark');
 
-    // Determine the actual theme based on the selected option
+    // Apply dark theme
     const applyTheme = () => {
-      let newTheme: 'light' | 'dark';
-      
-      if (theme === 'system') {
-        // Check system preference
-        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        newTheme = systemPrefersDark ? 'dark' : 'light';
-      } else {
-        newTheme = theme;
-      }
+      const newTheme = 'dark';
       
       // Apply theme to document
       const root = window.document.documentElement;
       
-      // Remove the previous theme class
-      root.classList.remove('light', 'dark');
+      // Remove any light theme class
+      root.classList.remove('light');
       
-      // Add the new theme class
-      root.classList.add(newTheme);
+      // Add dark theme class
+      root.classList.add('dark');
       
       // Also set a data attribute for additional styling options
-      root.setAttribute('data-theme', newTheme);
+      root.setAttribute('data-theme', 'dark');
       
       console.log(`Applied theme: ${newTheme}`);
       
@@ -71,22 +60,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     };
 
     applyTheme();
-
-    // Listen for system preference changes if using system theme
-    if (theme === 'system') {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handleChange = () => applyTheme();
-      
-      // Use the correct event listener method based on browser support
-      try {
-        mediaQuery.addEventListener('change', handleChange);
-        return () => mediaQuery.removeEventListener('change', handleChange);
-      } catch (_) {
-        // Fallback for older browsers
-        mediaQuery.addListener(handleChange);
-        return () => mediaQuery.removeListener(handleChange);
-      }
-    }
+    // No need to listen for system preference changes since we're always using dark mode
   }, [theme, mounted]);
 
   // Provide the actual value only after mounting to avoid hydration mismatch
