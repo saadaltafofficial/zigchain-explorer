@@ -54,18 +54,18 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({
         {decodedTx.sender && (
           <div>
             <h3 className="text-lg font-semibold mb-1 text-gray-800 dark:text-gray-200">From</h3>
-            <Link href={`/address/${decodedTx.sender}`} className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
+            <span title="Address details coming soon" className="text-blue-600 dark:text-blue-400 cursor-not-allowed">
               <HashDisplay hash={decodedTx.sender} truncateLength={12} showCopyButton={true} />
-            </Link>
+            </span>
           </div>
         )}
 
         {decodedTx.recipient && (
           <div>
             <h3 className="text-lg font-semibold mb-1 text-gray-800 dark:text-gray-200">To</h3>
-            <Link href={`/address/${decodedTx.recipient}`} className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
+            <span title="Address details coming soon" className="text-blue-600 dark:text-blue-400 cursor-not-allowed">
               <HashDisplay hash={decodedTx.recipient} truncateLength={12} showCopyButton={true} />
-            </Link>
+            </span>
           </div>
         )}
 
@@ -81,9 +81,9 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({
         {decodedTx.delegator && (
           <div>
             <h3 className="text-lg font-semibold mb-1 text-gray-800 dark:text-gray-200">Delegator</h3>
-            <Link href={`/address/${decodedTx.delegator}`} className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
+            <span title="Address details coming soon" className="text-blue-600 dark:text-blue-400 cursor-not-allowed">
               <HashDisplay hash={decodedTx.delegator} truncateLength={12} showCopyButton={true} />
-            </Link>
+            </span>
           </div>
         )}
 

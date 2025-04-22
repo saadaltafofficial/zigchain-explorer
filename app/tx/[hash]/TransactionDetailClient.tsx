@@ -202,18 +202,18 @@ export default function TransactionDetailClient({ params }: TransactionDetailCli
                 {transaction.from && (
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">From</p>
-                    <Link href={`/address/${transaction.from}`} className="text-blue-500 hover:text-blue-700 font-mono text-sm break-all">
+                    <span title="Address details coming soon" className="text-blue-500 cursor-not-allowed font-mono text-sm break-all">
                       {transaction.from}
-                    </Link>
+                    </span>
                   </div>
                 )}
                 
                 {transaction.to && (
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">To</p>
-                    <Link href={`/address/${transaction.to}`} className="text-blue-500 hover:text-blue-700 font-mono text-sm break-all">
+                    <span title="Address details coming soon" className="text-blue-500 cursor-not-allowed font-mono text-sm break-all">
                       {transaction.to}
-                    </Link>
+                    </span>
                   </div>
                 )}
                 
