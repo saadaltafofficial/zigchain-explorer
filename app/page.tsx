@@ -2,13 +2,15 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { getLatestBlocks, getChainInfo } from './services/api';
+// Import from our new API client instead of the direct API
+import { getLatestBlocks, getLatestTransactions, getChainInfo } from './services/apiClient';
 import BlockCard from './components/BlockCard';
 import TransactionCard from './components/TransactionCard';
 import PriceChart from './components/PriceChart';
 import NetworkActivity from './components/NetworkActivity';
 import HomeStats from './components/HomeStats';
-import { fetchTransactions } from './utils/transactionFetcher';
+// We no longer need this import as we're using our API client
+// import { fetchTransactions } from './utils/transactionFetcher';
 import { ArrowRight, TrendingUp } from 'lucide-react';
 
 
@@ -30,7 +32,8 @@ interface Transaction {
   to?: string;
   amount?: string;
   denom?: string;
-  status?: 'success' | 'failed';
+  status?: string;
+  code?: number;
   tx_result?: {
     code: number;
   };
@@ -62,25 +65,55 @@ export default function Home() {
       setError(null);
       
       console.log('Fetching initial data for home page...');
+      console.log('API URL:', process.env.NEXT_PUBLIC_API_URL);
+      console.log('RPC URL:', process.env.RPC_URL);
       
-      // Fetch latest blocks
-      const blocks = await getLatestBlocks(10);
-      console.log('Received initial blocks:', blocks);
-      setLatestBlocks(blocks);
+      // Try to fetch data with error handling for each call
+      try {
+        // Fetch latest blocks using our new API client
+        console.log('Fetching latest blocks...');
+        const blocks = await getLatestBlocks(10);
+        console.log('Received initial blocks:', blocks);
+        if (blocks && blocks.length > 0) {
+          setLatestBlocks(blocks);
+        } else {
+          console.warn('No blocks received from API');
+        }
+      } catch (blockErr) {
+        console.error('Error fetching blocks:', blockErr);
+      }
       
-      // Fetch latest transactions using the common utility
-      const transactions = await fetchTransactions(200, 10); // Search in last 200 blocks, limit to 10 transactions
-      console.log('Received initial transactions:', transactions);
-      setLatestTransactions(transactions);
+      try {
+        // Fetch latest transactions using our new API client
+        console.log('Fetching latest transactions...');
+        const transactions = await getLatestTransactions(10);
+        console.log('Received initial transactions:', transactions);
+        if (transactions && transactions.length > 0) {
+          setLatestTransactions(transactions);
+        } else {
+          console.warn('No transactions received from API');
+        }
+      } catch (txErr) {
+        console.error('Error fetching transactions:', txErr);
+      }
       
-      // Fetch chain info
-      const info = await getChainInfo();
-      console.log('Received initial chain info:', info);
-      setChainInfo(info);
+      try {
+        // Fetch chain info using our new API client
+        console.log('Fetching chain info...');
+        const info = await getChainInfo();
+        console.log('Received initial chain info:', info);
+        if (info) {
+          setChainInfo(info);
+        } else {
+          console.warn('No chain info received from API');
+        }
+      } catch (infoErr) {
+        console.error('Error fetching chain info:', infoErr);
+      }
       
       setLoading(false);
     } catch (err: unknown) {
-      console.error('Error fetching initial data:', err);
+      console.error('Error in fetchInitialData:', err);
       setError(err instanceof Error ? err.message : 'Failed to load blockchain data. Please try again later.');
       setLoading(false);
     }
@@ -195,7 +228,13 @@ export default function Home() {
                 <TransactionCard 
                   hash={tx.hash}
                   time={tx.time}
-                  status={tx.tx_result?.code === 0 ? 'success' : 'failed'}
+                  status={
+                    // Check all possible ways a transaction could be marked as failed
+                    tx.status === 'failed' || 
+                    tx.code === 1 || 
+                    tx.tx_result?.code === 1 ? 
+                    'failed' : 'success'
+                  }
                   from={tx.from || ''}
                   to={tx.to || ''}
                   blockHeight={tx.height.toString()}

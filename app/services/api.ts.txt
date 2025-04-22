@@ -38,6 +38,8 @@ interface Transaction {
 // Use direct secure endpoints for all environments
 const REMOTE_RPC_ENDPOINT = process.env.RPC_URL || 'https://zigscan.net/';
 const REMOTE_API_ENDPOINT = process.env.REMOTE_API_ENDPOINT || 'https://testnet-api.ZIGChain.com/';
+// New API endpoint for our FastAPI backend
+const API_ENDPOINT = process.env.NEXT_PUBLIC_API_URL || 'https://zigscan.net/api';
 
 // Use the appropriate endpoints
 const getEndpoints = () => {
@@ -96,6 +98,51 @@ export const getLatestBlocks = async (count = 10, useCache = true, startFromHeig
       }
     }
     
+    // Use our new API endpoint for fetching blocks
+    console.log(`[API] Fetching ${count} blocks from API`);
+    
+    let url = `${API_ENDPOINT}/blocks/latest?limit=${count}`;
+    if (startFromHeight) {
+      // If we have a starting height, we could use it for pagination
+      // Note: Your API would need to support this parameter
+      console.log(`[API] Using provided start height: ${startFromHeight}`);
+      // This would depend on your API implementation
+      // url += `&start_height=${startFromHeight}`;
+    }
+    
+    const response = await axios.get(url);
+    
+    if (response.data) {
+      const blocks = response.data.map((block: any) => ({
+        height: block.height,
+        hash: block.hash,
+        time: block.time,
+        proposer: block.proposer,
+        txCount: block.num_txs || 0
+      }));
+      
+      // Cache the results if we're in a browser environment
+      if (typeof window !== 'undefined' && useCache) {
+        const cacheData = {
+          data: blocks,
+          timestamp: Date.now()
+        };
+        
+        // Cache with the count for general latest blocks
+        localStorage.setItem(`latest-blocks-${count}`, JSON.stringify(cacheData));
+        
+        // Also cache with the specific starting height for pagination
+        if (startFromHeight) {
+          localStorage.setItem(`blocks-from-${startFromHeight}-count-${count}`, JSON.stringify(cacheData));
+        }
+      }
+      
+      return blocks;
+    }
+    
+    // Fallback to the old method if the API doesn't return data
+    console.log(`[API] Falling back to direct RPC calls`);
+    
     const { RPC_ENDPOINT } = getEndpoints();
     
     // Get latest block height if not specified
@@ -103,70 +150,50 @@ export const getLatestBlocks = async (count = 10, useCache = true, startFromHeig
     if (startFromHeight) {
       // Use the provided starting height for pagination
       startHeight = startFromHeight;
-      console.log(`[API] Using provided start height: ${startHeight}`);
     } else {
       // Fetch the latest height from the blockchain
-      console.log(`[API] Fetching latest block height`);
       const statusResponse = await axios.get(`/api/rpc?path=/status`);
       startHeight = parseInt(statusResponse.data.result.sync_info.latest_block_height);
-      console.log(`[API] Latest block height: ${startHeight}`);
     }
     
     // Fetch blocks with throttling
     const blocks = [];
-    console.log(`[API] Fetching ${count} blocks starting from height ${startHeight}`);
     
-    // Create a cache key that includes the starting height for pagination
-    if (typeof window !== 'undefined' && useCache && startFromHeight) {
-      const pageCacheKey = `blocks-from-${startFromHeight}-count-${count}`;
-      const cachedPage = localStorage.getItem(pageCacheKey);
-      
-      if (cachedPage) {
-        try {
-          const { data, timestamp } = JSON.parse(cachedPage);
-          if (Date.now() - timestamp < CACHE_DURATION) {
-            console.log(`[API] Using cached page of blocks from height ${startFromHeight}`);
-            return data;
-          }
-        } catch (e) {
-          console.warn(`[API] Error parsing pagination cache:`, e);
-        }
-      }
-    }
-    
-    for (let i = 0; i < count && startHeight - i > 0; i++) {
+    // Fetch blocks one by one with a small delay to avoid overwhelming the node
+    for (let i = 0; i < count; i++) {
       const height = startHeight - i;
-      // Add slight throttling between requests to avoid overwhelming the RPC endpoint
-      if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 100)); // 100ms delay between requests
+      if (height <= 0) break; // Don't go below height 1
+      
+      try {
+        // Use the proxy API route to avoid CORS issues
+        const blockResponse = await axios.get(`/api/rpc?path=/block&height=${height}`);
+        
+        if (blockResponse.data && blockResponse.data.result) {
+          const blockData = blockResponse.data.result;
+          const header = blockData.block.header;
+          const txCount = blockData.block.data.txs ? blockData.block.data.txs.length : 0;
+          
+          blocks.push({
+            height,
+            hash: blockData.block_id.hash,
+            time: header.time,
+            proposer: header.proposer_address,
+            txCount
+          });
+        }
+      } catch (blockError) {
+        console.error(`Error fetching block at height ${height}:`, blockError);
       }
       
-      const blockResponse = await axios.get(`/api/rpc?path=/block&height=${height}`);
-      const blockData = blockResponse.data.result;
-      const txCount = blockData.block.data.txs ? blockData.block.data.txs.length : 0;
-      
-      blocks.push({
-        height: height,
-        hash: blockData.block_id.hash,
-        time: blockData.block.header.time,
-        proposer: blockData.block.header.proposer_address,
-        numTxs: txCount,
-      });
-    }
-    
-    // Cache the result in browser localStorage if available
-    if (typeof window !== 'undefined' && useCache) {
-      const cacheKey = `latest-blocks-${count}`;
-      localStorage.setItem(cacheKey, JSON.stringify({
-        data: blocks,
-        timestamp: Date.now()
-      }));
-      console.log(`[API] Cached ${blocks.length} blocks`);
+      // Add a small delay between requests to avoid overwhelming the node
+      if (i < count - 1) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
     }
     
     return blocks;
   } catch (error) {
-    return handleApiError(error, 'Failed to fetch latest blocks');
+    return handleApiError(error, 'getLatestBlocks');
   }
 };
 
@@ -672,106 +699,119 @@ export const getChainInfo = async () => {
 // Get latest transactions
 export const getLatestTransactions = async (count = 5) => {
   try {
-    const { RPC_ENDPOINT } = getEndpoints();
-    console.log(`Fetching latest transactions from ${RPC_ENDPOINT}`);
+    // Use our new API endpoint for fetching transactions
+    console.log(`[API] Fetching ${count} latest transactions from API`);
     
     try {
-      const statusResponse = await axios.get(`${RPC_ENDPOINT}/status`);
-      const latestHeight = parseInt(statusResponse.data.result.sync_info.latest_block_height);
+      const response = await axios.get(`${API_ENDPOINT}/transactions/latest?limit=${count}`);
       
-      // We'll search through the latest 20 blocks to find transactions
-      const blocksToSearch = 20;
-      const minHeight = Math.max(1, latestHeight - blocksToSearch + 1);
-      
-      let transactions = [];
-      let blocksChecked = 0;
-      
-      // Fetch each block in the range until we have enough transactions
-      for (let height = latestHeight; height >= minHeight && transactions.length < count && blocksChecked < blocksToSearch; height--) {
-        try {
-          blocksChecked++;
-          const blockResponse = await axios.get(`${RPC_ENDPOINT}/block`, {
-            params: { height }
-          });
+      if (response.data && response.data.length > 0) {
+        console.log(`[API] Successfully fetched ${response.data.length} transactions from API`);
+        
+        // Map the API response to our expected format
+        const transactions = response.data.map((tx: any) => ({
+          hash: tx.hash,
+          height: tx.block_id?.toString() || '',
+          time: tx.created_at,
+          status: tx.status,
+          from: tx.from_address,
+          to: tx.to_address,
+          amount: tx.amount
+        }));
+        
+        return transactions;
+      }
+    } catch (apiError) {
+      console.error(`[API] Error fetching transactions from API:`, apiError);
+      console.log(`[API] Falling back to direct RPC calls`);
+    }
+    
+    // Fallback to the old method if the API doesn't return data
+    const { RPC_ENDPOINT } = getEndpoints();
+    
+    // Get the latest block height
+    const statusResponse = await axios.get(`/api/rpc?path=/status`);
+    const latestHeight = parseInt(statusResponse.data.result.sync_info.latest_block_height);
+    
+    // We'll search through the latest 20 blocks to find transactions
+    const blocksToSearch = 20;
+    const minHeight = Math.max(1, latestHeight - blocksToSearch + 1);
+    
+    const blockData = blockResponse.data.result;
+    const header = blockData.block.header;
+    const txs = blockData.block.data.txs || [];
+    
+    // Process transactions if there are any
+    const transactions = [];
+    
+    for (const tx of txs) {
+      try {
+        // Get the transaction hash from the base64 encoded data
+        const txHash = await getTxHashFromBase64(tx);
+        
+        // Get transaction details
+        const txResponse = await axios.get(`/api/rpc?path=/tx&hash=0x${txHash}`);
+        
+        if (txResponse.data && txResponse.data.result) {
+          const txData = txResponse.data.result;
           
-          const blockData = blockResponse.data.result;
-          const txs = blockData.block.data.txs || [];
+          // Extract sender and receiver from events if available
+          let sender = null;
+          let receiver = null;
+          let amount = null;
           
-          if (txs.length === 0) continue;
-          
-          // Process each transaction in this block
-          for (const tx of txs) {
-            if (transactions.length >= count) break;
+          if (txData.tx_result && txData.tx_result.events) {
+            // Look for transfer events
+            const transferEvents = txData.tx_result.events.filter((event: any) => event.type === 'transfer');
             
-            try {
-              // Calculate the transaction hash
-              const txHash = await getTxHashFromBase64(tx);
+            if (transferEvents.length > 0) {
+              const transferEvent = transferEvents[0];
               
-              // Get more details about the transaction
-              const txResponse = await axios.get(`${RPC_ENDPOINT}/tx`, {
-                params: { hash: `0x${txHash}` }
-              });
+              // Extract sender and recipient from attributes
+              const senderAttr = transferEvent.attributes.find((attr: any) => attr.key === 'sender');
+              const recipientAttr = transferEvent.attributes.find((attr: any) => attr.key === 'recipient');
+              const amountAttr = transferEvent.attributes.find((attr: any) => attr.key === 'amount');
               
-              if (txResponse.data && txResponse.data.result) {
-                const txData = txResponse.data.result;
-                
-                // Extract sender and receiver from events if available
-                let sender = null;
-                let receiver = null;
-                let amount = null;
-                
-                if (txData.tx_result && txData.tx_result.events) {
-                  // Look for transfer events
-                  const transferEvents = txData.tx_result.events.filter((event: any) => event.type === 'transfer');
-                  
-                  if (transferEvents.length > 0) {
-                    const transferEvent = transferEvents[0];
-                    
-                    // Extract sender and recipient from attributes
-                    const senderAttr = transferEvent.attributes.find((attr: any) => attr.key === 'sender');
-                    const recipientAttr = transferEvent.attributes.find((attr: any) => attr.key === 'recipient');
-                    const amountAttr = transferEvent.attributes.find((attr: any) => attr.key === 'amount');
-                    
-                    if (senderAttr && senderAttr.value) {
-                      sender = senderAttr.value;
-                    }
-                    
-                    if (recipientAttr && recipientAttr.value) {
-                      receiver = recipientAttr.value;
-                    }
-                    
-                    if (amountAttr && amountAttr.value) {
-                      amount = amountAttr.value;
-                    }
-                  }
-                }
-                
-                transactions.push({
-                  hash: txHash,
-                  height: height.toString(),
-                  time: blockData.block.header.time,
-                  status: txData.tx_result.code === 0 ? 'success' : 'failed',
-                  from: sender,
-                  to: receiver,
-                  amount: amount
-                });
+              if (senderAttr && senderAttr.value) {
+                sender = senderAttr.value;
               }
-            } catch (txError) {
-              console.error(`Error processing transaction:`, txError);
+              
+              if (recipientAttr && recipientAttr.value) {
+                receiver = recipientAttr.value;
+              }
+              
+              if (amountAttr && amountAttr.value) {
+                amount = amountAttr.value;
+              }
             }
           }
-        } catch (blockError) {
-          console.error(`Error fetching block at height ${height}:`, blockError);
+          
+          transactions.push({
+            hash: txHash,
+            height: height.toString(),
+            time: header.time,
+            status: txData.tx_result.code === 0 ? 'success' : 'failed',
+            from: sender,
+            to: receiver,
+            amount: amount
+          });
         }
+      } catch (txError) {
+        console.error(`Error processing transaction:`, txError);
       }
-      
-      console.log(`Found ${transactions.length} transactions in ${blocksChecked} blocks`);
-      return transactions;
-    } catch (statusError) {
-      console.error('Error fetching status:', statusError);
-      return handleApiError(statusError, 'getLatestTransactions');
     }
+    
+    return {
+      height,
+      hash: blockData.block_id.hash,
+      time: header.time,
+      proposer: header.proposer_address,
+      txCount: txs.length,
+      transactions
+    };
   } catch (error) {
-    return handleApiError(error, 'getLatestTransactions');
+    return handleApiError(error, 'getBlockByHeight');
   }
 };
+
+// ... (rest of the code remains the same)

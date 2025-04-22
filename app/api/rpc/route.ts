@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 
-const RPC_URL = process.env.RPC_URL || 'https://zigscan.net/';
+const RPC_URL = process.env.RPC_URL || 'https://zigscan.net';
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,11 +10,29 @@ export async function GET(request: NextRequest) {
     // Remove 'path' from params for the real request
     searchParams.delete('path');
     const queryString = searchParams.toString();
-    const url = `${RPC_URL}${path.startsWith('/') ? path : '/' + path}${queryString ? '?' + queryString : ''}`;
+    
+    // Construct the URL - ensure we're using the correct format for zigscan.net
+    let url = '';
+    if (path === '/validators') {
+      // Special handling for validators endpoint
+      url = `${RPC_URL}/validators`;
+    } else if (path === '/status') {
+      // Special handling for status endpoint
+      url = `${RPC_URL}/status`;
+    } else {
+      // Default handling for other endpoints
+      url = `${RPC_URL}${path.startsWith('/') ? path : '/' + path}${queryString ? '?' + queryString : ''}`;
+    }
+    
     console.log('[RPC PROXY] Fetching:', url);
-    // Fetch from the real RPC endpoint (no Content-Type header for GET)
+    
+    // Fetch from the real RPC endpoint with proper headers
     const rpcRes = await fetch(url, {
       method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'ZigChain-Explorer/1.0'
+      }
     });
     const body = await rpcRes.text();
     if (rpcRes.status !== 200) {

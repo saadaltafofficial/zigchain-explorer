@@ -2,16 +2,21 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import axios from "axios";
 import { ArrowRight, Clock, Database, Hash, ChevronLeft, ChevronRight, Copy, Check } from "lucide-react";
-import { fetchTransactions, Transaction } from "../utils/transactionFetcher";
+import { getLatestTransactions, getTransactionByHash } from "../services/apiClient";
 import TransactionDetailView from "../components/TransactionDetailView";
 
-// Use the RPC URL from environment variable
-const RPC_URL = process.env.RPC_URL || 'https://zigscan.net/';
-
-interface TransactionDetail extends Transaction {
-  tx_result: {
+interface Transaction {
+  hash: string;
+  height: string;
+  time: string;
+  from?: string;
+  to?: string;
+  amount?: string;
+  fee?: string;
+  status?: string;
+  code?: number;
+  tx_result?: {
     code: number;
     data?: string;
     log: string;
@@ -26,6 +31,11 @@ interface TransactionDetail extends Transaction {
       }>;
     }>;
   };
+  tx?: any;
+}
+
+interface TransactionDetail extends Transaction {
+  // Additional fields for detailed view if needed
 }
 
 export default function TransactionsPage() {
@@ -101,7 +111,7 @@ function TransactionsContent() {
 
   // Fetch transactions when pagination changes or maxBlocksToFetch changes
   useEffect(() => {
-    fetchBlockTransactions(maxBlocksToFetch);
+    fetchTransactions(maxBlocksToFetch);
   }, [maxBlocksToFetch]);
 
   // Update displayed transactions when page or items per page changes
@@ -109,21 +119,22 @@ function TransactionsContent() {
     updateDisplayedTransactions();
   }, [currentPage, itemsPerPage, allFetchedTransactions]);
 
-  const fetchBlockTransactions = async (blocksBack = 50) => {
+  const fetchTransactions = async (limit = 50) => {
     try {
       setLoading(true);
       setError(null);
 
-      const txs = await fetchTransactions(blocksBack, 1000); // Fetch up to 1000 transactions
+      console.log(`[Transactions] Fetching ${limit} latest transactions from API`);
+      const txs = await getLatestTransactions(limit);
       
-      console.log(`Found ${txs.length} transactions`);
+      console.log(`[Transactions] Found ${txs.length} transactions`);
       setAllFetchedTransactions(txs);
       setTotalItems(txs.length);
       
       // Initial update of displayed transactions
       updateDisplayedTransactions(txs);
     } catch (error) {
-      console.error("Error fetching transactions:", error);
+      console.error("[Transactions] Error fetching transactions:", error);
       setError("Failed to fetch transactions. Please try again later.");
     } finally {
       setLoading(false);
@@ -145,84 +156,73 @@ function TransactionsContent() {
       setTxLoading(true);
       setTxError(null);
       
-      // We already have all the transaction details from the fetchTransactions function
-      // Just need to set the status field if it's not already set
-      if (!tx.status) {
-        tx.status = tx.tx_result.code === 0 ? 'success' : 'failed';
-      }
+      console.log(`[Transactions] Fetching details for transaction ${tx.hash}`);
       
-      // Extract sender, receiver, and amount from events if they're not already set
-      if (!tx.from || !tx.to || !tx.amount) {
-        try {
-          // Get more details about the transaction
-          const txResponse = await axios.get(`${RPC_URL}/tx`, {
-            params: {
-              hash: `0x${tx.hash}`
-            }
-          });
-          
-          if (txResponse.data && txResponse.data.result && txResponse.data.result.tx_result) {
-            const txData = txResponse.data.result;
-            
-            // Extract sender and receiver from events if available
-            if (txData.tx_result.events) {
-              // Look for transfer events
-              const transferEvents = txData.tx_result.events.filter((event: any) => event.type === 'transfer');
-              
-              if (transferEvents.length > 0) {
-                const transferEvent = transferEvents[0];
-                
-                // Extract sender and recipient from attributes
-                const senderAttr = transferEvent.attributes.find((attr: any) => attr.key === 'sender');
-                const recipientAttr = transferEvent.attributes.find((attr: any) => attr.key === 'recipient');
-                const amountAttr = transferEvent.attributes.find((attr: any) => attr.key === 'amount');
-                
-                if (senderAttr && senderAttr.value && !tx.from) {
-                  tx.from = senderAttr.value;
-                }
-                
-                if (recipientAttr && recipientAttr.value && !tx.to) {
-                  tx.to = recipientAttr.value;
-                }
-                
-                if (amountAttr && amountAttr.value && !tx.amount) {
-                  tx.amount = amountAttr.value;
-                }
-              }
-            }
+      // Use the API client to get detailed transaction data
+      const txDetails = await getTransactionByHash(tx.hash);
+      
+      if (txDetails) {
+        console.log('[Transactions] Transaction details:', txDetails);
+        
+        // Ensure we have a status field
+        const status = txDetails.status || 
+                     ((txDetails as any).code === 0 || (txDetails as any).tx_result?.code === 0 ? 'success' : 'failed');
+        
+        // Create a complete transaction detail object
+        const detailedTx: TransactionDetail = {
+          ...txDetails,
+          hash: txDetails.hash,
+          height: (txDetails.height?.toString() || tx.height?.toString() || '0'),
+          time: txDetails.time || tx.time,
+          from: txDetails.from || tx.from || '',
+          to: txDetails.to || tx.to || '',
+          amount: txDetails.amount || tx.amount || '',
+          fee: txDetails.fee || '',
+          status: status,
+          tx_result: (txDetails as any).tx_result || {
+            code: (txDetails as any).code === 0 ? 0 : 1,
+            data: '',
+            log: '',
+            gas_wanted: '',
+            gas_used: '',
+            events: []
           }
-        } catch (error) {
-          console.error("Error fetching additional transaction details:", error);
-          // Continue with the data we have
-        }
+        };
+        
+        setSelectedTx(detailedTx);
+        setSenderAddress(detailedTx.from || '');
+        setReceiverAddress(detailedTx.to || '');
+        setTransactionAmount(detailedTx.amount || '');
+        
+        // Calculate fee based on available data
+        const fee = detailedTx.fee || 
+                  (detailedTx.tx_result?.gas_used ? `${detailedTx.tx_result.gas_used} gas` : 'Unknown');
+        setTransactionFee(fee);
+      } else {
+        // Fallback to using the data we already have
+        console.log('[Transactions] No detailed data available, using basic transaction data');
+        
+        const status = tx.status || 
+                     ((tx as any).code === 0 || tx.tx_result?.code === 0 ? 'success' : 'failed');
+        
+        setSelectedTx({
+          ...tx,
+          status: status,
+          tx_result: tx.tx_result || {
+            code: (tx as any).code === 0 ? 0 : 1,
+            data: '',
+            log: '',
+            gas_wanted: '',
+            gas_used: '',
+            events: []
+          }
+        });
+        
+        setSenderAddress(tx.from || '');
+        setReceiverAddress(tx.to || '');
+        setTransactionAmount(tx.amount || '');
+        setTransactionFee('Unknown');
       }
-      
-      setSelectedTx({
-        hash: tx.hash,
-        height: tx.height.toString(),
-        tx_result: {
-          code: tx.tx_result.code,
-          data: '', // Add empty data property
-          log: tx.tx_result.log,
-          gas_wanted: tx.tx_result.gas_wanted,
-          gas_used: tx.tx_result.gas_used,
-          events: [] // Add empty events array
-        },
-        tx: tx.tx,
-        time: tx.time,
-        from: tx.from || '',
-        to: tx.to || '',
-        amount: tx.amount || '',
-        status: tx.status as 'success' | 'failed'
-      });
-      setSenderAddress(tx.from || '');
-      setReceiverAddress(tx.to || '');
-      setTransactionAmount(tx.amount || '');
-      
-      // Calculate fee based on gas used
-      const fee = tx.tx_result.gas_used ? `${tx.tx_result.gas_used} gas` : 'Unknown';
-      setTransactionFee(fee);
-      
     } catch (error) {
       console.error("Error fetching transaction details:", error);
       setTxError("Failed to fetch transaction details. Please try again later.");
@@ -393,11 +393,11 @@ function TransactionsContent() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              tx.tx_result?.code === 0 
+                              tx.status === 'success' || (tx as any).code === 0 || tx.tx_result?.code === 0 
                                 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' 
                                 : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
                             }`}>
-                              {tx.tx_result?.code === 0 ? 'Success' : 'Failed'}
+                              {tx.status === 'success' || (tx as any).code === 0 || tx.tx_result?.code === 0 ? 'Success' : 'Failed'}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

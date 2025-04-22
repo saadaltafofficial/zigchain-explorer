@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { getLatestBlocks } from '../services/api';
+import { getLatestBlocks } from '../services/apiClient';
 import BlockCard from '../components/BlockCard';
 
 export default function BlocksPage() {
@@ -26,14 +26,18 @@ export default function BlocksPage() {
       setLoading(true);
       setError(null);
       
-      console.log(`Fetching blocks for page ${page} with page size ${PAGE_SIZE}...`);
+      console.log(`[Blocks] Fetching blocks for page ${page} with page size ${PAGE_SIZE}...`);
       
       // First request to get latest block height (if we don't have it yet)
       if (latestHeight === 0) {
+        console.log('[Blocks] Getting latest block height...');
         const initialBlocks = await getLatestBlocks(1);
         if (initialBlocks.length > 0) {
+          console.log(`[Blocks] Latest block height: ${initialBlocks[0].height}`);
           setLatestHeight(initialBlocks[0].height);
           setTotalBlocks(initialBlocks[0].height); // Assuming height is sequential from 1
+        } else {
+          console.warn('[Blocks] No blocks returned when fetching latest height');
         }
       }
       
@@ -42,32 +46,56 @@ export default function BlocksPage() {
       const blocksToFetch = Math.min(PAGE_SIZE, startHeight);
       
       if (blocksToFetch <= 0) {
+        console.log('[Blocks] No blocks to fetch for this page');
         setBlocks([]);
         setLoading(false);
         return;
       }
       
-      // Fetch blocks for this specific page - use just count and cache params for now
-      // In a future update, we'll add startHeight to the API function
-      const latestBlocks = await getLatestBlocks(blocksToFetch, true);
-      console.log(`Received ${latestBlocks.length} blocks for page ${page}`);
+      // Fetch blocks for this specific page - our new API client only takes count
+      console.log(`[Blocks] Fetching ${blocksToFetch} blocks from API...`);
+      const latestBlocks = await getLatestBlocks(blocksToFetch);
+      console.log(`[Blocks] Received ${latestBlocks.length} blocks for page ${page}`);
       
       // Ensure the blocks match the expected type
       const formattedBlocks = latestBlocks.map((block: any) => ({
         height: block.height,
         time: block.time,
         proposer: block.proposer,
-        numTxs: block.numTxs,
+        numTxs: block.txCount || 0, // Use txCount from the API response
         hash: block.hash
       }));
       
       setBlocks(formattedBlocks);
       setLoading(false);
     } catch (err: unknown) {
-      console.error('Error fetching blocks:', err);
+      console.error('[Blocks] Error fetching blocks:', err);
       setError(err instanceof Error ? err.message : 'Failed to load blocks. Please try again later.');
       setLoading(false);
     }
+    
+    // Check if we need to refresh the latest height periodically
+    // This helps keep the pagination accurate if new blocks are being added
+    const refreshTimer = setTimeout(() => {
+      if (!loading) {
+        // Refresh the latest block height every 30 seconds
+        const refreshLatestHeight = async () => {
+          try {
+            const initialBlocks = await getLatestBlocks(1);
+            if (initialBlocks.length > 0 && initialBlocks[0].height > latestHeight) {
+              console.log(`[Blocks] Updated latest block height: ${initialBlocks[0].height}`);
+              setLatestHeight(initialBlocks[0].height);
+              setTotalBlocks(initialBlocks[0].height);
+            }
+          } catch (error) {
+            console.error('[Blocks] Error refreshing latest height:', error);
+          }
+        };
+        refreshLatestHeight();
+      }
+    }, 30000); // 30 seconds
+    
+    return () => clearTimeout(refreshTimer);
   };
 
   // Change page handler

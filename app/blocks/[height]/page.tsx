@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { getBlockByHeight } from '@/app/services/api';
+import { getBlockByHeight } from '@/app/services/apiClient';
 import { formatDate } from '@/app/utils/format';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -11,16 +11,18 @@ interface Block {
   height: number;
   time: string;
   proposer: string;
-  numTxs: number;
-  totalTxs: number;
+  txCount: number; // Changed from numTxs to match API client response
   hash: string;
-  appHash: string;
-  consensusHash: string;
-  lastCommitHash: string;
-  validatorHash: string;
-  evidenceHash: string;
-  lastResultsHash: string;
-  transactions: string[];
+  transactions: any[]; // Updated to match API client response
+  // Optional fields that might not be in the API response
+  numTxs?: number;
+  totalTxs?: number;
+  appHash?: string;
+  consensusHash?: string;
+  lastCommitHash?: string;
+  validatorHash?: string;
+  evidenceHash?: string;
+  lastResultsHash?: string;
 }
 
 // Define the correct props type for Next.js App Router
@@ -29,19 +31,29 @@ type Props = {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export default async function BlockDetailPage({ params }: Props) {
-  const { height } = await params;
+export default function BlockDetailPage({ params }: Props) {
+  // Remove the async/await as it's causing issues with client components
+  const [height, setHeight] = useState<string>('');
   
   const [block, setBlock] = useState<Block | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const fetchData = async () => {
+      // Extract height from params
+      if (params && 'height' in params) {
+        const blockHeight = typeof params.height === 'string' ? params.height : '';
+        setHeight(blockHeight);
+      }
+    };
+    fetchData();
+  }, [params]);
+
+  useEffect(() => {
     const fetchBlock = async () => {
       if (!height) {
-        setError('Block height is required');
-        setLoading(false);
-        return;
+        return; // Skip if height is not yet available
       }
 
       try {
@@ -162,7 +174,7 @@ export default async function BlockDetailPage({ params }: Props) {
             </div>
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">Number of Transactions</p>
-              <p className="text-gray-800 dark:text-white">{block.numTxs}</p>
+              <p className="text-gray-800 dark:text-white">{block.txCount || block.numTxs || 0}</p>
             </div>
           </div>
           
@@ -172,51 +184,61 @@ export default async function BlockDetailPage({ params }: Props) {
             truncateLength={16}
           />
           
-          <div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Total Transactions</p>
-            <p className="text-gray-800 dark:text-white">{block.totalTxs}</p>
-          </div>
+          {block.totalTxs && (
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Total Transactions</p>
+              <p className="text-gray-800 dark:text-white">{block.totalTxs}</p>
+            </div>
+          )}
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <HashDisplay 
-              hash={block.appHash} 
-              label="App Hash" 
-              truncateLength={12}
-            />
-            <HashDisplay 
-              hash={block.consensusHash} 
-              label="Consensus Hash" 
-              truncateLength={12}
-            />
-          </div>
+          {block.appHash && block.consensusHash && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <HashDisplay 
+                hash={block.appHash} 
+                label="App Hash" 
+                truncateLength={12}
+              />
+              <HashDisplay 
+                hash={block.consensusHash} 
+                label="Consensus Hash" 
+                truncateLength={12}
+              />
+            </div>
+          )}
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <HashDisplay 
-              hash={block.lastCommitHash} 
-              label="Last Commit Hash" 
-              truncateLength={12}
-            />
-            <HashDisplay 
-              hash={block.validatorHash} 
-              label="Validator Hash" 
-              truncateLength={12}
-            />
-          </div>
+          {block.lastCommitHash && block.validatorHash && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <HashDisplay 
+                hash={block.lastCommitHash} 
+                label="Last Commit Hash" 
+                truncateLength={12}
+              />
+              <HashDisplay 
+                hash={block.validatorHash} 
+                label="Validator Hash" 
+                truncateLength={12}
+              />
+            </div>
+          )}
           
-          <HashDisplay 
-            hash={block.evidenceHash} 
-            label="Evidence Hash" 
-            truncateLength={12}
-          />
-          <HashDisplay 
-            hash={block.lastResultsHash} 
-            label="Last Results Hash" 
-            truncateLength={12}
-          />
+          {block.evidenceHash && (
+            <HashDisplay 
+              hash={block.evidenceHash} 
+              label="Evidence Hash" 
+              truncateLength={12}
+            />
+          )}
+          {block.lastResultsHash && (
+            <HashDisplay 
+              hash={block.lastResultsHash} 
+              label="Last Results Hash" 
+              truncateLength={12}
+            />
+          )}
         </div>
       </div>
       
-      {block.numTxs > 0 && (
+      {(block.txCount > 0 || (block.numTxs && block.numTxs > 0)) && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Transactions</h2>
           <div className="overflow-x-auto">
