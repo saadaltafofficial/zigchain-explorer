@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import StatCard from '../components/StatCard';
+import NetworkActivity from '../components/NetworkActivity';
 
 interface NetworkStats {
   chainId: string;
@@ -339,6 +340,9 @@ export default function NetworkStatsPage() {
                   </div>
                 </div>
               </div>
+              
+              {/* Network Activity Chart */}
+              <NetworkActivity />
             </>
           )}
         </>

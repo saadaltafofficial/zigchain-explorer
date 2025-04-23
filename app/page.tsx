@@ -321,7 +321,7 @@ export default function Home() {
               <PriceChart coinId="zignaly" currency="usd" displayName="ZIG" />
             </div>
             <div className="block w-full">
-              <NetworkActivity isLoading={false} />
+              <NetworkActivity />
             </div>
           </div>
           
