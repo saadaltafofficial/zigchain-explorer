@@ -5,16 +5,16 @@ import Link from 'next/link';
 
 const Footer: React.FC = () => {
   return (
-    <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-8 mt-auto">
+    <footer className="bg-gray-800 border-t border-gray-700 py-8 mt-auto">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
           <div>
-            <h3 className="text-xl font-semibold mb-4 text-blue-600 dark:text-white">ZigChain Explorer</h3>
-            <p className="text-gray-700 dark:text-gray-400 mb-6">
+            <h3 className="text-xl font-semibold mb-4 text-white">ZigChain Explorer</h3>
+            <p className="text-gray-400 mb-6">
               A comprehensive blockchain explorer for the ZigChain network.
             </p>
             
-            <div className="flex space-x-6 mb-4">
+            <div className="flex space-x-6 mb-4 justify-center md:justify-start">
               <a 
                 href="https://discord.zignaly.com/" 
                 target="_blank" 
@@ -52,25 +52,25 @@ const Footer: React.FC = () => {
           </div>
           
           <div>
-            <h3 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Quick Links</h3>
-            <ul className="space-y-2">
+            <h3 className="text-xl font-semibold mb-4 text-white">Quick Links</h3>
+            <ul className="space-y-2 flex flex-col items-center md:items-start">
               <li>
-                <Link href="/" className="text-gray-700 dark:text-gray-400 hover:text-blue-600 dark:hover:text-white">
+                <Link href="/" className="text-gray-400 hover:text-white">
                   Home
                 </Link>
               </li>
               <li>
-                <Link href="/blocks" className="text-gray-700 dark:text-gray-400 hover:text-blue-600 dark:hover:text-white">
+                <Link href="/blocks" className="text-gray-400 hover:text-white">
                   Blocks
                 </Link>
               </li>
               <li>
-                <Link href="/transactions" className="text-gray-700 dark:text-gray-400 hover:text-blue-600 dark:hover:text-white">
+                <Link href="/transactions" className="text-gray-400 hover:text-white">
                   Transactions
                 </Link>
               </li>
               <li>
-                <Link href="/validators" className="text-gray-700 dark:text-gray-400 hover:text-blue-600 dark:hover:text-white">
+                <Link href="/validators" className="text-gray-400 hover:text-white">
                   Validators
                 </Link>
               </li>
@@ -79,13 +79,13 @@ const Footer: React.FC = () => {
           
           <div>
             <h3 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Resources</h3>
-            <ul className="space-y-2">
+            <ul className="space-y-2 flex flex-col items-center md:items-start">
               <li>
                 <a 
                   href="https://docs.ZIGChain.com/" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                  className="text-blue-400 hover:text-blue-300"
                 >
                   Documentation
                 </a>
@@ -95,7 +95,7 @@ const Footer: React.FC = () => {
                   href="https://ZIGChain.com" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                  className="text-blue-400 hover:text-blue-300"
                 >
                   Main Website
                 </a>
@@ -105,7 +105,7 @@ const Footer: React.FC = () => {
                   href="https://github.com/ZIGChain" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                  className="text-blue-400 hover:text-blue-300"
                 >
                   GitHub
                 </a>

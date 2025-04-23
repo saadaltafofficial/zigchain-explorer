@@ -131,7 +131,7 @@ export const getLatestBlocks = async (limit = 10) => {
     if (!useDirectRpc) {
       try {
         console.log(`[API Client] Fetching ${limit} latest blocks from API`);
-        const response = await axios.get(`${API_ENDPOINT}/blocks/latest?limit=${limit}`);
+        const response = await axios.get(`${API_ENDPOINT}/blocks?limit=${limit}`);
         
         // Map the API response to the format expected by the frontend
         return response.data.map((block: any) => ({
