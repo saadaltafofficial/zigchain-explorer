@@ -16,6 +16,7 @@ interface Transaction {
   fee?: string;
   status?: string;
   code?: number;
+  type?: string;
   tx_result?: {
     code: number;
     data?: string;
@@ -62,7 +63,7 @@ function TransactionsContent() {
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
   
   // Transaction fetching state
@@ -109,9 +110,38 @@ function TransactionsContent() {
     }
   }, [searchParams]);
 
+  // Load transactions from sessionStorage on initial render
+  useEffect(() => {
+    const savedTransactions = sessionStorage.getItem('zigchain_transactions');
+    const savedPage = sessionStorage.getItem('zigchain_tx_page');
+    const savedItemsPerPage = sessionStorage.getItem('zigchain_tx_per_page');
+    const savedMaxBlocks = sessionStorage.getItem('zigchain_tx_max_blocks');
+    
+    if (savedTransactions) {
+      try {
+        const parsedData = JSON.parse(savedTransactions);
+        setAllFetchedTransactions(parsedData);
+        setTotalItems(parsedData.length);
+        updateDisplayedTransactions(parsedData);
+        console.log('[Transactions] Restored transactions from session storage');
+        
+        if (savedPage) setCurrentPage(parseInt(savedPage));
+        if (savedItemsPerPage) setItemsPerPage(parseInt(savedItemsPerPage));
+        if (savedMaxBlocks) setMaxBlocksToFetch(parseInt(savedMaxBlocks));
+      } catch (e) {
+        console.error('[Transactions] Error parsing saved transactions:', e);
+        fetchTransactions(maxBlocksToFetch);
+      }
+    } else {
+      fetchTransactions(maxBlocksToFetch);
+    }
+  }, []);
+  
   // Fetch transactions when pagination changes or maxBlocksToFetch changes
   useEffect(() => {
-    fetchTransactions(maxBlocksToFetch);
+    if (maxBlocksToFetch > 0) {
+      fetchTransactions(maxBlocksToFetch);
+    }
   }, [maxBlocksToFetch]);
 
   // Update displayed transactions when page or items per page changes
@@ -125,11 +155,18 @@ function TransactionsContent() {
       setError(null);
 
       console.log(`[Transactions] Fetching ${limit} latest transactions from API`);
+      // Fetch a larger number of transactions to ensure we have enough data
       const txs = await getLatestTransactions(limit);
       
       console.log(`[Transactions] Found ${txs.length} transactions`);
       setAllFetchedTransactions(txs);
       setTotalItems(txs.length);
+      
+      // Save to sessionStorage for persistence
+      sessionStorage.setItem('zigchain_transactions', JSON.stringify(txs));
+      sessionStorage.setItem('zigchain_tx_page', currentPage.toString());
+      sessionStorage.setItem('zigchain_tx_per_page', itemsPerPage.toString());
+      sessionStorage.setItem('zigchain_tx_max_blocks', maxBlocksToFetch.toString());
       
       // Initial update of displayed transactions
       updateDisplayedTransactions(txs);
@@ -284,9 +321,9 @@ function TransactionsContent() {
     return date.toLocaleString();
   };
 
-  const formatHash = (hash: string) => {
+  const formatHash = (hash: string, fullDisplay = false) => {
     if (!hash) return '';
-    return hash.length > 16 ? `${hash.substring(0, 8)}...${hash.substring(hash.length - 8)}` : hash;
+    return fullDisplay ? `0x${hash}` : hash.length > 16 ? `0x${hash.substring(0, 8)}...${hash.substring(hash.length - 8)}` : hash;
   };
 
   const copyToClipboard = async (text: string, setCopied: (copied: boolean) => void) => {
@@ -319,12 +356,19 @@ function TransactionsContent() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Transactions</h1>
+      <h1 className="text-3xl font-bold mb-16">Latest Transactions</h1>
 
       {loading && (
-        <div className="flex justify-center items-center py-20 bg-gray-900 rounded-lg shadow-md">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-          <span className="ml-3 text-gray-300">Loading transactions...</span>
+        <div className="space-y-4">
+          {[...Array(10)].map((_, i) => (
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 animate-pulse">
+              <div className="flex justify-between">
+                <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+                <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-1/6"></div>
+              </div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mt-3"></div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -344,165 +388,61 @@ function TransactionsContent() {
             />
           ) : (
             <>
-              <div className="overflow-hidden shadow-md rounded-lg">
-                <div className="overflow-x-auto">
-                  <table className="min-w-full">
-                    <thead className="bg-gray-800 text-gray-300">
-                      <tr>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                          Hash
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                          Block
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                          Time
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                          View
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-gray-900 divide-y divide-gray-700">
-                      {transactions.map((tx, index) => (
-                        <tr 
-                          key={tx.hash} 
-                          className="cursor-pointer hover:bg-gray-800 transition-colors"
-                          onClick={() => handleTransactionClick(tx.hash)}
-                        >
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <Hash className="flex-shrink-0 h-4 w-4 text-gray-400 mr-2" />
-                              <span className="text-gray-300 font-mono">{formatHash(tx.hash)}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <Database className="flex-shrink-0 h-4 w-4 text-gray-400 mr-2" />
-                              <span className="text-gray-300">{tx.height}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <Clock className="flex-shrink-0 h-4 w-4 text-gray-400 mr-2" />
-                              <span className="text-gray-300">{formatDate(tx.time)}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              tx.status === 'success' || (tx as any).code === 0 || tx.tx_result?.code === 0 
-                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' 
-                                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
-                            }`}>
-                              {tx.status === 'success' || (tx as any).code === 0 || tx.tx_result?.code === 0 ? 'Success' : 'Failed'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <button className="text-blue-500 hover:text-blue-400">
-                              <ArrowRight className="h-4 w-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div className="bg-gray-800 dark:bg-gray-900 rounded-lg shadow-md p-4 mt-6">
-                <div className="flex flex-col space-y-6">
-                  <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-300">Show</span>
-                      <div className="flex space-x-1">
-                        <button
-                          onClick={() => handlePerPageChange(25)}
-                          className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                            itemsPerPage === 25 
-                              ? 'bg-blue-600 text-white' 
-                              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                          }`}
-                        >
-                          25
-                        </button>
-                        <button
-                          onClick={() => handlePerPageChange(50)}
-                          className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                            itemsPerPage === 50 
-                              ? 'bg-blue-600 text-white' 
-                              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                          }`}
-                        >
-                          50
-                        </button>
-                        <button
-                          onClick={() => handlePerPageChange(100)}
-                          className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                            itemsPerPage === 100 
-                              ? 'bg-blue-600 text-white' 
-                              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                          }`}
-                        >
-                          100
-                        </button>
-                      </div>
-                      <span className="text-sm text-gray-300">per page</span>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-300">Fetch last</span>
-                      <div className="flex space-x-1">
-                        <button
-                          onClick={() => handleMaxBlocksChange(50)}
-                          className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                            maxBlocksToFetch === 50 
-                              ? 'bg-blue-600 text-white' 
-                              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                          }`}
-                        >
-                          50
-                        </button>
-                        <button
-                          onClick={() => handleMaxBlocksChange(100)}
-                          className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                            maxBlocksToFetch === 100 
-                              ? 'bg-blue-600 text-white' 
-                              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                          }`}
-                        >
-                          100
-                        </button>
-                        {maxBlocksToFetch !== 50 && maxBlocksToFetch !== 100 && (
-                          <div className="px-3 py-1 rounded text-sm font-medium bg-blue-600 text-white">
-                            {maxBlocksToFetch}
-                          </div>
-                        )}
-                        <form onSubmit={handleCustomBlocksSubmit} className="flex items-center">
-                          <input
-                            type="number"
-                            value={customBlocksInput}
-                            onChange={(e) => setCustomBlocksInput(e.target.value)}
-                            placeholder="Custom"
-                            min="1"
-                            className="w-16 px-2 py-1 rounded text-sm bg-gray-700 text-gray-200 border border-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          />
+              <div className="space-y-4 mb-6">
+                {transactions.map((tx) => (
+                  <div key={tx.hash} className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                      <div className="flex items-center">
+                        <div className="mr-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-full">
+                          <Hash size={20} className="text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div>
                           <button
-                            type="submit"
-                            className="ml-1 px-2 py-1 rounded text-sm font-medium bg-blue-600 text-white hover:bg-blue-500 transition-colors"
+                            onClick={() => handleTransactionClick(tx.hash)}
+                            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-lg font-semibold transition-colors"
                           >
-                            Go
+                            <span className="hidden md:inline" title={tx.hash}>
+                              {formatHash(tx.hash, true)}
+                            </span>
+                            <span className="inline md:hidden" title={tx.hash}>
+                              {formatHash(tx.hash)}
+                            </span>
                           </button>
-                        </form>
+                          <div className="flex items-center text-gray-500 dark:text-gray-400 text-sm mt-1">
+                            <Clock size={14} className="mr-1" />
+                            <span>{formatDate(tx.time)}</span>
+                          </div>
+                        </div>
                       </div>
-                      <span className="text-sm text-gray-300">blocks</span>
+                      
+                    <div className="flex flex-wrap gap-3 items-center">
+                        
+                        
+                        <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          tx.status === 'success' || tx.code === 0 
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' 
+                            : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
+                        }`}>
+                          {tx.status === 'success' || tx.code === 0 ? 'Success' : 'Failed'}
+                        </div>
+                        
+                        <button
+                          onClick={() => handleTransactionClick(tx.hash)}
+                          className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+                        >
+                          View Details
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="flex justify-center items-center">
-                    <div className="flex items-center gap-1">
+                ))}
+              </div>
+
+              {/* Pagination controls */}
+              <div className="mt-16">
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center">
+                    <div className="flex items-center space-x-2">
                       <button
                         onClick={() => handlePageChange(1)}
                         disabled={currentPage === 1}
@@ -567,8 +507,28 @@ function TransactionsContent() {
                     </div>
                   </div>
                   
-                  <div className="text-center text-sm text-gray-400">
-                    Showing {totalItems === 0 ? 0 : Math.min((currentPage - 1) * itemsPerPage + 1, totalItems)} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} transactions
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-gray-300">Items per page:</label>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handlePerPageChange(10)}
+                        className={`px-2 py-1 text-xs hover:cursor-pointer rounded ${itemsPerPage === 10 ? 'bg-blue-600 text-white' : ' text-gray-300 hover:bg-gray-700'}`}
+                      >
+                        10
+                      </button>
+                      <button
+                        onClick={() => handlePerPageChange(25)}
+                        className={`px-2 py-1 text-xs hover:cursor-pointer rounded ${itemsPerPage === 25 ? 'bg-blue-600 text-white' : ' text-gray-300 hover:bg-gray-700'}`}
+                      >
+                        25
+                      </button>
+                      <button
+                        onClick={() => handlePerPageChange(50)}
+                        className={`px-2 py-1 text-xs hover:cursor-pointer rounded ${itemsPerPage === 50 ? 'bg-blue-600 text-white' : ' text-gray-300 hover:bg-gray-700'}`}
+                      >
+                        50
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

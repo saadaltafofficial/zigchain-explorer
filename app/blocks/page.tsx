@@ -7,9 +7,20 @@ import BlockCard from '../components/BlockCard';
 export default function BlocksPage() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
   const [totalBlocks, setTotalBlocks] = useState(0);
   const [latestHeight, setLatestHeight] = useState(0);
-  const PAGE_SIZE = 5; // Number of blocks per page
+  
+  // Block fetching state
+  const [allFetchedBlocks, setAllFetchedBlocks] = useState<{
+    height: number;
+    time: string;
+    proposer: string;
+    numTxs: number;
+    hash: string;
+  }[]>([]);
+  // Fixed number of blocks to fetch
+  const BLOCKS_TO_FETCH = 50;
   
   const [blocks, setBlocks] = useState<{
     height: number;
@@ -21,44 +32,19 @@ export default function BlocksPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchBlocks = async (page = 1) => {
+  const fetchBlocks = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      console.log(`[Blocks] Fetching blocks for page ${page} with page size ${PAGE_SIZE}...`);
+      console.log(`[Blocks] Fetching ${BLOCKS_TO_FETCH} latest blocks from API...`);
       
-      // First request to get latest block height (if we don't have it yet)
-      if (latestHeight === 0) {
-        console.log('[Blocks] Getting latest block height...');
-        const initialBlocks = await getLatestBlocks(1);
-        if (initialBlocks.length > 0) {
-          console.log(`[Blocks] Latest block height: ${initialBlocks[0].height}`);
-          setLatestHeight(initialBlocks[0].height);
-          setTotalBlocks(initialBlocks[0].height); // Assuming height is sequential from 1
-        } else {
-          console.warn('[Blocks] No blocks returned when fetching latest height');
-        }
-      }
-      
-      // Calculate block range for the requested page
-      const startHeight = latestHeight - ((page - 1) * PAGE_SIZE);
-      const blocksToFetch = Math.min(PAGE_SIZE, startHeight);
-      
-      if (blocksToFetch <= 0) {
-        console.log('[Blocks] No blocks to fetch for this page');
-        setBlocks([]);
-        setLoading(false);
-        return;
-      }
-      
-      // Fetch blocks for this specific page - our new API client only takes count
-      console.log(`[Blocks] Fetching ${blocksToFetch} blocks from API...`);
-      const latestBlocks = await getLatestBlocks(blocksToFetch);
-      console.log(`[Blocks] Received ${latestBlocks.length} blocks for page ${page}`);
+      // Fetch blocks directly from the API
+      const blocks = await getLatestBlocks(BLOCKS_TO_FETCH);
+      console.log(`[Blocks] Found ${blocks.length} blocks`);
       
       // Ensure the blocks match the expected type
-      const formattedBlocks = latestBlocks.map((block: any) => ({
+      const formattedBlocks = blocks.map((block: any) => ({
         height: block.height,
         time: block.time,
         proposer: block.proposer,
@@ -66,8 +52,24 @@ export default function BlocksPage() {
         hash: block.hash
       }));
       
-      setBlocks(formattedBlocks);
-      setLoading(false);
+      setAllFetchedBlocks(formattedBlocks);
+      setTotalBlocks(formattedBlocks.length);
+      
+      // Set the latest height from the first block if available
+      if (formattedBlocks.length > 0) {
+        setLatestHeight(formattedBlocks[0].height);
+      }
+      
+      // Save to sessionStorage for persistence
+      sessionStorage.setItem('zigchain_blocks', JSON.stringify(formattedBlocks));
+      sessionStorage.setItem('zigchain_blocks_page', currentPage.toString());
+      sessionStorage.setItem('zigchain_blocks_per_page', itemsPerPage.toString());
+
+      sessionStorage.setItem('zigchain_blocks_latest_height', latestHeight.toString());
+      sessionStorage.setItem('zigchain_blocks_total', formattedBlocks.length.toString());
+      
+      // Update displayed blocks
+      updateDisplayedBlocks(formattedBlocks);
     } catch (err: unknown) {
       console.error('[Blocks] Error fetching blocks:', err);
       setError(err instanceof Error ? err.message : 'Failed to load blocks. Please try again later.');
@@ -86,6 +88,10 @@ export default function BlocksPage() {
               console.log(`[Blocks] Updated latest block height: ${initialBlocks[0].height}`);
               setLatestHeight(initialBlocks[0].height);
               setTotalBlocks(initialBlocks[0].height);
+              
+              // Update the stored latest height and total blocks
+              sessionStorage.setItem('zigchain_blocks_latest_height', initialBlocks[0].height.toString());
+              sessionStorage.setItem('zigchain_blocks_total', initialBlocks[0].height.toString());
             }
           } catch (error) {
             console.error('[Blocks] Error refreshing latest height:', error);
@@ -98,26 +104,71 @@ export default function BlocksPage() {
     return () => clearTimeout(refreshTimer);
   };
 
-  // Change page handler
-  const changePage = (newPage: number) => {
-    if (newPage < 1 || (totalBlocks > 0 && (newPage - 1) * PAGE_SIZE >= totalBlocks)) {
-      return; // Invalid page
-    }
-    setCurrentPage(newPage);
-    fetchBlocks(newPage);
+  // Update displayed blocks when page or items per page changes
+  useEffect(() => {
+    updateDisplayedBlocks();
+  }, [currentPage, itemsPerPage]);
+
+  // Add function to update displayed blocks based on pagination
+  const updateDisplayedBlocks = (blocks = allFetchedBlocks) => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedBlocks = blocks.slice(startIndex, endIndex);
+    setBlocks(paginatedBlocks);
+    setLoading(false);
   };
 
+  // Handle page change
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+    sessionStorage.setItem('zigchain_blocks_page', pageNumber.toString());
+  };
+
+  // Handle items per page change
+  const handlePerPageChange = (perPage: number) => {
+    setItemsPerPage(perPage);
+    setCurrentPage(1); // Reset to first page when changing items per page
+    sessionStorage.setItem('zigchain_blocks_per_page', perPage.toString());
+  };
+
+
+
+  // Load blocks from sessionStorage on initial render
   useEffect(() => {
-    fetchBlocks(currentPage);
+    const savedBlocks = sessionStorage.getItem('zigchain_blocks');
+    const savedPage = sessionStorage.getItem('zigchain_blocks_page');
+    const savedItemsPerPage = sessionStorage.getItem('zigchain_blocks_per_page');
+    const savedMaxBlocks = sessionStorage.getItem('zigchain_blocks_max_fetch');
+    const savedLatestHeight = sessionStorage.getItem('zigchain_blocks_latest_height');
+    const savedTotalBlocks = sessionStorage.getItem('zigchain_blocks_total');
+    
+    if (savedBlocks) {
+      try {
+        const parsedBlocks = JSON.parse(savedBlocks);
+        setAllFetchedBlocks(parsedBlocks);
+        setTotalBlocks(parsedBlocks.length);
+        updateDisplayedBlocks(parsedBlocks);
+        console.log('[Blocks] Restored blocks from session storage');
+        
+        if (savedPage) setCurrentPage(parseInt(savedPage));
+        if (savedItemsPerPage) setItemsPerPage(parseInt(savedItemsPerPage));
+
+        if (savedLatestHeight) setLatestHeight(parseInt(savedLatestHeight));
+      } catch (e) {
+        console.error('[Blocks] Error parsing saved blocks:', e);
+      }
+    } else {
+      fetchBlocks();
+    }
   }, []); // Only fetch on initial load
 
   const handleRetry = () => {
-    fetchBlocks(currentPage);
+    fetchBlocks();
   };
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">Latest Blocks</h1>
+      <h1 className="text-3xl font-bold mb-16">Latest Blocks</h1>
       
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
@@ -170,33 +221,103 @@ export default function BlocksPage() {
           
           {/* Pagination controls */}
           {blocks && blocks.length > 0 && (
-            <div className="flex items-center justify-between py-4 border-t dark:border-gray-700">
-              <div className="text-sm text-gray-700 dark:text-gray-300">
-                Showing blocks <span className="font-medium">{blocks[blocks.length-1]?.height || 0}</span> to <span className="font-medium">{blocks[0]?.height || 0}</span> 
-                {totalBlocks > 0 && (
-                  <span> of <span className="font-medium">{totalBlocks}</span> total</span>
-                )}
-              </div>
-              
-              <nav className="inline-flex rounded-md shadow-sm">
-                <button
-                  onClick={() => changePage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className={`relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-l-md ${currentPage === 1 ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
-                >
-                  Previous
-                </button>
-                <div className="relative inline-flex items-center px-4 py-2 text-sm font-medium bg-gray-100 dark:bg-gray-800 border-x dark:border-gray-700">
-                  Page {currentPage}
+            <div className="mt-16">
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center">
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => handlePageChange(1)}
+                      disabled={currentPage === 1}
+                      className={`p-1 rounded ${
+                        currentPage === 1 
+                          ? 'text-gray-500 cursor-not-allowed' 
+                          : 'text-gray-300 hover:bg-gray-700'
+                      }`}
+                      aria-label="First page"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="11 17 6 12 11 7"></polyline>
+                        <polyline points="18 17 13 12 18 7"></polyline>
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className={`p-1 rounded ${
+                        currentPage === 1 
+                          ? 'text-gray-500 cursor-not-allowed' 
+                          : 'text-gray-300 hover:bg-gray-700'
+                      }`}
+                      aria-label="Previous page"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                      </svg>
+                    </button>
+                    
+                    <div className="flex items-center mx-3 px-3 py-1 bg-gray-700 rounded">
+                      <span className="text-sm text-gray-200">
+                        Page <span className="font-bold">{currentPage}</span> of <span className="font-bold">{Math.max(1, Math.ceil(totalBlocks / itemsPerPage))}</span>
+                      </span>
+                    </div>
+                    
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage >= Math.ceil(totalBlocks / itemsPerPage)}
+                      className={`p-1 rounded ${
+                        currentPage >= Math.ceil(totalBlocks / itemsPerPage)
+                          ? 'text-gray-500 cursor-not-allowed' 
+                          : 'text-gray-300 hover:bg-gray-700'
+                      }`}
+                      aria-label="Next page"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => handlePageChange(Math.ceil(totalBlocks / itemsPerPage))}
+                      disabled={currentPage >= Math.ceil(totalBlocks / itemsPerPage)}
+                      className={`p-1 rounded ${
+                        currentPage >= Math.ceil(totalBlocks / itemsPerPage)
+                          ? 'text-gray-500 cursor-not-allowed' 
+                          : 'text-gray-300 hover:bg-gray-700'
+                      }`}
+                      aria-label="Last page"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="13 17 18 12 13 7"></polyline>
+                        <polyline points="6 17 11 12 6 7"></polyline>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={() => changePage(currentPage + 1)}
-                  disabled={blocks.length < PAGE_SIZE || (totalBlocks > 0 && currentPage * PAGE_SIZE >= totalBlocks)}
-                  className={`relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-r-md ${blocks.length < PAGE_SIZE ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
-                >
-                  Next
-                </button>
-              </nav>
+                
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-gray-300">Items per page:</label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handlePerPageChange(10)}
+                      className={`px-2 py-1 text-xs hover:cursor-pointer rounded ${itemsPerPage === 10 ? 'bg-blue-600 text-white' : ' text-gray-300 hover:bg-gray-700'}`}
+                    >
+                      10
+                    </button>
+                    <button
+                      onClick={() => handlePerPageChange(25)}
+                      className={`px-2 py-1 text-xs hover:cursor-pointer rounded ${itemsPerPage === 25 ? 'bg-blue-600 text-white' : ' text-gray-300 hover:bg-gray-700'}`}
+                    >
+                      25
+                    </button>
+                    <button
+                      onClick={() => handlePerPageChange(50)}
+                      className={`px-2 py-1 text-xs hover:cursor-pointer rounded ${itemsPerPage === 50 ? 'bg-blue-600 text-white' : ' text-gray-300 hover:bg-gray-700'}`}
+                    >
+                      50
+                    </button>
+                  </div>
+                </div>
+                
+              </div>
             </div>
           )}
         </div>

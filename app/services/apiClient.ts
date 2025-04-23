@@ -12,6 +12,12 @@ const ZIGCHAIN_API = 'https://testnet-api.zigchain.com';
 // Local RPC proxy to avoid CORS issues
 const RPC_PROXY_URL = '/api/rpc';
 
+// Helper function to build proxy URL
+const buildProxyUrl = (path: string, params: Record<string, string> = {}) => {
+  const searchParams = new URLSearchParams({ path, ...params });
+  return `${RPC_PROXY_URL}?${searchParams.toString()}`;
+};
+
 // Flag to determine if we should use direct RPC calls
 let useDirectRpc = false;
 
@@ -87,14 +93,14 @@ export const getChainInfo = async () => {
       console.log('[API Client] Using direct RPC call for chain info');
       
       // Get status for latest block height and chain ID
-      const statusResponse = await axios.get(`${RPC_URL}/status`);
+      const statusResponse = await axios.get(buildProxyUrl('/status'));
       console.log('[API Client] RPC status response:', statusResponse.data);
       
       const syncInfo = statusResponse.data.result.sync_info;
       const nodeInfo = statusResponse.data.result.node_info;
       
       // Get validator count
-      const validatorsResponse = await axios.get(`${RPC_URL}/validators`);
+      const validatorsResponse = await axios.get(buildProxyUrl('/validators'));
       const validators = validatorsResponse.data.result.validators || [];
       
       const chainInfo = {
@@ -127,57 +133,42 @@ export const getChainInfo = async () => {
  */
 export const getLatestBlocks = async (limit = 10) => {
   try {
-    // Try using the FastAPI backend first
-    if (!useDirectRpc) {
-      try {
-        console.log(`[API Client] Fetching ${limit} latest blocks from API`);
-        const response = await axios.get(`${API_ENDPOINT}/blocks?limit=${limit}`);
-        
-        // Map the API response to the format expected by the frontend
-        return response.data.map((block: any) => ({
-          height: block.height,
-          hash: block.hash,
-          time: block.time,
-          proposer: block.proposer,
-          txCount: block.num_txs || 0
-        }));
-      } catch (error) {
-        console.warn('[API Client] Failed to get latest blocks from API, falling back to direct RPC');
-        useDirectRpc = true;
-      }
+    // Only use the zigscan.net API for blocks - no RPC fallback
+    console.log(`[API Client] Fetching ${limit} latest blocks from zigscan.net API`);
+    
+    try {
+      const response = await axios.get(`https://zigscan.net/api/blocks/latest?limit=${limit}`);
+      
+      console.log(`[API Client] Successfully fetched ${response.data.length} blocks from zigscan.net API`);
+      
+      // Map the API response to the format expected by the frontend
+      return response.data.map((block: any) => ({
+        height: block.height,
+        hash: block.hash,
+        time: block.time,
+        proposer: block.proposer,
+        txCount: block.num_txs || 0
+      }));
+    } catch (error) {
+      console.warn('[API Client] Failed to get latest blocks from zigscan.net API:', error);
+      
+      // Try using the configured API endpoint as fallback
+      console.log(`[API Client] Trying configured API endpoint as fallback`);
+      const response = await axios.get(`${API_ENDPOINT}/blocks/latest?limit=${limit}`);
+      
+      // Map the API response to the format expected by the frontend
+      return response.data.map((block: any) => ({
+        height: block.height,
+        hash: block.hash,
+        time: block.time,
+        proposer: block.proposer,
+        txCount: block.num_txs || 0
+      }));
     }
     
-    // Fallback to direct RPC calls
-    if (useDirectRpc) {
-      console.log(`[API Client] Using direct RPC call for latest ${limit} blocks`);
-      
-      // Get the latest block height
-      const statusResponse = await axios.get(`${RPC_URL}/status`);
-      const latestHeight = parseInt(statusResponse.data.result.sync_info.latest_block_height);
-      
-      const blocks = [];
-      
-      // Fetch the blocks from newest to oldest
-      for (let height = latestHeight; height > latestHeight - limit && height > 0; height--) {
-        try {
-          const blockResponse = await axios.get(`${RPC_URL}/block?height=${height}`);
-          const blockData = blockResponse.data.result;
-          
-          blocks.push({
-            height: height,
-            hash: blockData.block_id.hash,
-            time: blockData.block.header.time,
-            proposer: blockData.block.header.proposer_address,
-            txCount: blockData.block.data.txs ? blockData.block.data.txs.length : 0
-          });
-        } catch (blockError) {
-          console.error(`[API Client] Error fetching block at height ${height}:`, blockError);
-        }
-      }
-      
-      return blocks;
-    }
-    
+    // No RPC fallback for blocks - we only want to use the API
+    // Return empty array if both API calls fail
+    console.warn('[API Client] All API endpoints failed, returning empty blocks array');
     return [];
   } catch (error) {
     console.error('[API Client] Error fetching latest blocks:', error);
@@ -191,18 +182,39 @@ export const getLatestBlocks = async (limit = 10) => {
  */
 export const getBlockByHeight = async (height: number) => {
   try {
-    console.log(`[API Client] Fetching block at height ${height} from API`);
-    const response = await axios.get(`${API_ENDPOINT}/blocks/${height}`);
+    console.log(`[API Client] Fetching block at height ${height} from zigscan.net API`);
     
-    // Map the API response to the format expected by the frontend
-    return {
-      height: response.data.height,
-      hash: response.data.hash,
-      time: response.data.time,
-      proposer: response.data.proposer,
-      txCount: response.data.num_txs || 0,
-      transactions: response.data.transactions || []
-    };
+    try {
+      const response = await axios.get(`https://zigscan.net/api/blocks/${height}`);
+      
+      console.log(`[API Client] Successfully fetched block at height ${height} from zigscan.net API`);
+      
+      // Map the API response to the format expected by the frontend
+      return {
+        height: response.data.height,
+        hash: response.data.hash,
+        time: response.data.time,
+        proposer: response.data.proposer,
+        txCount: response.data.num_txs || 0,
+        transactions: response.data.transactions || []
+      };
+    } catch (error) {
+      console.warn(`[API Client] Failed to get block at height ${height} from zigscan.net API:`, error);
+      
+      // Try using the configured API endpoint as fallback
+      console.log(`[API Client] Trying configured API endpoint as fallback`);
+      const response = await axios.get(`${API_ENDPOINT}/blocks/${height}`);
+      
+      // Map the API response to the format expected by the frontend
+      return {
+        height: response.data.height,
+        hash: response.data.hash,
+        time: response.data.time,
+        proposer: response.data.proposer,
+        txCount: response.data.num_txs || 0,
+        transactions: response.data.transactions || []
+      };
+    }
   } catch (error) {
     console.error('[API Client] Error fetching block by height:', error);
     throw error;
@@ -215,83 +227,46 @@ export const getBlockByHeight = async (height: number) => {
  */
 export const getLatestTransactions = async (limit = 10) => {
   try {
-    // Try using the FastAPI backend first
-    if (!useDirectRpc) {
-      try {
-        console.log(`[API Client] Fetching ${limit} latest transactions from API`);
-        const response = await axios.get(`${API_ENDPOINT}/transactions/latest?limit=${limit}`);
-        
-        // Map the API response to the format expected by the frontend
-        return response.data.map((tx: any) => ({
-          hash: tx.hash,
-          height: tx.block_id?.toString() || '',
-          time: tx.created_at,
-          status: tx.status,
-          from: tx.from_address,
-          to: tx.to_address,
-          amount: tx.amount
-        }));
-      } catch (error) {
-        console.warn('[API Client] Failed to get latest transactions from API, falling back to direct RPC');
-        useDirectRpc = true;
-      }
+    // Only use the zigscan.net API for transactions - no RPC fallback
+    console.log(`[API Client] Fetching ${limit} latest transactions from zigscan.net API`);
+    
+    try {
+      const response = await axios.get(`https://zigscan.net/api/transactions/latest?limit=${limit}`);
+      
+      console.log(`[API Client] Successfully fetched ${response.data.length} transactions from zigscan.net API`);
+      
+      // Map the API response to the format expected by the frontend
+      return response.data.map((tx: any) => ({
+        hash: tx.hash,
+        height: tx.block_id?.toString() || '',
+        time: tx.created_at,
+        status: tx.status,
+        from: tx.from_address,
+        to: tx.to_address,
+        amount: tx.amount
+      }));
+    } catch (error) {
+      console.warn('[API Client] Failed to get latest transactions from zigscan.net API:', error);
+      
+      // Try using the configured API endpoint as fallback
+      console.log(`[API Client] Trying configured API endpoint as fallback`);
+      const response = await axios.get(`${API_ENDPOINT}/transactions/latest?limit=${limit}`);
+      
+      // Map the API response to the format expected by the frontend
+      return response.data.map((tx: any) => ({
+        hash: tx.hash,
+        height: tx.block_id?.toString() || '',
+        time: tx.created_at,
+        status: tx.status,
+        from: tx.from_address,
+        to: tx.to_address,
+        amount: tx.amount
+      }));
     }
     
-    // Fallback to direct RPC calls
-    if (useDirectRpc) {
-      console.log(`[API Client] Using direct RPC call for latest ${limit} transactions`);
-      
-      // Get the latest block height
-      const statusResponse = await axios.get(`${RPC_URL}/status`);
-      const latestHeight = parseInt(statusResponse.data.result.sync_info.latest_block_height);
-      
-      const transactions = [];
-      let txCount = 0;
-      
-      // Fetch transactions from blocks, starting from the latest
-      for (let height = latestHeight; height > latestHeight - 50 && height > 0 && txCount < limit; height--) {
-        try {
-          const blockResponse = await axios.get(`${RPC_URL}/block?height=${height}`);
-          const blockData = blockResponse.data.result;
-          const blockTime = blockData.block.header.time;
-          
-          const txs = blockData.block.data.txs || [];
-          
-          if (txs.length > 0) {
-            for (const tx of txs) {
-              if (txCount >= limit) break;
-              
-              // Get transaction details
-              try {
-                // For Tendermint-based chains like ZigChain, the hash is usually calculated from the tx bytes
-                // But we can use the tx directly as the hash parameter
-                const txResponse = await axios.get(`${RPC_URL}/tx?hash=0x${tx}`);
-                const txData = txResponse.data.result;
-                
-                transactions.push({
-                  hash: txData.hash,
-                  height: height.toString(),
-                  time: blockTime,
-                  status: txData.tx_result.code === 0 ? 'success' : 'failed',
-                  from: '', // Not easily available from RPC
-                  to: '', // Not easily available from RPC
-                  amount: '' // Not easily available from RPC
-                });
-                
-                txCount++;
-              } catch (txError) {
-                console.error('[API Client] Error fetching transaction details:', txError);
-              }
-            }
-          }
-        } catch (blockError) {
-          console.error(`[API Client] Error fetching block at height ${height}:`, blockError);
-        }
-      }
-      
-      return transactions;
-    }
-    
+    // No RPC fallback for transactions - we only want to use the API
+    // Return empty array if both API calls fail
+    console.warn('[API Client] All API endpoints failed, returning empty transactions array');
     return [];
   } catch (error) {
     console.error('[API Client] Error fetching latest transactions:', error);
