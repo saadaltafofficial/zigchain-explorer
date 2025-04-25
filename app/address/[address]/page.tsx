@@ -46,15 +46,78 @@ export default function AddressPage() {
     try {
       // Fetch account info
       const accountData = await getAccountInfo(address);
+      console.log('Account data received:', accountData);
+      
+      // Check if we have a valid response
+      if (!accountData || !accountData.address) {
+        throw new Error('Invalid account data received');
+      }
+      
       setAccountInfo(accountData);
       
-      // Fetch transactions for this address
-      const txData = await getAddressTransactions(address, currentPage, 10);
-      setTransactions(txData.transactions || []);
-      setTotalPages(Math.ceil((txData.total || 10) / 10));
+      // Set transactions to empty array initially
+      setTransactions([]);
+      setTotalPages(1);
+      
+      try {
+        // Try to fetch transactions for this address
+        const txData = await getAddressTransactions(address, currentPage, 10);
+        console.log('Transaction data received:', txData);
+        
+        // Handle the response format from our updated API
+        if (txData.transactions && Array.isArray(txData.transactions)) {
+          // The API now returns an object with transactions array and pagination info
+          setTransactions(txData.transactions);
+          
+          // Set total pages from pagination info if available
+          if (txData.pagination) {
+            setTotalPages(txData.pagination.pages || Math.ceil((txData.pagination.total || txData.transactions.length) / txData.pagination.limit || 10));
+          } else {
+            setTotalPages(Math.ceil(txData.transactions.length / 10));
+          }
+        } else if (Array.isArray(txData)) {
+          // Fallback for backward compatibility if the API returns an array directly
+          setTransactions(txData);
+          setTotalPages(Math.ceil(txData.length / 10));
+        }
+      } catch (txError) {
+        console.warn('Failed to fetch transactions, but account info is available:', txError);
+        // We'll continue with just the account info and empty transactions
+        // No need to set an error since we have at least the account info
+      }
     } catch (err) {
       console.error('Error fetching address data:', err);
-      setError('Unable to fetch address details. The address may be invalid or the API is unavailable.');
+      
+      // Log more detailed error information
+      if (err instanceof Error) {
+        console.error('Error name:', err.name);
+        console.error('Error message:', err.message);
+        console.error('Error stack:', err.stack);
+      }
+      
+      // Log axios specific error details if available
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosError = err as any;
+        console.error('API Response status:', axiosError.response?.status);
+        console.error('API Response data:', axiosError.response?.data);
+        console.error('API Request URL:', axiosError.config?.url);
+      }
+      
+      // Set a more descriptive error message based on the error type
+      if (err instanceof Error && err.message === 'Network Error') {
+        setError('Network error: Unable to connect to the API. Please check your internet connection.');
+      } else if (err && typeof err === 'object' && 'response' in err) {
+        const axiosError = err as any;
+        if (axiosError.response?.status === 404) {
+          setError(`Address not found: ${address} does not exist or is not indexed by the API.`);
+        } else if (axiosError.response?.status === 429) {
+          setError('Too many requests: The API rate limit has been exceeded. Please try again later.');
+        } else {
+          setError(`Unable to fetch address details. API error: ${axiosError.response?.status || 'Unknown'}`);
+        }
+      } else {
+        setError('Unable to fetch address details. The address may be invalid or the API is unavailable.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -137,187 +200,203 @@ export default function AddressPage() {
   }
   
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Address Details</h1>
-        <button 
-          onClick={handleRefresh} 
-          disabled={isLoading}
-          className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 flex items-center"
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          {isLoading ? 'Refreshing...' : 'Refresh'}
-        </button>
-      </div>
-      
-      {isLoading ? (
-        <div className="space-y-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 animate-pulse">
-            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4"></div>
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-2"></div>
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+    <div className="relative">
+      {/* Maintenance Overlay */}
+      <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 max-w-lg w-full text-center">
+          <div className="mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            </svg>
           </div>
-          
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-4"></div>
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="border-b border-gray-200 dark:border-gray-700 py-3">
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full mb-2"></div>
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
-              </div>
-            ))}
-          </div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            Under Maintenance
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 mb-6">
+            We are currently performing maintenance on this page. Please check back later.
+          </p>
+          <Link href="/" className="inline-flex items-center text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300">
+            <ArrowRight className="h-4 w-4 mr-2 rotate-180" />
+            Return to Home
+          </Link>
         </div>
-      ) : (
-        <>
-          {/* Address Overview Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
-            <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-2 md:mb-0">Account Overview</h2>
-              <div className="flex items-center space-x-2">
-                <button 
-                  onClick={copyToClipboard}
-                  className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 flex items-center"
-                >
-                  <Copy className="h-4 w-4 mr-1" />
-                  {copied ? 'Copied!' : 'Copy Address'}
-                </button>
-                <a 
-                  href={`https://zigscan.net/account/${address}`} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 flex items-center"
-                >
-                  <ExternalLink className="h-4 w-4 mr-1" />
-                  View on ZigScan
-                </a>
-              </div>
+      </div>
+
+      {/* Original Content (hidden behind overlay) */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Address Details</h1>
+          <button 
+            onClick={handleRefresh} 
+            disabled={isLoading}
+            className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 flex items-center"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            {isLoading ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
+        
+        {isLoading ? (
+          <div className="space-y-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 animate-pulse">
+              <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4"></div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-2"></div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
             </div>
             
-            <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg mb-4 break-all">
-              <span className="font-mono text-gray-700 dark:text-gray-300">{address}</span>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Balance</h3>
-                <p className="text-lg font-semibold text-gray-800 dark:text-white">{formatAmount(accountInfo?.balance || '0')}</p>
-              </div>
-              
-              <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Transactions</h3>
-                <p className="text-lg font-semibold text-gray-800 dark:text-white">{accountInfo?.total_transactions || transactions.length}</p>
-              </div>
-              
-              {accountInfo?.delegated_amount && (
-                <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Delegated</h3>
-                  <p className="text-lg font-semibold text-gray-800 dark:text-white">{formatAmount(accountInfo.delegated_amount)}</p>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+              <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-4"></div>
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="border-b border-gray-200 dark:border-gray-700 py-3">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full mb-2"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
                 </div>
-              )}
-              
-              {accountInfo?.rewards && (
-                <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Rewards</h3>
-                  <p className="text-lg font-semibold text-gray-800 dark:text-white">{formatAmount(accountInfo.rewards)}</p>
-                </div>
-              )}
-              
-              <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Account Number</h3>
-                <p className="text-lg font-semibold text-gray-800 dark:text-white">{accountInfo?.account_number || 'N/A'}</p>
-              </div>
-              
-              <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Sequence</h3>
-                <p className="text-lg font-semibold text-gray-800 dark:text-white">{accountInfo?.sequence || 'N/A'}</p>
-              </div>
+              ))}
             </div>
           </div>
-          
-          {/* Transactions Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Transactions</h2>
-            
-            {transactions.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500 dark:text-gray-400">No transactions found for this address.</p>
+        ) : (
+          <>
+            {/* Address Overview Card */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+              <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-2 md:mb-0">Account Overview</h2>
+                <div className="flex items-center space-x-2">
+                  <button 
+                    onClick={copyToClipboard}
+                    className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 flex items-center"
+                  >
+                    <Copy className="h-4 w-4 mr-1" />
+                    {copied ? 'Copied!' : 'Copy Address'}
+                  </button>
+                  
+                </div>
               </div>
-            ) : (
-              <>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead className="bg-gray-50 dark:bg-gray-700">
-                      <tr>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tx Hash</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Time</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                      {transactions.map((tx, index) => (
-                        <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <Link href={`/tx/${tx.hash}`} className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300">
-                              {shortenHash(tx.hash)}
-                            </Link>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200">
-                              {tx.type || 'Transfer'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {formatAmount(tx.amount)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                            <div className="flex items-center">
-                              <Clock className="h-4 w-4 mr-1" />
-                              {formatDate(tx.timestamp)}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`${getStatusColor(tx.status)}`}>
-                              {tx.status || 'Success'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              
+              <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg mb-4 break-all">
+                <span className="font-mono text-gray-700 dark:text-gray-300">{address}</span>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Balance</h3>
+                  <p className="text-lg font-semibold text-gray-800 dark:text-white">{formatAmount(accountInfo?.balance || '0')}</p>
                 </div>
                 
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="flex justify-between items-center mt-6">
-                    <button 
-                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                      disabled={currentPage === 1}
-                      className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Previous
-                    </button>
-                    
-                    <span className="text-sm text-gray-700 dark:text-gray-300">
-                      Page {currentPage} of {totalPages}
-                    </span>
-                    
-                    <button 
-                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                      disabled={currentPage === totalPages}
-                      className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Next
-                    </button>
+                <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Transactions</h3>
+                  <p className="text-lg font-semibold text-gray-800 dark:text-white">{accountInfo?.total_transactions || transactions.length}</p>
+                </div>
+                
+                {accountInfo?.delegated_amount && (
+                  <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Delegated</h3>
+                    <p className="text-lg font-semibold text-gray-800 dark:text-white">{formatAmount(accountInfo.delegated_amount)}</p>
                   </div>
                 )}
-              </>
-            )}
-          </div>
-        </>
-      )}
+                
+                {accountInfo?.rewards && (
+                  <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Rewards</h3>
+                    <p className="text-lg font-semibold text-gray-800 dark:text-white">{formatAmount(accountInfo.rewards)}</p>
+                  </div>
+                )}
+                
+                <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Account Number</h3>
+                  <p className="text-lg font-semibold text-gray-800 dark:text-white">{accountInfo?.account_number || 'N/A'}</p>
+                </div>
+                
+                <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Sequence</h3>
+                  <p className="text-lg font-semibold text-gray-800 dark:text-white">{accountInfo?.sequence || 'N/A'}</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Transactions Card */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Transactions</h2>
+              
+              {transactions.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-500 dark:text-gray-400">No transactions found for this address.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                      <thead className="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tx Hash</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Time</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        {transactions.map((tx, index) => (
+                          <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <Link href={`/tx/${tx.hash}`} className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300">
+                                {shortenHash(tx.hash)}
+                              </Link>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200">
+                                {tx.type || 'Transfer'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {formatAmount(tx.amount)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                              <div className="flex items-center">
+                                <Clock className="h-4 w-4 mr-1" />
+                                {formatDate(tx.timestamp)}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`${getStatusColor(tx.status)}`}>
+                                {tx.status || 'Success'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="flex justify-between items-center mt-6">
+                      <button 
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Previous
+                      </button>
+                      
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        Page {currentPage} of {totalPages}
+                      </span>
+                      
+                      <button 
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

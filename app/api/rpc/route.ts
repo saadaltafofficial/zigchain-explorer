@@ -2,6 +2,9 @@ import { NextRequest } from 'next/server';
 
 const RPC_URL = process.env.RPC_URL || 'https://zigscan.net';
 
+// Log the RPC URL being used
+console.log('[RPC PROXY] Using RPC_URL:', RPC_URL);
+
 export async function GET(request: NextRequest) {
   try {
     // Extract path and search params
@@ -9,6 +12,20 @@ export async function GET(request: NextRequest) {
     const path = searchParams.get('path') || '';
     // Remove 'path' from params for the real request
     searchParams.delete('path');
+    
+    // Special handling for transaction requests to fix the 0x prefix issue
+    if (path === '/tx') {
+      const txHash = searchParams.get('hash');
+      console.log('[RPC PROXY] Original transaction hash:', txHash);
+      
+      // If the hash starts with 0x, remove it before sending to the RPC node
+      if (txHash && txHash.startsWith('0x')) {
+        const cleanHash = txHash.substring(2);
+        console.log('[RPC PROXY] Removing 0x prefix, using hash:', cleanHash);
+        searchParams.set('hash', cleanHash);
+      }
+    }
+    
     const queryString = searchParams.toString();
     
     // Construct the URL - ensure we're using the correct format for zigscan.net
