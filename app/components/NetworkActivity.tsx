@@ -50,8 +50,8 @@ const NetworkActivity: React.FC = () => {
     setIsLoading(true);
     try {
       // Fetch the latest blocks - we'll use these to calculate all our stats
-      // Limit to 1000 to get a good sample of recent blocks
-      const blocksResponse = await axios.get('https://zigscan.net/api/blocks/latest?limit=1000');
+      // Limit to 100 to avoid overloading the API but still get a good sample
+      const blocksResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'https://zigscan.net/api'}/blocks/latest?limit=100`);
       
       if (blocksResponse.data && blocksResponse.data.length > 0) {
         const blocks: BlockData[] = blocksResponse.data;
@@ -136,10 +136,17 @@ const NetworkActivity: React.FC = () => {
       }
     } catch (error) {
       console.error('Error fetching network activity data:', error);
-      // Set fallback data
-      setTransactionsData(generateMockData(4000));
-      setBlocksData(generateMockData(500));
-      setAddressesData(generateMockData(2000));
+      
+      // Use mock data as fallback when API fails
+      const mockTxData = generateMockData(2500);
+      const mockBlockData = generateMockData(150);
+      const mockAddrData = generateMockData(1200);
+      
+      setTransactionsData(mockTxData);
+      setBlocksData(mockBlockData);
+      setAddressesData(mockAddrData);
+      
+      console.log('Using fallback mock data for network activity charts');
     } finally {
       setIsLoading(false);
     }

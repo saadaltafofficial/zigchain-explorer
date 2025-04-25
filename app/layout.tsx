@@ -26,6 +26,13 @@ export default function RootLayout({
     <html lang="en" className="dark" data-theme="dark" suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="color-scheme" content="dark" />
+        <meta name="theme-color" content="#111827" />
+        <style dangerouslySetInnerHTML={{ __html: `
+          :root { color-scheme: dark; }
+          html { background-color: #111827 !important; }
+          body { background-color: #111827 !important; color: #e5e7eb !important; }
+        `}} />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -33,10 +40,25 @@ export default function RootLayout({
                 // Always force dark mode
                 document.documentElement.classList.add('dark');
                 document.documentElement.setAttribute('data-theme', 'dark');
+                document.documentElement.style.colorScheme = 'dark';
                 localStorage.setItem('theme', 'dark');
-                console.log('Dark theme applied');
-              } catch (_) {
-                console.error('Error setting initial theme');
+                
+                // Create a MutationObserver to ensure dark mode is never removed
+                const observer = new MutationObserver((mutations) => {
+                  mutations.forEach((mutation) => {
+                    if (mutation.attributeName === 'class' && !document.documentElement.classList.contains('dark')) {
+                      document.documentElement.classList.add('dark');
+                    }
+                    if (mutation.attributeName === 'data-theme' && document.documentElement.getAttribute('data-theme') !== 'dark') {
+                      document.documentElement.setAttribute('data-theme', 'dark');
+                    }
+                  });
+                });
+                
+                observer.observe(document.documentElement, { attributes: true });
+                console.log('Dark theme enforced with observer');
+              } catch (error) {
+                console.error('Error setting initial theme:', error);
               }
             `,
           }}

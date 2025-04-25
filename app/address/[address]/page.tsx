@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { getAccountInfo, getAddressTransactions } from '../../services/apiClient';
-import { Copy, ExternalLink, Clock, ArrowRight, RefreshCw } from 'lucide-react';
+import { Copy, Clock, ArrowRight } from 'lucide-react';
 
 interface Transaction {
   hash: string;
@@ -34,11 +34,48 @@ export default function AddressPage() {
   const [accountInfo, setAccountInfo] = useState<AccountInfo | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isTxLoading, setIsTxLoading] = useState(true);  // Separate loading state for transactions
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [copied, setCopied] = useState(false);
   
+  // Function to fetch only transactions data
+  const fetchTransactions = async (pageNum = currentPage) => {
+    // Only set loading for transactions section
+    setIsTxLoading(true);
+    
+    try {
+      // Try to fetch transactions for this address - using 10 per page now
+      const txData = await getAddressTransactions(address, pageNum, 10);
+      console.log('Transaction data received:', txData);
+      
+      // Handle the response format from our updated API
+      if (txData.transactions && Array.isArray(txData.transactions)) {
+        // The API now returns an object with transactions array and pagination info
+        setTransactions(txData.transactions);
+        
+        // Set total pages from pagination info if available
+        if (txData.pagination) {
+          setTotalPages(txData.pagination.pages || Math.ceil((txData.pagination.total || txData.transactions.length) / txData.pagination.limit || 10));
+        } else {
+          setTotalPages(Math.ceil(txData.transactions.length / 10));
+        }
+      } else if (Array.isArray(txData)) {
+        // Fallback for backward compatibility if the API returns an array directly
+        setTransactions(txData);
+        setTotalPages(Math.ceil(txData.length / 10));
+      }
+    } catch (txError) {
+      console.warn('Failed to fetch transactions:', txError);
+      setTransactions([]);
+      setTotalPages(1);
+    } finally {
+      setIsTxLoading(false);
+    }
+  };
+
+  // Main function to fetch all account data
   const fetchData = async () => {
     setIsLoading(true);
     setError(null);
@@ -55,36 +92,8 @@ export default function AddressPage() {
       
       setAccountInfo(accountData);
       
-      // Set transactions to empty array initially
-      setTransactions([]);
-      setTotalPages(1);
-      
-      try {
-        // Try to fetch transactions for this address
-        const txData = await getAddressTransactions(address, currentPage, 10);
-        console.log('Transaction data received:', txData);
-        
-        // Handle the response format from our updated API
-        if (txData.transactions && Array.isArray(txData.transactions)) {
-          // The API now returns an object with transactions array and pagination info
-          setTransactions(txData.transactions);
-          
-          // Set total pages from pagination info if available
-          if (txData.pagination) {
-            setTotalPages(txData.pagination.pages || Math.ceil((txData.pagination.total || txData.transactions.length) / txData.pagination.limit || 10));
-          } else {
-            setTotalPages(Math.ceil(txData.transactions.length / 10));
-          }
-        } else if (Array.isArray(txData)) {
-          // Fallback for backward compatibility if the API returns an array directly
-          setTransactions(txData);
-          setTotalPages(Math.ceil(txData.length / 10));
-        }
-      } catch (txError) {
-        console.warn('Failed to fetch transactions, but account info is available:', txError);
-        // We'll continue with just the account info and empty transactions
-        // No need to set an error since we have at least the account info
-      }
+      // After getting account info, fetch transactions
+      await fetchTransactions();
     } catch (err) {
       console.error('Error fetching address data:', err);
       
@@ -106,28 +115,32 @@ export default function AddressPage() {
       // Set a more descriptive error message based on the error type
       if (err instanceof Error && err.message === 'Network Error') {
         setError('Network error: Unable to connect to the API. Please check your internet connection.');
-      } else if (err && typeof err === 'object' && 'response' in err) {
-        const axiosError = err as any;
-        if (axiosError.response?.status === 404) {
-          setError(`Address not found: ${address} does not exist or is not indexed by the API.`);
-        } else if (axiosError.response?.status === 429) {
-          setError('Too many requests: The API rate limit has been exceeded. Please try again later.');
-        } else {
-          setError(`Unable to fetch address details. API error: ${axiosError.response?.status || 'Unknown'}`);
-        }
+      } else if (err instanceof Error && err.message.includes('404')) {
+        setError(`Address not found: ${address}`);
+      } else if (err instanceof Error && err.message.includes('500')) {
+        setError('Server error: The blockchain API is experiencing issues. Please try again later.');
       } else {
-        setError('Unable to fetch address details. The address may be invalid or the API is unavailable.');
+        setError(`Failed to load address data: ${err instanceof Error ? err.message : 'Unknown error'}`);
       }
     } finally {
       setIsLoading(false);
     }
   };
   
+  // Initial data load when address changes
   useEffect(() => {
     if (address) {
       fetchData();
     }
-  }, [address, currentPage]);
+  }, [address]);
+  
+  // Fetch only transactions when page changes
+  useEffect(() => {
+    if (address && accountInfo) { // Only fetch if we already have account info
+      console.log('Page changed to:', currentPage);
+      fetchTransactions(currentPage);
+    }
+  }, [currentPage]);
   
   const copyToClipboard = () => {
     navigator.clipboard.writeText(address);
@@ -142,21 +155,29 @@ export default function AddressPage() {
   
   const formatAmount = (amount: string) => {
     try {
-      // Handle amounts in different formats
       if (!amount) return '0 ZIG';
       
-      // If it's already formatted with a denomination
-      if (amount.includes(' ')) return amount;
+      if (amount.includes('uzig')) {
+        const numericPart = amount.replace(/[^0-9.]/g, '');
+        const value = parseFloat(numericPart);
+        
+        const zigValue = value / 1000000;
+        
+        if (zigValue >= 1000000) {
+          return `${(zigValue / 1000000)}M ZIG`;
+        } else if (zigValue >= 1000) {
+          return `${(zigValue / 1)} ZIG`;
+        } else {
+          return `${zigValue} ZIG`;
+        }
+      }
       
-      // If it's a number in uzig (microzig)
-      const value = parseFloat(amount);
-      if (isNaN(value)) return amount;
+      if (amount.includes('.')) {
+        const value = parseFloat(amount);
+        return `${value.toFixed(4)} ZIG`;
+      }
       
-      // Convert from uzig to ZIG (1 ZIG = 1,000,000 uzig)
-      const zigAmount = value / 1000000;
-      
-      // Format with commas for thousands
-      return `${zigAmount.toLocaleString(undefined, { maximumFractionDigits: 6 })} ZIG`;
+      return amount;
     } catch (e) {
       return amount;
     }
@@ -178,9 +199,6 @@ export default function AddressPage() {
     }
   };
   
-  const handleRefresh = () => {
-    fetchData();
-  };
   
   if (error) {
     return (
@@ -202,7 +220,7 @@ export default function AddressPage() {
   return (
     <div className="relative">
       {/* Maintenance Overlay */}
-      <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      {/* <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 max-w-lg w-full text-center">
           <div className="mb-6">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -220,20 +238,13 @@ export default function AddressPage() {
             Return to Home
           </Link>
         </div>
-      </div>
+      </div> */}
 
       {/* Original Content (hidden behind overlay) */}
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Address Details</h1>
-          <button 
-            onClick={handleRefresh} 
-            disabled={isLoading}
-            className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 flex items-center"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            {isLoading ? 'Refreshing...' : 'Refresh'}
-          </button>
+          
         </div>
         
         {isLoading ? (
@@ -282,10 +293,7 @@ export default function AddressPage() {
                   <p className="text-lg font-semibold text-gray-800 dark:text-white">{formatAmount(accountInfo?.balance || '0')}</p>
                 </div>
                 
-                <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Transactions</h3>
-                  <p className="text-lg font-semibold text-gray-800 dark:text-white">{accountInfo?.total_transactions || transactions.length}</p>
-                </div>
+
                 
                 {accountInfo?.delegated_amount && (
                   <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
@@ -301,15 +309,7 @@ export default function AddressPage() {
                   </div>
                 )}
                 
-                <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Account Number</h3>
-                  <p className="text-lg font-semibold text-gray-800 dark:text-white">{accountInfo?.account_number || 'N/A'}</p>
-                </div>
-                
-                <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Sequence</h3>
-                  <p className="text-lg font-semibold text-gray-800 dark:text-white">{accountInfo?.sequence || 'N/A'}</p>
-                </div>
+
               </div>
             </div>
             
@@ -335,7 +335,7 @@ export default function AddressPage() {
                         </tr>
                       </thead>
                       <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        {transactions.map((tx, index) => (
+                        {transactions.slice(0, 10).map((tx, index) => (
                           <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                             <td className="px-6 py-4 whitespace-nowrap">
                               <Link href={`/tx/${tx.hash}`} className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300">
@@ -368,27 +368,42 @@ export default function AddressPage() {
                   </div>
                   
                   {/* Pagination */}
-                  {totalPages > 1 && (
-                    <div className="flex justify-between items-center mt-6">
-                      <button 
-                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                        disabled={currentPage === 1}
-                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Previous
-                      </button>
+                  {transactions.length > 0 && (
+                    <div className="flex flex-col sm:flex-row justify-between items-center mt-6 space-y-4 sm:space-y-0">
+                      <div className="flex items-center">
+                        <button 
+                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                          disabled={currentPage === 1 || isTxLoading}
+                          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Previous
+                        </button>
+                      </div>
                       
-                      <span className="text-sm text-gray-700 dark:text-gray-300">
-                        Page {currentPage} of {totalPages}
-                      </span>
+                      <div className="flex items-center">
+                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                          {isTxLoading ? 
+                            <span className="flex items-center">
+                              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Loading...
+                            </span> : 
+                            `Page ${currentPage} of ${totalPages}`
+                          }
+                        </span>
+                      </div>
                       
-                      <button 
-                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                        disabled={currentPage === totalPages}
-                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Next
-                      </button>
+                      <div className="flex items-center">
+                        <button 
+                          onClick={() => setCurrentPage(prev => prev + 1)}
+                          disabled={transactions.length === 0 || isTxLoading}
+                          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Next
+                        </button>
+                      </div>
                     </div>
                   )}
                 </>

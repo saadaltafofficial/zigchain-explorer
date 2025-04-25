@@ -13,7 +13,7 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // Always use dark theme
+  // Always use dark theme regardless of what's set
   const [theme, setTheme] = useState<Theme>('dark');
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('dark');
   const [mounted, setMounted] = useState(false);
@@ -31,7 +31,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Effect to apply dark theme
+  // Effect to always apply dark theme regardless of system preference or user selection
   useEffect(() => {
     if (!mounted) return;
 
@@ -40,6 +40,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     // Apply dark theme
     const applyTheme = () => {
+      // Force dark theme regardless of what was selected
       const newTheme = 'dark';
       
       // Apply theme to document
@@ -54,20 +55,44 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       // Also set a data attribute for additional styling options
       root.setAttribute('data-theme', 'dark');
       
-      console.log(`Applied theme: ${newTheme}`);
+      console.log(`Applied forced dark theme`);
       
-      setResolvedTheme(newTheme);
+      // Always set resolved theme to dark
+      setResolvedTheme('dark');
     };
 
     applyTheme();
-    // No need to listen for system preference changes since we're always using dark mode
-  }, [theme, mounted]);
+    
+    // Override system preference detection
+    // Add a MutationObserver to ensure dark mode stays applied
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+          const root = document.documentElement;
+          if (!root.classList.contains('dark')) {
+            root.classList.add('dark');
+          }
+        }
+      });
+    });
+    
+    observer.observe(document.documentElement, { attributes: true });
+    
+    return () => observer.disconnect();
+  }, [mounted]);
+
+  // Modified setTheme to always enforce dark theme
+  const enforcedSetTheme = (newTheme: Theme) => {
+    console.log(`Theme selection attempted: ${newTheme}, enforcing dark theme`);
+    // Always set to dark regardless of input
+    setTheme('dark');
+  };
 
   // Provide the actual value only after mounting to avoid hydration mismatch
-  const value = {
-    theme,
-    setTheme,
-    resolvedTheme
+  const value: ThemeContextType = {
+    theme: 'dark' as Theme, // Always return dark as the theme with proper type casting
+    setTheme: enforcedSetTheme,
+    resolvedTheme: 'dark' // Always return dark as the resolved theme
   };
 
   return (

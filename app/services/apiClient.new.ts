@@ -1,12 +1,12 @@
 import axios from 'axios';
 
-// API endpoint for our FastAPI backend - homepage will use this
+// API endpoint for our FastAPI backend
 const API_ENDPOINT = process.env.NEXT_PUBLIC_API_URL || 'https://zigscan.net/api';
 
 // Direct RPC endpoint for fallback
 const RPC_URL = process.env.RPC_URL || 'https://zigscan.net';
 
-// ZigChain Testnet API endpoint - address page will use this
+// ZigChain Testnet API endpoint
 const ZIGCHAIN_API = 'https://testnet-api.zigchain.com';
 
 // Local RPC proxy to avoid CORS issues
@@ -160,41 +160,31 @@ export const getAddressTransactions = async (address: string, page = 1, limit = 
     
     // Try fetching from ZigChain Testnet API first
     try {
-      // Fetch sent transactions using query parameter - exact format as provided
-      console.log(`[API Client] Fetching sent transactions from ZigChain API: ${ZIGCHAIN_API}/cosmos/tx/v1beta1/txs?query=message.sender='${address}'&pagination.limit=${limit}&pagination.offset=${(page-1)*limit}`);
-      const sentTxResponse = await axios.get(`${ZIGCHAIN_API}/cosmos/tx/v1beta1/txs?query=message.sender='${address}'&pagination.limit=${limit}&pagination.offset=${(page-1)*limit}`);
+      // Fetch sent transactions
+      console.log(`[API Client] Fetching sent transactions from ZigChain API: ${ZIGCHAIN_API}/cosmos/tx/v1beta1/txs?events=message.sender='${address}'&pagination.limit=${limit}&pagination.offset=${(page-1)*limit}`);
+      const sentTxResponse = await axios.get(`${ZIGCHAIN_API}/cosmos/tx/v1beta1/txs?events=message.sender='${address}'&pagination.limit=${limit}&pagination.offset=${(page-1)*limit}`);
       console.log('[API Client] ZigChain sent transactions response:', sentTxResponse.data);
       
-      // Fetch received transactions using query parameter
-      console.log(`[API Client] Fetching received transactions from ZigChain API: ${ZIGCHAIN_API}/cosmos/tx/v1beta1/txs?query=transfer.recipient='${address}'&pagination.limit=${limit}&pagination.offset=${(page-1)*limit}`);
-      const receivedTxResponse = await axios.get(`${ZIGCHAIN_API}/cosmos/tx/v1beta1/txs?query=transfer.recipient='${address}'&pagination.limit=${limit}&pagination.offset=${(page-1)*limit}`);
+      // Fetch received transactions
+      console.log(`[API Client] Fetching received transactions from ZigChain API: ${ZIGCHAIN_API}/cosmos/tx/v1beta1/txs?events=transfer.recipient='${address}'&pagination.limit=${limit}&pagination.offset=${(page-1)*limit}`);
+      const receivedTxResponse = await axios.get(`${ZIGCHAIN_API}/cosmos/tx/v1beta1/txs?events=transfer.recipient='${address}'&pagination.limit=${limit}&pagination.offset=${(page-1)*limit}`);
       console.log('[API Client] ZigChain received transactions response:', receivedTxResponse.data);
       
       // Combine and process transactions
       const sentTxs = sentTxResponse.data.tx_responses || [];
       const receivedTxs = receivedTxResponse.data.tx_responses || [];
       
-      // Get pagination info for logging
-      console.log(`[API Client] Page: ${page}, Limit: ${limit}, Offset: ${(page-1)*limit}`);
-      console.log(`[API Client] Sent transactions count: ${sentTxs.length}`);
-      console.log(`[API Client] Received transactions count: ${receivedTxs.length}`);
-      
       // Combine all transactions and remove duplicates by txhash
       const allTxs = [...sentTxs, ...receivedTxs];
       const uniqueTxs = allTxs.filter((tx, index, self) => 
         index === self.findIndex((t) => t.txhash === tx.txhash)
       );
-      console.log(`[API Client] Combined unique transactions count: ${uniqueTxs.length}`);
       
       // Sort by height descending (newest first)
       const sortedTxs = uniqueTxs.sort((a, b) => parseInt(b.height) - parseInt(a.height));
       
-      // For client-side pagination, we need to get all transactions first
-      // and then paginate them properly
-      const startIndex = (page - 1) * limit; // Calculate start index based on page number
-      const endIndex = Math.min(startIndex + limit, sortedTxs.length);
-      console.log(`[API Client] Pagination: startIndex=${startIndex}, endIndex=${endIndex}, total=${sortedTxs.length}`);
-      const paginatedTxs = sortedTxs.slice(startIndex, endIndex);
+      // Apply pagination
+      const paginatedTxs = sortedTxs.slice(0, limit);
       
       // Transform transactions to our standard format
       const formattedTxs = paginatedTxs.map(tx => {
@@ -247,28 +237,14 @@ export const getAddressTransactions = async (address: string, page = 1, limit = 
         };
       });
       
-      // Calculate total transactions from both sent and received
-      // For accurate total pages, we need to get the total count of transactions
-      // Try to get total from API response pagination, or estimate based on what we have
-      const sentTotal = sentTxResponse.data.pagination?.total ? parseInt(sentTxResponse.data.pagination.total) : 0;
-      const receivedTotal = receivedTxResponse.data.pagination?.total ? parseInt(receivedTxResponse.data.pagination.total) : 0;
-      
-      // This is an estimate as there may be overlap between sent and received
-      const estimatedTotal = Math.max(sortedTxs.length, sentTotal + receivedTotal);
-      
-      // Calculate estimated total pages
-      const estimatedPages = Math.max(Math.ceil(estimatedTotal / limit), 1);
-      
-      console.log(`[API Client] Estimated total transactions: ${estimatedTotal}, pages: ${estimatedPages}`);
-      
       // Return formatted transactions with pagination info
       return {
         transactions: formattedTxs,
         pagination: {
-          total: estimatedTotal,
+          total: sentTxResponse.data.pagination?.total ? parseInt(sentTxResponse.data.pagination.total) : formattedTxs.length,
           page,
           limit,
-          pages: estimatedPages
+          pages: sentTxResponse.data.pagination?.total ? Math.ceil(parseInt(sentTxResponse.data.pagination.total) / limit) : 1
         }
       };
     } catch (error) {
@@ -353,292 +329,6 @@ export const getAddressTransactions = async (address: string, page = 1, limit = 
 };
 
 /**
- * Get chain information
- */
-export const getChainInfo = async () => {
-  try {
-    // Try using the FastAPI backend first
-    if (!useDirectRpc) {
-      try {
-        console.log('[API Client] Fetching chain info from API endpoint:', `${API_ENDPOINT}/chain/info`);
-        const response = await axios.get(`${API_ENDPOINT}/chain/info`);
-        console.log('[API Client] Raw chain info response:', response.data);
-        
-        // Check if the API response matches the expected format
-        if (response.data && typeof response.data === 'object') {
-          // Map the API response to the format expected by the frontend
-          // This handles both the direct API response and the info endpoint format seen in the screenshot
-          const chainInfo = {
-            chainId: response.data.chain_id || response.data.chainId || 'Unknown',
-            blockHeight: parseInt(response.data.latest_block_height || response.data.blockHeight || 0),
-            blockTime: response.data.latest_block_time ? new Date(response.data.latest_block_time).getTime() : (response.data.blockTime || 0),
-            validatorCount: parseInt(response.data.validator_count || response.data.validatorCount || 0),
-            bondedTokens: response.data.bonded_tokens || response.data.bondedTokens || '0',
-            nodeInfo: {
-              version: response.data.node_info?.version || (response.data.nodeInfo?.version || 'Unknown')
-            }
-          };
-          
-          console.log('[API Client] Processed chain info:', chainInfo);
-          return chainInfo;
-        }
-      } catch (error) {
-        console.warn('[API Client] Failed to get chain info from API, falling back to direct RPC');
-        console.error('[API Client] Error details:', error);
-        useDirectRpc = true;
-      }
-    }
-    
-    // Fallback to direct RPC calls
-    if (useDirectRpc) {
-      console.log('[API Client] Using direct RPC call for chain info');
-      
-      // Get status for latest block height and chain ID
-      const statusResponse = await axios.get(buildProxyUrl('/status'));
-      console.log('[API Client] RPC status response:', statusResponse.data);
-      
-      const syncInfo = statusResponse.data.result.sync_info;
-      const nodeInfo = statusResponse.data.result.node_info;
-      
-      // Get validator count
-      const validatorsResponse = await axios.get(buildProxyUrl('/validators'));
-      const validatorCount = validatorsResponse.data.result.total || 0;
-      
-      return {
-        chainId: nodeInfo.network || 'Unknown',
-        blockHeight: parseInt(syncInfo.latest_block_height || 0),
-        blockTime: new Date(syncInfo.latest_block_time).getTime(),
-        validatorCount: parseInt(validatorCount),
-        bondedTokens: '0', // Not available from this endpoint
-        nodeInfo: {
-          version: nodeInfo.version || 'Unknown'
-        }
-      };
-    }
-  } catch (error) {
-    console.error('[API Client] Error fetching chain info:', error);
-    
-    // Return a default object with minimal info to prevent UI errors
-    return {
-      chainId: 'Unknown',
-      blockHeight: 0,
-      blockTime: 0,
-      validatorCount: 0,
-      bondedTokens: '0',
-      nodeInfo: {
-        version: 'Unknown'
-      }
-    };
-  }
-};
-
-/**
- * Get latest blocks
- * @param limit Number of blocks to fetch
- */
-export const getLatestBlocks = async (limit = 10) => {
-  try {
-    // Try using the FastAPI backend first
-    if (!useDirectRpc) {
-      try {
-        console.log('[API Client] Fetching latest blocks from API endpoint:', `${API_ENDPOINT}/blocks/latest?limit=${limit}`);
-        const response = await axios.get(`${API_ENDPOINT}/blocks/latest?limit=${limit}`);
-        console.log('[API Client] Raw blocks response:', response.data);
-        
-        // Check if the API response matches the expected format
-        if (response.data && Array.isArray(response.data)) {
-          return response.data;
-        }
-      } catch (error) {
-        console.warn('[API Client] Failed to get latest blocks from API, falling back to direct RPC');
-        console.error('[API Client] Error details:', error);
-        useDirectRpc = true;
-      }
-    }
-    
-    // Fallback to direct RPC calls
-    if (useDirectRpc) {
-      console.log('[API Client] Using direct RPC call for latest blocks');
-      
-      // Get latest blocks from blockchain endpoint
-      const blocksResponse = await axios.get(buildProxyUrl('/blockchain'));
-      console.log('[API Client] RPC blocks response:', blocksResponse.data);
-      
-      const blocks = blocksResponse.data.result.block_metas || [];
-      
-      // Transform the blocks to match the expected format
-      return blocks.map((block: any) => ({
-        height: parseInt(block.header.height),
-        hash: block.block_id.hash,
-        time: block.header.time,
-        proposer: block.header.proposer_address,
-        numTxs: parseInt(block.num_txs || 0)
-      })).slice(0, limit);
-    }
-  } catch (error) {
-    console.error('[API Client] Error fetching latest blocks:', error);
-    return []; // Return empty array on error
-  }
-};
-
-/**
- * Get latest transactions
- * @param limit Number of transactions to fetch
- */
-export const getLatestTransactions = async (limit = 10) => {
-  try {
-    // Try using the FastAPI backend first
-    if (!useDirectRpc) {
-      try {
-        console.log('[API Client] Fetching latest transactions from API endpoint:', `${API_ENDPOINT}/transactions/latest?limit=${limit}`);
-        const response = await axios.get(`${API_ENDPOINT}/transactions/latest?limit=${limit}`);
-        console.log('[API Client] Raw transactions response:', response.data);
-        
-        // Check if the API response matches the expected format
-        if (response.data) {
-          // Handle both array and object with transactions property
-          const txs = Array.isArray(response.data) ? response.data : (response.data.transactions || []);
-          
-          // Ensure each transaction has a height property (required for toString())
-          return txs.map((tx: any) => ({
-            ...tx,
-            height: tx.height || 0 // Provide a default height if missing
-          }));
-        }
-      } catch (error) {
-        console.warn('[API Client] Failed to get latest transactions from API, falling back to direct RPC');
-        console.error('[API Client] Error details:', error);
-        useDirectRpc = true;
-      }
-    }
-    
-    // Fallback to direct RPC calls
-    if (useDirectRpc) {
-      console.log('[API Client] Using direct RPC call for latest transactions');
-      
-      // Get latest blocks first
-      const blocksResponse = await axios.get(buildProxyUrl('/blockchain'));
-      const blocks = blocksResponse.data.result.block_metas || [];
-      
-      // Get transactions from each block
-      const transactions = [];
-      
-      for (let i = 0; i < Math.min(blocks.length, 5); i++) {
-        const block = blocks[i];
-        if (parseInt(block.num_txs) > 0) {
-          try {
-            const blockResponse = await axios.get(buildProxyUrl(`/block?height=${block.header.height}`));
-            const blockData = blockResponse.data.result;
-            
-            if (blockData.block.data.txs) {
-              for (const tx of blockData.block.data.txs) {
-                // Get transaction details
-                try {
-                  const txResponse = await axios.get(buildProxyUrl(`/tx?hash=0x${tx}`));
-                  const txData = txResponse.data.result;
-                  
-                  transactions.push({
-                    hash: txData.hash,
-                    height: block.header.height,
-                    time: block.header.time,
-                    status: txData.tx_result.code === 0 ? 'success' : 'failed',
-                    code: txData.tx_result.code
-                  });
-                  
-                  if (transactions.length >= limit) {
-                    break;
-                  }
-                } catch (txError) {
-                  console.error(`[API Client] Error fetching transaction details for ${tx}:`, txError);
-                }
-              }
-            }
-            
-            if (transactions.length >= limit) {
-              break;
-            }
-          } catch (blockError) {
-            console.error(`[API Client] Error fetching block details for height ${block.header.height}:`, blockError);
-          }
-        }
-      }
-      
-      return transactions;
-    }
-  } catch (error) {
-    console.error('[API Client] Error fetching latest transactions:', error);
-    return []; // Return empty array on error
-  }
-};
-
-/**
- * Get block details by height
- * @param height Block height
- * @returns Block details
- */
-export const getBlockByHeight = async (height: number) => {
-  try {
-    console.log(`[API Client] Fetching block with height ${height}`);
-    
-    // Try FastAPI backend first
-    try {
-      const response = await axios.get(`${API_ENDPOINT}/blocks/${height}`);
-      console.log('[API Client] FastAPI block response:', response.data);
-      
-      if (response.data && response.data.block) {
-        return {
-          height: parseInt(response.data.block.header.height),
-          time: response.data.block.header.time,
-          proposer: response.data.block.header.proposer_address,
-          txCount: response.data.block.data.txs ? response.data.block.data.txs.length : 0,
-          hash: response.data.block_id.hash,
-          transactions: response.data.block.data.txs || [],
-          appHash: response.data.block.header.app_hash,
-          consensusHash: response.data.block.header.consensus_hash,
-          lastCommitHash: response.data.block.header.last_commit_hash,
-          validatorHash: response.data.block.header.validators_hash,
-          evidenceHash: response.data.block.header.evidence_hash,
-          lastResultsHash: response.data.block.header.last_results_hash
-        };
-      }
-    } catch (error) {
-      console.warn('[API Client] FastAPI block fetch failed, trying RPC proxy:', error);
-    }
-    
-    // Fallback to RPC proxy
-    const blockResponse = await axios.get(buildProxyUrl(`/block?height=${height}`));
-    console.log('[API Client] RPC block response:', blockResponse.data);
-    
-    if (blockResponse.data && blockResponse.data.result) {
-      const blockData = blockResponse.data.result;
-      
-      // Get transactions if they exist
-      const transactions = blockData.block.data.txs || [];
-      
-      return {
-        height: parseInt(blockData.block.header.height),
-        time: blockData.block.header.time,
-        proposer: blockData.block.header.proposer_address,
-        txCount: transactions.length,
-        hash: blockData.block_id.hash,
-        transactions: transactions,
-        appHash: blockData.block.header.app_hash,
-        consensusHash: blockData.block.header.consensus_hash,
-        lastCommitHash: blockData.block.header.last_commit_hash,
-        validatorHash: blockData.block.header.validators_hash,
-        evidenceHash: blockData.block.header.evidence_hash,
-        lastResultsHash: blockData.block.header.last_results_hash
-      };
-    }
-    
-    throw new Error(`Block with height ${height} not found`);
-  } catch (error) {
-    console.error(`[API Client] Failed to get block with height ${height}:`, error);
-    throw error;
-  }
-};
-
-/**
  * Get transaction by hash
  * @param hash Transaction hash
  */
@@ -690,4 +380,5 @@ export const getTransactionByHash = async (hash: string) => {
   }
 };
 
-// No need to export from self - would cause circular dependency
+// Export other existing functions from the original file
+export * from './apiClient';

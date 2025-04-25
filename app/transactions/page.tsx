@@ -9,7 +9,8 @@ import TransactionDetailView from "../components/TransactionDetailView";
 interface Transaction {
   hash: string;
   height: string;
-  time: string;
+  time?: string;
+  timestamp?: string; // Added timestamp property to match API response
   from?: string;
   to?: string;
   amount?: string;
@@ -206,11 +207,13 @@ function TransactionsContent() {
                      ((txDetails as any).code === 0 || (txDetails as any).tx_result?.code === 0 ? 'success' : 'failed');
         
         // Create a complete transaction detail object
+        // Create a complete transaction detail object with type safety
         const detailedTx: TransactionDetail = {
           ...txDetails,
           hash: txDetails.hash,
           height: (txDetails.height?.toString() || tx.height?.toString() || '0'),
-          time: txDetails.time || tx.time,
+          // Handle both time and timestamp properties for compatibility
+          time: (txDetails as any).timestamp || (txDetails as any).time || tx.time || '',
           from: txDetails.from || tx.from || '',
           to: txDetails.to || tx.to || '',
           amount: txDetails.amount || tx.amount || '',
@@ -410,7 +413,7 @@ function TransactionsContent() {
                           </button>
                           <div className="flex items-center text-gray-500 dark:text-gray-400 text-sm mt-1">
                             <Clock size={14} className="mr-1" />
-                            <span>{formatDate(tx.time)}</span>
+                            <span>{formatDate(tx.time || tx.timestamp || '')}</span>
                           </div>
                         </div>
                       </div>

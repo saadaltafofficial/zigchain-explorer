@@ -8,7 +8,8 @@ interface TransactionDetailViewProps {
   transaction: {
     hash: string;
     height: string;
-    time: string;
+    time?: string;
+    timestamp?: string; // Added to support API response format
     from?: string;
     to?: string;
     amount?: string;
@@ -58,7 +59,7 @@ const TransactionDetailView: React.FC<TransactionDetailViewProps> = ({ transacti
                 <Clock className="h-4 w-4 mr-2" />
                 <span>Time</span>
               </div>
-              <p className="text-white">{formatDate(transaction.time)}</p>
+              <p className="text-white">{formatDate(transaction.time || transaction.timestamp || '')}</p>
             </div>
             
             <div>

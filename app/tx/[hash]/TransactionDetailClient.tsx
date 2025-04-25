@@ -15,7 +15,8 @@ interface TransactionDetailClientProps {
 interface Transaction {
   hash: string;
   height: string;
-  time: string;
+  time?: string;
+  timestamp?: string; // Added to support API response format
   from?: string;
   to?: string;
   amount?: string;
@@ -191,7 +192,7 @@ export default function TransactionDetailClient({ params }: TransactionDetailCli
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Timestamp</p>
-                  <p>{formatDate(transaction.time)}</p>
+                  <p>{formatDate(transaction.time || transaction.timestamp || '')}</p>
                 </div>
               </div>
             </div>
