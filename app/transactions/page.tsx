@@ -359,7 +359,7 @@ function TransactionsContent() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-16">Latest Transactions</h1>
+      <h1 className="text-3xl font-bold mb-16">Transactions</h1>
 
       {loading && (
         <div className="space-y-4">
@@ -393,7 +393,7 @@ function TransactionsContent() {
             <>
               <div className="space-y-4 mb-6">
                 {transactions.map((tx) => (
-                  <div key={tx.hash} className="px-6 py-4 hover:bg-gray-700/30 transition-colors">
+                  <div key={tx.hash} className="px-6 py-4 bg-[#1e2939] rounded-lg hover:bg-gray-700/30 transition-colors">
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                       <div className="flex items-center">
                         <div className="mr-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-full">
@@ -443,7 +443,8 @@ function TransactionsContent() {
 
               {/* Pagination controls */}
               <div className="mt-16">
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex justify-center items-center mb-4">
+                  <div className="flex items-center justify-center md:mx-auto md:justify-between md:flex-row flex-col md:space-x-4 md:space-y-0 space-y-4 md:text-left text-center">
                   <div className="flex items-center">
                     <div className="flex items-center space-x-2">
                       <button
@@ -532,6 +533,7 @@ function TransactionsContent() {
                         50
                       </button>
                     </div>
+                  </div>
                   </div>
                 </div>
               </div>

@@ -21,21 +21,21 @@ const BlockCard: React.FC<BlockCardProps> = ({ height, hash, time, txCount }) =>
   console.log(`Block #${height} timestamp:`, time);
 
   return (
-    <div className="px-6 py-4 hover:bg-gray-700/30 transition-colors">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+    <div className="px-4 py-3 sm:px-6 sm:py-4 bg-[#1e2939] hover:bg-gray-700/30 transition-colors rounded-lg">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-3">
         <div className="flex items-center">
-          <div className="mr-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-full">
-            <Database size={18} className="text-blue-600 dark:text-blue-400" />
+          <div className="mr-2 sm:mr-3 p-1.5 sm:p-2 bg-blue-900/20 rounded-full">
+            <Database size={16} className="text-blue-400" />
           </div>
           <div>
             <Link 
               href={`/blocks/${safeHeight}`} 
-              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-lg font-semibold transition-colors"
+              className="text-blue-400 hover:text-blue-300 text-base sm:text-lg font-semibold transition-colors"
             >
               Block #{formatNumber(safeHeight)}
             </Link>
-            <div className="flex items-center text-gray-500 dark:text-gray-400 text-sm mt-1">
-              <Clock size={14} className="mr-1" />
+            <div className="flex items-center text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">
+              <Clock size={12} className="mr-1" />
               <span>Just now</span>
             </div>
           </div>

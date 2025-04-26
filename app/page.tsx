@@ -155,7 +155,7 @@ export default function Home() {
               <span className="dark:bg-blue-900/30 p-2 rounded-full mr-3">
                 <TrendingUp size={18} className="text-blue-600 dark:text-blue-400" />
               </span>
-              Latest Blocks
+              Blocks
             </h2>
             <div className="ml-3">
           
@@ -207,7 +207,7 @@ export default function Home() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </span>
-            Latest Transactions
+            Transactions
           </h2>
           <Link 
             href="/transactions" 
@@ -315,20 +315,22 @@ export default function Home() {
           </div>
           
           {/* Price Chart and Network Activity */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            {/* Only show PriceChart on large screens and above */}
-            <div className="hidden lg:block">
-              <PriceChart coinId="zignaly" currency="usd" displayName="ZIG" />
-            </div>
-            <div className="block w-full">
-              <NetworkActivity />
+          {/* Only show charts on larger screens */}
+          <div className="hidden md:block">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+              <div>
+                <PriceChart coinId="zignaly" currency="usd" displayName="ZIG" />
+              </div>
+              <div className="w-full">
+                <NetworkActivity />
+              </div>
             </div>
           </div>
           
-          {/* Blocks and Transactions Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Blocks and Transactions Grid - Responsive Layout */}
+          <div className="space-y-6 md:space-y-0 md:grid md:grid-cols-1 lg:grid-cols-2 md:gap-8 mb-8">
             {/* Latest Blocks Column */}
-            <div>
+            <div className="mb-6 md:mb-0">
               {loading ? (
                 <LoadingBlocks />
               ) : (

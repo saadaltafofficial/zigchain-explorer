@@ -168,7 +168,7 @@ export default function BlocksPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-16">Latest Blocks</h1>
+      <h1 className="text-3xl font-bold mb-16">Blocks</h1>
       
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
@@ -201,7 +201,7 @@ export default function BlocksPage() {
         </div>
       ) : (
         <div>
-          <div className="space-y-4 mb-6">
+          <div className="space-y-4 mb-6 ">
             {blocks && blocks.length > 0 ? (
               blocks.map((block) => (
                 <BlockCard 
@@ -222,8 +222,8 @@ export default function BlocksPage() {
           {/* Pagination controls */}
           {blocks && blocks.length > 0 && (
             <div className="mt-16">
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center">
+              <div className="flex justify-center items-center mb-4">
+                <div className="flex items-center justify-center md:mx-auto md:justify-between md:flex-row flex-col md:space-x-4 md:space-y-0 space-y-4 md:text-left text-center">
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={() => handlePageChange(1)}
@@ -291,29 +291,28 @@ export default function BlocksPage() {
                       </svg>
                     </button>
                   </div>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <label className="text-sm text-gray-300">Items per page:</label>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handlePerPageChange(10)}
-                      className={`px-2 py-1 text-xs hover:cursor-pointer rounded ${itemsPerPage === 10 ? 'bg-blue-600 text-white' : ' text-gray-300 hover:bg-gray-700'}`}
-                    >
-                      10
-                    </button>
-                    <button
-                      onClick={() => handlePerPageChange(25)}
-                      className={`px-2 py-1 text-xs hover:cursor-pointer rounded ${itemsPerPage === 25 ? 'bg-blue-600 text-white' : ' text-gray-300 hover:bg-gray-700'}`}
-                    >
-                      25
-                    </button>
-                    <button
-                      onClick={() => handlePerPageChange(50)}
-                      className={`px-2 py-1 text-xs hover:cursor-pointer rounded ${itemsPerPage === 50 ? 'bg-blue-600 text-white' : ' text-gray-300 hover:bg-gray-700'}`}
-                    >
-                      50
-                    </button>
+                  <div className="flex items-center gap-2 md:mt-0 mt-4">
+                    <label className="text-sm text-gray-300">Items per page:</label>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handlePerPageChange(10)}
+                        className={`px-2 py-1 text-xs hover:cursor-pointer rounded ${itemsPerPage === 10 ? 'bg-blue-600 text-white' : ' text-gray-300 hover:bg-gray-700'}`}
+                      >
+                        10
+                      </button>
+                      <button
+                        onClick={() => handlePerPageChange(25)}
+                        className={`px-2 py-1 text-xs hover:cursor-pointer rounded ${itemsPerPage === 25 ? 'bg-blue-600 text-white' : ' text-gray-300 hover:bg-gray-700'}`}
+                      >
+                        25
+                      </button>
+                      <button
+                        onClick={() => handlePerPageChange(50)}
+                        className={`px-2 py-1 text-xs hover:cursor-pointer rounded ${itemsPerPage === 50 ? 'bg-blue-600 text-white' : ' text-gray-300 hover:bg-gray-700'}`}
+                      >
+                        50
+                      </button>
+                    </div>
                   </div>
                 </div>
                 

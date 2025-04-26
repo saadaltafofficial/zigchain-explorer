@@ -112,7 +112,7 @@ const Header: React.FC = () => {
       </div>
       
       {/* Hero section with search bar */}
-      <div className="bg-gradient-to-r from-blue-900 via-indigo-800 to-purple-900 py-14 relative overflow-visible">
+      <div className="bg-gradient-to-r from-blue-900 via-indigo-800 to-purple-900 py-8 sm:py-10 md:py-14 relative overflow-visible">
         {/* Background pattern */}
         <div className="absolute inset-0 overflow-hidden opacity-10">
           <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-blue-400 blur-3xl"></div>
@@ -120,12 +120,12 @@ const Header: React.FC = () => {
           <div className="absolute bottom-10 left-1/3 w-80 h-80 rounded-full bg-indigo-400 blur-3xl"></div>
         </div>
         <div className="container mx-auto px-4 relative z-10">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">Explore ZigChain Blockchain</h1>
-            <p className="text-blue-100 text-lg max-w-2xl mx-auto">Search transactions, blocks, validators and more</p>
+          <div className="text-center mb-4 sm:mb-6 md:mb-8">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2 sm:mb-3">Explore ZigChain</h1>
+            <p className="text-blue-100 text-sm sm:text-base md:text-lg max-w-2xl mx-auto">Search transactions, blocks, validators</p>
           </div>
           <div className="relative z-[100] search-container">
-            <Suspense fallback={<div className="w-full max-w-3xl mx-auto px-4 py-3 bg-gray-700/50 rounded-full">Loading search...</div>}>
+            <Suspense fallback={<div className="w-full max-w-3xl mx-auto px-3 py-2 sm:px-4 sm:py-3 bg-gray-700/50 rounded-full">Loading search...</div>}>
               <SearchBar />
             </Suspense>
           </div>
