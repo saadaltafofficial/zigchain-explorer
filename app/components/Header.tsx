@@ -3,11 +3,14 @@
 import React, { Suspense, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import SearchBar from './SearchBar';
 
 
 const Header: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
+  const isHomePage = pathname === '/';
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
@@ -36,9 +39,11 @@ const Header: React.FC = () => {
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-6">
               <nav className="flex space-x-6">
-                <Link href="/" className="font-medium text-gray-300 hover:text-white transition-colors">
-                  Home
-                </Link>
+                {!isHomePage && (
+                  <Link href="/" className="font-medium text-gray-300 hover:text-white transition-colors">
+                    Home
+                  </Link>
+                )}
                 <Link href="/blocks" className="font-medium text-gray-300 hover:text-white transition-colors">
                   Blocks
                 </Link>
@@ -71,13 +76,15 @@ const Header: React.FC = () => {
           {/* Mobile Navigation */}
           {mobileMenuOpen && (
             <div className="md:hidden mt-2 pb-3 space-y-1">
-              <Link 
-                href="/" 
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Home
-              </Link>
+              {!isHomePage && (
+                <Link 
+                  href="/" 
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Home
+                </Link>
+              )}
               <Link 
                 href="/blocks" 
                 className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700"

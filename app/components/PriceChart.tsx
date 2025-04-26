@@ -168,7 +168,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
   const priceChange = getPriceChange();
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6">
+    <div className="dark:bg-gray-900 rounded-lg shadow-md p-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <div>
           <h2 className="text-2xl font-bold">{displayName} Price</h2>

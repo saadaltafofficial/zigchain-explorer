@@ -12,6 +12,94 @@ export const formatDate = (dateString: string): string => {
   }
 };
 
+// Format blockchain time to relative time (e.g., '5 minutes ago')
+export const formatBlockTime = (timeString: string): string => {
+  try {
+    if (!timeString) return 'Unknown time';
+    
+    // Log the timestamp for debugging
+    console.log('Processing timestamp:', timeString);
+    
+    let date: Date;
+    
+    // Handle the specific format from the API: 2025-04-26T08:17:37.985273
+    // This format is missing the timezone indicator (Z)
+    if (timeString.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+$/)) {
+      // Add Z to indicate UTC if it's missing
+      date = new Date(timeString + 'Z');
+      console.log('Added Z to timestamp:', timeString + 'Z');
+    } else {
+      // Standard parsing for other formats
+      date = new Date(timeString);
+    }
+    
+    // Check if date parsing was successful
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date format:', timeString);
+      
+      // Try manual parsing as a last resort
+      const manualParsed = parseManualTimestamp(timeString);
+      if (manualParsed) {
+        date = manualParsed;
+      } else {
+        return 'Invalid date';
+      }
+    }
+    
+    // Log the parsed date for debugging
+    console.log('Parsed date:', date.toISOString());
+    
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diffInSeconds < 60) {
+      return `${diffInSeconds} seconds ago`;
+    } else if (diffInSeconds < 3600) {
+      return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+    } else if (diffInSeconds < 86400) {
+      return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+    } else {
+      return `${Math.floor(diffInSeconds / 86400)} days ago`;
+    }
+  } catch (error) {
+    console.error('Error formatting block time:', error, 'for timestamp:', timeString);
+    return 'Invalid date';
+  }
+};
+
+// Helper function to manually parse timestamps if standard parsing fails
+function parseManualTimestamp(timeString: string): Date | null {
+  try {
+    // Try to parse format: 2025-04-26T08:17:37.985273
+    const regex = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d+)$/;
+    const match = timeString.match(regex);
+    
+    if (match) {
+      const [_, year, month, day, hour, minute, second, fraction] = match;
+      console.log('Manual parse components:', { year, month, day, hour, minute, second, fraction });
+      
+      // JavaScript months are 0-indexed
+      const date = new Date(
+        parseInt(year),
+        parseInt(month) - 1,
+        parseInt(day),
+        parseInt(hour),
+        parseInt(minute),
+        parseInt(second),
+        parseInt(fraction.substring(0, 3)) // Take only milliseconds part
+      );
+      
+      console.log('Manually parsed date:', date.toISOString());
+      return date;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error in manual timestamp parsing:', error);
+    return null;
+  }
+};
+
 // Format large numbers with commas
 export const formatNumber = (num: number): string => {
   try {

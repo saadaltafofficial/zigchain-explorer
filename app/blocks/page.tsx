@@ -7,7 +7,7 @@ import BlockCard from '../components/BlockCard';
 export default function BlocksPage() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalBlocks, setTotalBlocks] = useState(0);
   const [latestHeight, setLatestHeight] = useState(0);
   
@@ -190,7 +190,7 @@ export default function BlocksPage() {
       {loading ? (
         <div className="space-y-4">
           {[...Array(10)].map((_, i) => (
-            <div key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 animate-pulse">
+            <div key={i} className="dark:bg-gray-800 rounded-lg shadow-md p-4 animate-pulse">
               <div className="flex justify-between">
                 <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
                 <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-1/6"></div>

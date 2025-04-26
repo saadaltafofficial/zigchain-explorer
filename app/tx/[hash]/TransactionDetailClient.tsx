@@ -168,7 +168,7 @@ export default function TransactionDetailClient({ params }: TransactionDetailCli
         {truncateString(transaction.hash, 10, 10)}
       </p>
       
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden mb-6">
+      <div className="dark:bg-gray-800 rounded-lg shadow-md overflow-hidden mb-6">
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>

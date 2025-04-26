@@ -467,17 +467,53 @@ export const getLatestBlocks = async (limit = 10) => {
       const blocks = blocksResponse.data.result.block_metas || [];
       
       // Transform the blocks to match the expected format
-      return blocks.map((block: any) => ({
-        height: parseInt(block.header.height),
-        hash: block.block_id.hash,
-        time: block.header.time,
-        proposer: block.header.proposer_address,
-        numTxs: parseInt(block.num_txs || 0)
-      })).slice(0, limit);
+      const formattedBlocks = blocks.map((block: any) => {
+        // Log the timestamp format from the API
+        console.log(`[API Client] Block ${block.header.height} timestamp:`, block.header.time);
+        
+        return {
+          height: parseInt(block.header.height),
+          hash: block.block_id.hash,
+          time: block.header.time,
+          proposer: block.header.proposer_address,
+          numTxs: parseInt(block.num_txs || 0)
+        };
+      }).slice(0, limit);
+      
+      console.log('[API Client] Formatted blocks:', formattedBlocks);
+      return formattedBlocks;
     }
   } catch (error) {
     console.error('[API Client] Error fetching latest blocks:', error);
     return []; // Return empty array on error
+  }
+};
+
+/**
+ * Get transaction block height from RPC
+ * @param txHash Transaction hash
+ * @returns Block height as a string or null if not found
+ */
+export const getTransactionBlockHeight = async (txHash: string): Promise<string | null> => {
+  try {
+    console.log(`[API Client] Fetching block height for transaction: ${txHash}`);
+    // Remove 0x prefix if present
+    const cleanHash = txHash.startsWith('0x') ? txHash.substring(2) : txHash;
+    
+    // Query the transaction by hash to get its block height
+    const txResponse = await axios.get(buildProxyUrl(`/tx?hash=0x${cleanHash}`));
+    
+    if (txResponse.data && txResponse.data.result && txResponse.data.result.height) {
+      const height = txResponse.data.result.height;
+      console.log(`[API Client] Found block height for tx ${txHash}: ${height}`);
+      return height;
+    }
+    
+    console.log(`[API Client] No block height found for transaction ${txHash}`);
+    return null;
+  } catch (error) {
+    console.error(`[API Client] Error fetching block height for transaction ${txHash}:`, error);
+    return null;
   }
 };
 
@@ -499,11 +535,16 @@ export const getLatestTransactions = async (limit = 10) => {
           // Handle both array and object with transactions property
           const txs = Array.isArray(response.data) ? response.data : (response.data.transactions || []);
           
-          // Ensure each transaction has a height property (required for toString())
-          return txs.map((tx: any) => ({
-            ...tx,
-            height: tx.height || 0 // Provide a default height if missing
-          }));
+          // Process transactions but don't try to get heights from API response
+          // We'll fetch heights directly from RPC when needed
+          const processedTxs = txs.map((tx: any) => {
+            return {
+              ...tx,
+              height: 0 // Set default height to 0, will be fetched from RPC when needed
+            };
+          });
+          
+          return processedTxs;
         }
       } catch (error) {
         console.warn('[API Client] Failed to get latest transactions from API, falling back to direct RPC');

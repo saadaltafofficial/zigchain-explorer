@@ -21,7 +21,7 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({
   const decodedTx = decodeTransaction(safeData);
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+    <div className="dark:bg-gray-800 rounded-lg shadow-md p-6">
       <div className="mb-6">
         <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">Transaction Details</h2>
         {timestamp && (

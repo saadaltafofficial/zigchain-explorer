@@ -148,11 +148,11 @@ export default function Home() {
 
   const LatestBlocks = ({ blocks }: { blocks: Block[] }) => {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
-        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+      <div className=" dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+        <div className="flex justify-between items-center px-6 py-4 border-b  dark:border-gray-700">
           <div className="flex items-center">
             <h2 className="text-xl font-bold flex items-center">
-              <span className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-full mr-3">
+              <span className="dark:bg-blue-900/30 p-2 rounded-full mr-3">
                 <TrendingUp size={18} className="text-blue-600 dark:text-blue-400" />
               </span>
               Latest Blocks
@@ -199,7 +199,7 @@ export default function Home() {
     };
 
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+      <div className="dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
         <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-bold flex items-center">
             <span className="bg-green-100 dark:bg-green-900/30 p-2 rounded-full mr-3">
@@ -248,7 +248,7 @@ export default function Home() {
   };
 
   const LoadingBlocks = () => (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+    <div className="dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
       <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-700">
         <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3 animate-pulse"></div>
         <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-1/4 animate-pulse"></div>
@@ -270,7 +270,7 @@ export default function Home() {
   );
 
   const LoadingTransactions = () => (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+    <div className=" dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
       <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-700">
         <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3 animate-pulse"></div>
         <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-1/4 animate-pulse"></div>

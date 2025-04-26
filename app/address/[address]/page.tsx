@@ -221,7 +221,7 @@ export default function AddressPage() {
     <div className="relative">
       {/* Maintenance Overlay */}
       {/* <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 max-w-lg w-full text-center">
+        <div className="dark:bg-gray-800 rounded-lg shadow-xl p-8 max-w-lg w-full text-center">
           <div className="mb-6">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
@@ -249,13 +249,13 @@ export default function AddressPage() {
         
         {isLoading ? (
           <div className="space-y-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 animate-pulse">
+            <div className="dark:bg-gray-800 rounded-lg shadow-md p-6 animate-pulse">
               <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4"></div>
               <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-2"></div>
               <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
             </div>
             
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+            <div className="dark:bg-gray-800 rounded-lg shadow-md p-6">
               <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-4"></div>
               {[...Array(5)].map((_, i) => (
                 <div key={i} className="border-b border-gray-200 dark:border-gray-700 py-3">
@@ -268,7 +268,7 @@ export default function AddressPage() {
         ) : (
           <>
             {/* Address Overview Card */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+            <div className="dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
               <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4">
                 <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-2 md:mb-0">Account Overview</h2>
                 <div className="flex items-center space-x-2">
@@ -314,7 +314,7 @@ export default function AddressPage() {
             </div>
             
             {/* Transactions Card */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+            <div className="dark:bg-gray-800 rounded-lg shadow-md p-6">
               <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Transactions</h2>
               
               {transactions.length === 0 ? (
@@ -334,7 +334,7 @@ export default function AddressPage() {
                           <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                      <tbody className="dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                         {transactions.slice(0, 10).map((tx, index) => (
                           <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -374,7 +374,7 @@ export default function AddressPage() {
                         <button 
                           onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                           disabled={currentPage === 1 || isTxLoading}
-                          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           Previous
                         </button>
@@ -399,7 +399,7 @@ export default function AddressPage() {
                         <button 
                           onClick={() => setCurrentPage(prev => prev + 1)}
                           disabled={transactions.length === 0 || isTxLoading}
-                          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           Next
                         </button>

@@ -197,7 +197,7 @@ export default function NetworkStatsPage() {
           {loading ? (
             <div className="space-y-4">
               {[...Array(12)].map((_, i) => (
-                <div key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 animate-pulse">
+                <div key={i} className="dark:bg-gray-800 rounded-lg shadow-md p-4 animate-pulse">
                   <div className="flex justify-between">
                     <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
                     <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-1/6"></div>
@@ -313,7 +313,7 @@ export default function NetworkStatsPage() {
               </div>
               
               {/* Additional network information can be added here */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+              <div className="dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
                 <h2 className="text-xl font-semibold mb-4">Network Overview</h2>
                 <p className="text-gray-600 dark:text-gray-300 mb-4">
                   ZigChain is a high-performance blockchain built on the Cosmos SDK. The network is secured by {stats?.activeValidators} active validators 

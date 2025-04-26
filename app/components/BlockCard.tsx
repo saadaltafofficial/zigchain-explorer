@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { formatDate, formatNumber } from '../utils/format';
+import { formatNumber } from '../utils/format';
 import { Clock, Database, Hash } from 'lucide-react';
 
 interface BlockCardProps {
@@ -16,6 +16,9 @@ const BlockCard: React.FC<BlockCardProps> = ({ height, hash, time, txCount }) =>
   const safeHash = hash || 'Unknown';
   const safeTime = time || new Date().toISOString();
   const safeTxCount = txCount || 0;
+  
+  // Debug the timestamp format
+  console.log(`Block #${height} timestamp:`, time);
 
   return (
     <div className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
@@ -33,7 +36,7 @@ const BlockCard: React.FC<BlockCardProps> = ({ height, hash, time, txCount }) =>
             </Link>
             <div className="flex items-center text-gray-500 dark:text-gray-400 text-sm mt-1">
               <Clock size={14} className="mr-1" />
-              <span>{time}</span>
+              <span>Just now</span>
             </div>
           </div>
         </div>
@@ -50,12 +53,7 @@ const BlockCard: React.FC<BlockCardProps> = ({ height, hash, time, txCount }) =>
             {safeTxCount} {safeTxCount === 1 ? 'Tx' : 'Txs'}
           </div>
           
-          <Link 
-            href={`/blocks/${safeHeight}`}
-            className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
-          >
-            View Details
-          </Link>
+          
         </div>
       </div>
     </div>

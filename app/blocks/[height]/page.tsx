@@ -146,7 +146,7 @@ export default function BlockDetailPage({ params }: Props) {
         {formatDate(block.time)}
       </p>
       
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8 border border-gray-200 dark:border-gray-700">
+      <div className="dark:bg-gray-800 rounded-lg shadow p-6 mb-8 border border-gray-200 dark:border-gray-700">
         <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Block Information</h2>
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -239,7 +239,7 @@ export default function BlockDetailPage({ params }: Props) {
       </div>
       
       {(block.txCount > 0 || (block.numTxs && block.numTxs > 0)) && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+        <div className="dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Transactions</h2>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -250,7 +250,7 @@ export default function BlockDetailPage({ params }: Props) {
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody className="dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {block.transactions.map((tx: string, index: number) => (
                   <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-4 py-3">
