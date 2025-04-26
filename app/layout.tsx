@@ -30,8 +30,15 @@ export default function RootLayout({
         <meta name="theme-color" content="#111827" />
         <style dangerouslySetInnerHTML={{ __html: `
           :root { color-scheme: dark; }
-          html { background-color: #111827 !important; }
-          body { background-color: #111827 !important; color: #e5e7eb !important; }
+          /* Hide scrollbar for Chrome, Safari and Opera */
+          ::-webkit-scrollbar {
+            display: none;
+          }
+          /* Hide scrollbar for IE, Edge and Firefox */
+          html {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+          }
         `}} />
         <script
           dangerouslySetInnerHTML={{
@@ -40,23 +47,8 @@ export default function RootLayout({
                 // Always force dark mode
                 document.documentElement.classList.add('dark');
                 document.documentElement.setAttribute('data-theme', 'dark');
-                document.documentElement.style.colorScheme = 'dark';
                 localStorage.setItem('theme', 'dark');
-                
-                // Create a MutationObserver to ensure dark mode is never removed
-                const observer = new MutationObserver((mutations) => {
-                  mutations.forEach((mutation) => {
-                    if (mutation.attributeName === 'class' && !document.documentElement.classList.contains('dark')) {
-                      document.documentElement.classList.add('dark');
-                    }
-                    if (mutation.attributeName === 'data-theme' && document.documentElement.getAttribute('data-theme') !== 'dark') {
-                      document.documentElement.setAttribute('data-theme', 'dark');
-                    }
-                  });
-                });
-                
-                observer.observe(document.documentElement, { attributes: true });
-                console.log('Dark theme enforced with observer');
+                console.log('Dark theme enforced');
               } catch (error) {
                 console.error('Error setting initial theme:', error);
               }

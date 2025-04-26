@@ -287,7 +287,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+        <div className="bg-gray-700/50 p-4 rounded-lg">
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Market Cap</div>
           {isLoading ? (
             <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-24"></div>
@@ -297,7 +297,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
             </div>
           )}
         </div>
-        <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+        <div className="bg-gray-700/50 p-4 rounded-lg">
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">24h Volume</div>
           {isLoading ? (
             <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-24"></div>

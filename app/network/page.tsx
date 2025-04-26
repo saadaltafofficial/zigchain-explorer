@@ -162,7 +162,7 @@ export default function NetworkStatsPage() {
         // Site Under Maintenance message
         <div className="flex flex-col items-center justify-center py-20">
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-4">Site Under Maintenance</h2>
+            <h2 className="text-3xl font-bold text-gray-200 mb-4">Site Under Maintenance</h2>
             <p className="text-lg text-gray-600 dark:text-gray-400 max-w-md mx-auto">
               We&apos;re currently updating our systems to serve you better. Please check back later.
             </p>
@@ -321,7 +321,7 @@ export default function NetworkStatsPage() {
                   allowing for {stats?.transactionsPerSecond} transactions per second.
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded">
+                  <div className="bg-gray-700 p-4 rounded">
                     <h3 className="font-medium mb-2">Staking Information</h3>
                     <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-300">
                       <li>Bonded Tokens: {formatNumber(stats?.bondedTokens || '0')}</li>
@@ -330,7 +330,7 @@ export default function NetworkStatsPage() {
                       <li>Community Tax: {stats?.communityTax}%</li>
                     </ul>
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded">
+                  <div className="bg-gray-700 p-4 rounded">
                     <h3 className="font-medium mb-2">Performance Metrics</h3>
                     <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-300">
                       <li>Block Time: {stats?.blockTime}s</li>

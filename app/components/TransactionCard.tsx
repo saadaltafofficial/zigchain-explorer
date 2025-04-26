@@ -97,7 +97,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
   };
   
   return (
-    <div className="px-6 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+    <div className="px-6 py-3.5 hover:bg-gray-700/30 transition-colors">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div className="flex items-center">
           <div className="mr-3 bg-green-50 dark:bg-green-900/20 rounded-full">

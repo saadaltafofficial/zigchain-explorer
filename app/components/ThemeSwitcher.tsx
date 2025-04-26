@@ -5,19 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { Moon } from 'lucide-react';
 
 export default function ThemeSwitcher() {
-  const { theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  // Avoid hydration mismatch by only rendering after mount
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    // Return a placeholder with the same dimensions to avoid layout shift
-    return <div className="w-[120px] h-[40px]" />;
-  }
-
+  // Simple component that just displays dark mode indicator
   return (
     <div className="relative inline-block">
       <div className="flex items-center bg-gray-700 p-1 rounded-lg border border-gray-600">

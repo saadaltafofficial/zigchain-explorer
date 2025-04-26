@@ -393,7 +393,7 @@ function TransactionsContent() {
             <>
               <div className="space-y-4 mb-6">
                 {transactions.map((tx) => (
-                  <div key={tx.hash} className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                  <div key={tx.hash} className="px-6 py-4 hover:bg-gray-700/30 transition-colors">
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                       <div className="flex items-center">
                         <div className="mr-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-full">

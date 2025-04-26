@@ -112,21 +112,21 @@ const ZigPrice: React.FC<ZigPriceProps> = ({
       {/* Detailed stats (optional) */}
       {showDetails && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 text-sm">
-          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+          <div className="bg-gray-800 p-3 rounded-lg">
             <div className="text-gray-500 dark:text-gray-400 mb-1">Market Cap</div>
             <div className="font-medium">{formatLargeNumber(priceData.market_cap)}</div>
           </div>
-          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+          <div className="bg-gray-800 p-3 rounded-lg">
             <div className="text-gray-500 dark:text-gray-400 mb-1">24h Volume</div>
             <div className="font-medium">{formatLargeNumber(priceData.total_volume)}</div>
           </div>
-          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+          <div className="bg-gray-800 p-3 rounded-lg">
             <div className="text-gray-500 dark:text-gray-400 mb-1">Circulating Supply</div>
             <div className="font-medium">
               {priceData.circulating_supply.toLocaleString()} {priceData.symbol.toUpperCase()}
             </div>
           </div>
-          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+          <div className="bg-gray-800 p-3 rounded-lg">
             <div className="text-gray-500 dark:text-gray-400 mb-1">7d Change</div>
             <div className={priceData.price_change_percentage_7d >= 0 ? 'text-green-500' : 'text-red-500'}>
               {priceData.price_change_percentage_7d >= 0 ? '+' : ''}

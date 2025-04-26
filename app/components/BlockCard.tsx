@@ -21,7 +21,7 @@ const BlockCard: React.FC<BlockCardProps> = ({ height, hash, time, txCount }) =>
   console.log(`Block #${height} timestamp:`, time);
 
   return (
-    <div className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+    <div className="px-6 py-4 hover:bg-gray-700/30 transition-colors">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div className="flex items-center">
           <div className="mr-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-full">

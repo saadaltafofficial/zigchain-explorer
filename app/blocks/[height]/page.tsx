@@ -147,16 +147,16 @@ export default function BlockDetailPage({ params }: Props) {
       </p>
       
       <div className="dark:bg-gray-800 rounded-lg shadow p-6 mb-8 border border-gray-200 dark:border-gray-700">
-        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Block Information</h2>
+        <h2 className="text-xl font-semibold mb-4 text-white">Block Information</h2>
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">Height</p>
-              <p className="text-gray-800 dark:text-white">{block.height}</p>
+              <p className="text-white">{block.height}</p>
             </div>
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">Time</p>
-              <p className="text-gray-800 dark:text-white">{formatDate(block.time)}</p>
+              <p className="text-white">{formatDate(block.time)}</p>
             </div>
           </div>
           
@@ -174,7 +174,7 @@ export default function BlockDetailPage({ params }: Props) {
             </div>
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">Number of Transactions</p>
-              <p className="text-gray-800 dark:text-white">{block.txCount || block.numTxs || 0}</p>
+              <p className="text-white">{block.txCount || block.numTxs || 0}</p>
             </div>
           </div>
           
@@ -187,7 +187,7 @@ export default function BlockDetailPage({ params }: Props) {
           {block.totalTxs && (
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">Total Transactions</p>
-              <p className="text-gray-800 dark:text-white">{block.totalTxs}</p>
+              <p className="text-white">{block.totalTxs}</p>
             </div>
           )}
           
@@ -240,19 +240,19 @@ export default function BlockDetailPage({ params }: Props) {
       
       {(block.txCount > 0 || (block.numTxs && block.numTxs > 0)) && (
         <div className="dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Transactions</h2>
+          <h2 className="text-xl font-semibold mb-4 text-white">Transactions</h2>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead>
                 <tr>
-                  <th className="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-4 py-3 bg-gray-700 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                     Transaction Hash
                   </th>
                 </tr>
               </thead>
               <tbody className="dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {block.transactions.map((tx: string, index: number) => (
-                  <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr key={index} className="hover:bg-gray-700">
                     <td className="px-4 py-3">
                       <div className="flex items-center">
                         <HashDisplay 

@@ -33,13 +33,13 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({
 
       <div className="space-y-4">
         <div>
-          <h3 className="text-lg font-semibold mb-1 text-gray-800 dark:text-gray-200">Transaction Hash</h3>
+          <h3 className="text-lg font-semibold mb-1 text-gray-200">Transaction Hash</h3>
           <HashDisplay hash={txHash} truncateLength={0} showCopyButton={true} />
         </div>
 
         {blockHeight && (
           <div>
-            <h3 className="text-lg font-semibold mb-1 text-gray-800 dark:text-gray-200">Block Height</h3>
+            <h3 className="text-lg font-semibold mb-1 text-gray-200">Block Height</h3>
             <Link href={`/blocks/${blockHeight}`} className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
               {blockHeight}
             </Link>
@@ -47,13 +47,13 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({
         )}
 
         <div>
-          <h3 className="text-lg font-semibold mb-1 text-gray-800 dark:text-gray-200">Transaction Type</h3>
+          <h3 className="text-lg font-semibold mb-1 text-gray-200">Transaction Type</h3>
           <p className="text-gray-700 dark:text-gray-300">{decodedTx.type}</p>
         </div>
 
         {decodedTx.sender && (
           <div>
-            <h3 className="text-lg font-semibold mb-1 text-gray-800 dark:text-gray-200">From</h3>
+            <h3 className="text-lg font-semibold mb-1 text-gray-200">From</h3>
             <span title="Address details coming soon" className="text-blue-600 dark:text-blue-400 cursor-not-allowed">
               <HashDisplay hash={decodedTx.sender} truncateLength={12} showCopyButton={true} />
             </span>
@@ -62,7 +62,7 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({
 
         {decodedTx.recipient && (
           <div>
-            <h3 className="text-lg font-semibold mb-1 text-gray-800 dark:text-gray-200">To</h3>
+            <h3 className="text-lg font-semibold mb-1 text-gray-200">To</h3>
             <span title="Address details coming soon" className="text-blue-600 dark:text-blue-400 cursor-not-allowed">
               <HashDisplay hash={decodedTx.recipient} truncateLength={12} showCopyButton={true} />
             </span>
@@ -71,7 +71,7 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({
 
         {decodedTx.amount && decodedTx.denom && (
           <div>
-            <h3 className="text-lg font-semibold mb-1 text-gray-800 dark:text-gray-200">Amount</h3>
+            <h3 className="text-lg font-semibold mb-1 text-gray-200">Amount</h3>
             <p className="text-gray-700 dark:text-gray-300">
               {decodedTx.amount} {decodedTx.denom}
             </p>
@@ -80,7 +80,7 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({
 
         {decodedTx.delegator && (
           <div>
-            <h3 className="text-lg font-semibold mb-1 text-gray-800 dark:text-gray-200">Delegator</h3>
+            <h3 className="text-lg font-semibold mb-1 text-gray-200">Delegator</h3>
             <span title="Address details coming soon" className="text-blue-600 dark:text-blue-400 cursor-not-allowed">
               <HashDisplay hash={decodedTx.delegator} truncateLength={12} showCopyButton={true} />
             </span>
@@ -89,7 +89,7 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({
 
         {decodedTx.validators && decodedTx.validators.length > 0 && (
           <div>
-            <h3 className="text-lg font-semibold mb-1 text-gray-800 dark:text-gray-200">Validators</h3>
+            <h3 className="text-lg font-semibold mb-1 text-gray-200">Validators</h3>
             <div className="space-y-2">
               {decodedTx.validators.map((validator, index) => (
                 <Link key={index} href={`/validators/${validator}`} className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 block">
@@ -101,9 +101,9 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({
         )}
 
         <div>
-          <h3 className="text-lg font-semibold mb-1 text-gray-800 dark:text-gray-200">Raw Transaction Data</h3>
+          <h3 className="text-lg font-semibold mb-1 text-gray-200">Raw Transaction Data</h3>
           <div className="bg-gray-100 dark:bg-gray-900 p-4 rounded-lg overflow-x-auto">
-            <pre className="text-xs text-gray-800 dark:text-gray-300 font-mono break-all whitespace-pre-wrap">
+            <pre className="text-xs text-gray-300 font-mono break-all whitespace-pre-wrap">
               {decodedTx.rawData}
             </pre>
           </div>
