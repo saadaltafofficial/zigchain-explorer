@@ -1,21 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { ArrowRight, Copy, ExternalLink, RefreshCw, CheckCheck } from 'lucide-react';
 import Link from 'next/link';
-import { getAccountInfo, getAddressTransactions } from '../../services/apiClient';
-import { Copy, Clock, ArrowRight } from 'lucide-react';
-
-interface Transaction {
-  hash: string;
-  height: number;
-  timestamp: string;
-  type: string;
-  status: string;
-  fee: string;
-  amount: string;
-  memo?: string;
-}
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import { getAccountInfo, getTransactionsByAddress } from '@/app/services/apiClient';
 
 interface AccountInfo {
   address: string;
@@ -28,53 +17,199 @@ interface AccountInfo {
 }
 
 export default function AddressPage() {
+  // Use the useParams hook to get the address parameter
   const params = useParams();
   const address = params.address as string;
   
   const [accountInfo, setAccountInfo] = useState<AccountInfo | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isTxLoading, setIsTxLoading] = useState(true);  // Separate loading state for transactions
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [copied, setCopied] = useState(false);
   
-  // Function to fetch only transactions data
-  const fetchTransactions = async (pageNum = currentPage) => {
-    // Only set loading for transactions section
-    setIsTxLoading(true);
+  // Transaction state
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [isLoadingTx, setIsLoadingTx] = useState(false);
+  const [txError, setTxError] = useState<string | null>(null);
+  const [isRefreshingTx, setIsRefreshingTx] = useState(false);
+  const [hasMoreTx, setHasMoreTx] = useState(false);
+  const [totalTxCount, setTotalTxCount] = useState(0);
+  const [currentMaxPages, setCurrentMaxPages] = useState(3); // Start with 3 pages
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  
+  // Function to fetch transactions for the address
+  const fetchTransactions = async (isRefreshing = false, loadMore = false) => {
+    if (isRefreshing) {
+      setIsRefreshingTx(true);
+      // Reset pagination when refreshing
+      setCurrentMaxPages(3);
+    } else if (loadMore) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoadingTx(true);
+    }
+    setTxError(null);
     
     try {
-      // Try to fetch transactions for this address - using 10 per page now
-      const txData = await getAddressTransactions(address, pageNum, 10);
-      console.log('Transaction data received:', txData);
+      console.log(`Fetching transactions for address: ${address} with maxPages: ${currentMaxPages}`);
+      const response = await getTransactionsByAddress(address, 'all', currentMaxPages);
+      console.log('Transaction response:', response);
       
-      // Handle the response format from our updated API
-      if (txData.transactions && Array.isArray(txData.transactions)) {
-        // The API now returns an object with transactions array and pagination info
-        setTransactions(txData.transactions);
-        
-        // Set total pages from pagination info if available
-        if (txData.pagination) {
-          setTotalPages(txData.pagination.pages || Math.ceil((txData.pagination.total || txData.transactions.length) / txData.pagination.limit || 10));
-        } else {
-          setTotalPages(Math.ceil(txData.transactions.length / 10));
-        }
-      } else if (Array.isArray(txData)) {
-        // Fallback for backward compatibility if the API returns an array directly
-        setTransactions(txData);
-        setTotalPages(Math.ceil(txData.length / 10));
+      // Extract and format transactions
+      const txs = response?.result?.txs || [];
+      console.log(`Found ${txs.length} transactions`);
+      
+      // Get pagination info
+      const paginationInfo = response?.result?.pagination_info || {
+        fetched_count: txs.length,
+        total_count: txs.length,
+        has_more: false,
+        max_pages_fetched: currentMaxPages
+      };
+      
+      // Update pagination state
+      setHasMoreTx(paginationInfo.has_more);
+      setTotalTxCount(paginationInfo.total_count);
+      
+      // Log the first transaction to see its structure
+      if (txs.length > 0) {
+        console.log('Transaction data structure:', JSON.stringify(txs[0], null, 2));
       }
-    } catch (txError) {
-      console.warn('Failed to fetch transactions:', txError);
-      setTransactions([]);
-      setTotalPages(1);
+      
+      // Format transactions for display
+      const formattedTxs = txs.map((tx: any) => {
+        // Extract basic transaction info
+        const txHash = tx.hash || '';
+        const txHeight = tx.height || '0';
+        
+        // Log timestamp-related fields if they exist
+        if (tx.timestamp) {
+          console.log(`Transaction ${txHash} has timestamp field:`, tx.timestamp);
+        }
+        if (tx.time) {
+          console.log(`Transaction ${txHash} has time field:`, tx.time);
+        }
+        
+        // Try to extract transaction details from the events
+        let txType = 'transfer';
+        let amount = '0 uzig';
+        let fee = '0 uzig';
+        let fromAddress = '';
+        let toAddress = '';
+        let status = tx.tx_result?.code === 0 ? 'success' : 'failed';
+        
+        // For timestamp, we use the transaction's timestamp if available
+        // Otherwise we use the current time as a fallback
+        let timestamp;
+        if (tx.timestamp) {
+          timestamp = tx.timestamp;
+        } else {
+          // Since we don't have accurate genesis information and block time data,
+          // we'll use the current time as a fallback
+          timestamp = new Date().toISOString();
+          
+          // Add a note in the console about the missing timestamp
+          console.log(`Missing timestamp for transaction ${txHash}, using current time as fallback`);
+        }
+        
+        // Try to find transfer events in the transaction
+        try {
+          // Parse the events from the logs if available
+          const events = tx.tx_result?.events || [];
+          
+          // Find all transfer events
+          const transferEvents = events.filter((e: { type: string }) => e.type === 'transfer');
+          
+          // Find a transfer event where this address is either sender or recipient
+          const relevantTransferEvent = transferEvents.find((event: any) => {
+            const attributes = event.attributes || [];
+            const recipientAttr = attributes.find((a: { key: string }) => a.key === 'recipient');
+            const senderAttr = attributes.find((a: { key: string }) => a.key === 'sender');
+            
+            const recipient = recipientAttr?.value || '';
+            const sender = senderAttr?.value || '';
+            
+            return recipient === address || sender === address;
+          });
+          
+          if (relevantTransferEvent) {
+            const attributes = relevantTransferEvent.attributes || [];
+            
+            // Find sender and recipient attributes
+            const senderAttr = attributes.find((a: { key: string }) => a.key === 'sender');
+            const recipientAttr = attributes.find((a: { key: string }) => a.key === 'recipient');
+            const amountAttr = attributes.find((a: { key: string }) => a.key === 'amount');
+            
+            if (senderAttr) fromAddress = senderAttr.value || '';
+            if (recipientAttr) toAddress = recipientAttr.value || '';
+            if (amountAttr) amount = amountAttr.value || '0uzig';
+          }
+          
+          // Look for fee in tx events
+          const txEvents = events.filter((e: { type: string }) => e.type === 'tx');
+          for (const txEvent of txEvents) {
+            const attributes = txEvent.attributes || [];
+            const feeAttr = attributes.find((a: { key: string }) => a.key === 'fee');
+            if (feeAttr && feeAttr.value) {
+              fee = feeAttr.value;
+              break;
+            }
+          }
+        } catch (error) {
+          console.warn(`Error parsing transaction events: ${error}`);
+        }
+        
+        // If we didn't find a fee in the events, try to extract it from tx data as fallback
+        if (fee === '0 uzig') {
+          try {
+            if (tx.tx?.auth_info?.fee?.amount && tx.tx.auth_info.fee.amount.length > 0) {
+              fee = tx.tx.auth_info.fee.amount[0].amount + ' ' + tx.tx.auth_info.fee.amount[0].denom;
+            }
+          } catch (error) {
+            console.warn(`Error parsing fee from tx data: ${error}`);
+          }
+        }
+        
+        return {
+          hash: txHash,
+          height: parseInt(txHeight),
+          timestamp: timestamp,
+          type: txType,
+          status: status,
+          fee: fee, // Use actual fee from transaction
+          amount: amount, // Use actual amount from transaction
+          from: fromAddress,
+          to: toAddress
+        };
+      });
+      
+      // If loading more, append to existing transactions, otherwise replace
+      if (loadMore) {
+        setTransactions(prev => [...prev, ...formattedTxs]);
+      } else {
+        setTransactions(formattedTxs);
+      }
+    } catch (err) {
+      console.error('Error fetching transactions:', err);
+      if (err instanceof Error) {
+        setTxError(`Failed to load transactions: ${err.message}`);
+      } else {
+        setTxError('Failed to load transactions. Please try again later.');
+      }
     } finally {
-      setIsTxLoading(false);
+      setIsLoadingTx(false);
+      setIsRefreshingTx(false);
+      setIsLoadingMore(false);
     }
   };
-
+  
+  // Function to load more transactions
+  const loadMoreTransactions = () => {
+    // Increase the max pages by 3 each time
+    setCurrentMaxPages(prev => prev + 3);
+    // Fetch more transactions
+    fetchTransactions(false, true);
+  };
+  
   // Main function to fetch all account data
   const fetchData = async () => {
     setIsLoading(true);
@@ -92,8 +227,8 @@ export default function AddressPage() {
       
       setAccountInfo(accountData);
       
-      // After getting account info, fetch transactions
-      await fetchTransactions();
+      // Also fetch transactions
+      fetchTransactions();
     } catch (err) {
       console.error('Error fetching address data:', err);
       
@@ -113,34 +248,26 @@ export default function AddressPage() {
       }
       
       // Set a more descriptive error message based on the error type
-      if (err instanceof Error && err.message === 'Network Error') {
-        setError('Network error: Unable to connect to the API. Please check your internet connection.');
-      } else if (err instanceof Error && err.message.includes('404')) {
-        setError(`Address not found: ${address}`);
-      } else if (err instanceof Error && err.message.includes('500')) {
-        setError('Server error: The blockchain API is experiencing issues. Please try again later.');
+      if (err instanceof Error) {
+        setError(`Failed to load address data: ${err.message}`);
       } else {
-        setError(`Failed to load address data: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        setError('Failed to load address data. Please try again later.');
       }
     } finally {
       setIsLoading(false);
     }
   };
   
-  // Initial data load when address changes
+  // Fetch data when the address changes
   useEffect(() => {
-    if (address) {
-      fetchData();
-    }
+    // Reset state when address changes
+    setAccountInfo(null);
+    setError(null);
+    setIsLoading(true);
+    
+    // Fetch fresh data for the new address
+    fetchData();
   }, [address]);
-  
-  // Fetch only transactions when page changes
-  useEffect(() => {
-    if (address && accountInfo) { // Only fetch if we already have account info
-      console.log('Page changed to:', currentPage);
-      fetchTransactions(currentPage);
-    }
-  }, [currentPage]);
   
   const copyToClipboard = () => {
     navigator.clipboard.writeText(address);
@@ -148,58 +275,75 @@ export default function AddressPage() {
     setTimeout(() => setCopied(false), 2000);
   };
   
-  const formatDate = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleString();
-  };
-  
   const formatAmount = (amount: string) => {
     try {
       if (!amount) return '0 ZIG';
       
+      // Handle amounts with 'uzig' denomination (1 ZIG = 1,000,000 uzig)
       if (amount.includes('uzig')) {
+        // Extract the numeric part
         const numericPart = amount.replace(/[^0-9.]/g, '');
         const value = parseFloat(numericPart);
         
+        // Convert from uzig to ZIG
         const zigValue = value / 1000000;
         
+        // Format based on size
         if (zigValue >= 1000000) {
-          return `${(zigValue / 1000000)}M ZIG`;
+          // For values over 1M ZIG, show in millions
+          return `${(zigValue / 1000000).toFixed(4)}M ZIG`;
         } else if (zigValue >= 1000) {
-          return `${(zigValue / 1)} ZIG`;
+          // For values over 1K ZIG, show in thousands
+          return `${(zigValue / 1000).toFixed(4)}K ZIG`;
+        } else if (zigValue < 0.0001) {
+          // For very small values, show scientific notation
+          return `${zigValue.toExponential(4)} ZIG`;
         } else {
-          return `${zigValue} ZIG`;
+          // For normal values, show with 6 decimal places
+          return `${zigValue.toFixed(6)} ZIG`;
         }
       }
       
-      if (amount.includes('.')) {
+      // Handle amounts that are already in ZIG format
+      if (typeof amount === 'string' && amount.includes('.')) {
         const value = parseFloat(amount);
-        return `${value.toFixed(4)} ZIG`;
+        return `${value.toFixed(6)} ZIG`;
       }
       
+      // If we can parse it as a number, assume it's in uzig and convert
+      if (!isNaN(parseFloat(amount))) {
+        const value = parseFloat(amount);
+        const zigValue = value / 1000000;
+        return `${zigValue.toFixed(6)} ZIG`;
+      }
+      
+      // If all else fails, return the original amount
       return amount;
     } catch (e) {
+      console.error('Error formatting amount:', e);
       return amount;
     }
   };
   
+  // Helper function to shorten hash for display
   const shortenHash = (hash: string) => {
     if (!hash) return '';
     return `${hash.substring(0, 8)}...${hash.substring(hash.length - 8)}`;
   };
-  
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'success':
-        return 'text-green-500';
-      case 'failed':
-        return 'text-red-500';
-      default:
-        return 'text-gray-400';
-    }
+
+  // Helper function to convert uzig to ZIG (1 ZIG = 1,000,000 uzig)
+  const convertUzigToZig = (amount: string) => {
+    // Extract the numeric part from strings like "1000000uzig"
+    const match = amount.match(/(\d+)\s*uzig/);
+    if (!match) return amount; // Return original if no match
+    
+    const uzigAmount = parseInt(match[1]);
+    const zigAmount = uzigAmount / 1000000; // Convert to ZIG
+    
+    // Format with 2 decimal places
+    return `${zigAmount.toFixed(2)} ZIG`;
   };
-  
-  
+
   if (error) {
     return (
       <div className="p-8">
@@ -219,8 +363,8 @@ export default function AddressPage() {
   
   return (
     <div className="relative">
-      {/* Maintenance Overlay */}
-      {/* <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      {/* Maintenance Overlay - Commented out 
+      <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div className="dark:bg-gray-800 rounded-lg shadow-xl p-8 max-w-lg w-full text-center">
           <div className="mb-6">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -238,7 +382,8 @@ export default function AddressPage() {
             Return to Home
           </Link>
         </div>
-      </div> */}
+      </div>
+      */}
 
       {/* Original Content (hidden behind overlay) */}
       <div className="container mx-auto px-4 py-8">
@@ -313,100 +458,91 @@ export default function AddressPage() {
               </div>
             </div>
             
-            {/* Transactions Card */}
-            <div className="dark:bg-gray-800 rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold text-white mb-4">Transactions</h2>
+            {/* Transactions Section */}
+            <div className="dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+              <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4">
+                <h2 className="text-xl font-semibold text-white mb-2 md:mb-0">Transactions</h2>
+                <div className="flex items-center space-x-2">
+                  <button 
+                    onClick={() => fetchTransactions(true)}
+                    className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 flex items-center"
+                    disabled={isRefreshingTx}
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshingTx ? 'animate-spin' : ''}`} />
+                    {isRefreshingTx ? 'Refreshing...' : 'Refresh'}
+                  </button>
+                </div>
+              </div>
               
-              {transactions.length === 0 ? (
+              {isLoadingTx && !isRefreshingTx ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                </div>
+              ) : txError ? (
+                <div className="bg-red-900/20 border-l-4 border-red-600 p-4 mb-6">
+                  <p className="text-red-400">{txError}</p>
+                </div>
+              ) : transactions.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-gray-500 dark:text-gray-400">No transactions found for this address.</p>
+                  <p className="text-gray-400">No transactions found for this address.</p>
                 </div>
               ) : (
-                <>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                      <thead className="bg-gray-700">
-                        <tr>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tx Hash</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Time</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                <div className="overflow-x-auto overflow-y-auto max-h-[70vh] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
+                  <table className="min-w-full divide-y divide-gray-700">
+                    <thead>
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Tx Hash</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Type</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Amount</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-700">
+                      {transactions.map((tx, index) => (
+                        <tr key={`${tx.hash}-${index}`} className="hover:bg-gray-700/30">
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <Link href={`/tx/${tx.hash}`} className="text-blue-400 hover:text-blue-300 hover:underline flex items-center">
+                              {shortenHash(tx.hash)}
+                              <ExternalLink className="h-3 w-3 ml-1" />
+                            </Link>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-gray-300">{tx.type}</td>
+                          <td className="px-4 py-3 whitespace-nowrap text-gray-300">{convertUzigToZig(tx.amount)}</td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${tx.status === 'success' ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'}`}>
+                              {tx.status}
+                            </span>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody className="dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        {transactions.slice(0, 10).map((tx, index) => (
-                          <tr key={index} className="hover:bg-gray-700/30">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <Link href={`/tx/${tx.hash}`} className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300">
-                                {shortenHash(tx.hash)}
-                              </Link>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200">
-                                {tx.type || 'Transfer'}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              {formatAmount(tx.amount)}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                              <div className="flex items-center">
-                                <Clock className="h-4 w-4 mr-1" />
-                                {formatDate(tx.timestamp)}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`${getStatusColor(tx.status)}`}>
-                                {tx.status || 'Success'}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              
+              {transactions.length > 0 && (
+                <div className="mt-4 text-sm text-gray-400 flex flex-col items-center">
+                  <div className="mb-2">
+                    Showing {transactions.length} of {totalTxCount} transaction{totalTxCount !== 1 ? 's' : ''}
                   </div>
                   
-                  {/* Pagination */}
-                  {transactions.length > 0 && (
-                    <div className="flex flex-col sm:flex-row justify-between items-center mt-6 space-y-4 sm:space-y-0">
-                      <div className="flex items-center">
-                        <button 
-                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                          disabled={currentPage === 1 || isTxLoading}
-                          className="px-4 py-2 border border-gray-600 rounded-md text-sm font-medium text-gray-300 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          Previous
-                        </button>
-                      </div>
-                      
-                      <div className="flex items-center">
-                        <span className="text-sm text-gray-700 dark:text-gray-300">
-                          {isTxLoading ? 
-                            <span className="flex items-center">
-                              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                              </svg>
-                              Loading...
-                            </span> : 
-                            `Page ${currentPage} of ${totalPages}`
-                          }
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center">
-                        <button 
-                          onClick={() => setCurrentPage(prev => prev + 1)}
-                          disabled={transactions.length === 0 || isTxLoading}
-                          className="px-4 py-2 border border-gray-600 rounded-md text-sm font-medium text-gray-300 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          Next
-                        </button>
-                      </div>
-                    </div>
+                  {hasMoreTx && (
+                    <button
+                      onClick={loadMoreTransactions}
+                      disabled={isLoadingMore}
+                      className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoadingMore ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                          Loading...
+                        </>
+                      ) : (
+                        'Load More Transactions'
+                      )}
+                    </button>
                   )}
-                </>
+                </div>
               )}
             </div>
           </>

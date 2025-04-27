@@ -149,206 +149,276 @@ export const getAccountInfo = async (address: string) => {
 };
 
 /**
- * Get transactions for an address
+ * Get transactions for an address (original function)
  * @param address Account address
- * @param page Page number
- * @param limit Number of transactions per page
  */
-export const getAddressTransactions = async (address: string, page = 1, limit = 10) => {
+export const getAddressTransactions = async (address: string) => {
   try {
-    console.log(`[API Client] Fetching transactions for address ${address}`);
+    console.log(`[API Client] Fetching all transactions for address ${address}`);
     
-    // Try fetching from ZigChain Testnet API first
-    try {
-      // Fetch sent transactions using query parameter - exact format as provided
-      console.log(`[API Client] Fetching sent transactions from ZigChain API: ${ZIGCHAIN_API}/cosmos/tx/v1beta1/txs?query=message.sender='${address}'&pagination.limit=${limit}&pagination.offset=${(page-1)*limit}`);
-      const sentTxResponse = await axios.get(`${ZIGCHAIN_API}/cosmos/tx/v1beta1/txs?query=message.sender='${address}'&pagination.limit=${limit}&pagination.offset=${(page-1)*limit}`);
-      console.log('[API Client] ZigChain sent transactions response:', sentTxResponse.data);
+    // Using the exact URL format that works with zigscan.net
+    // This format returns all transactions without pagination limits
+    
+    // Fetch sent transactions
+    console.log(`[API Client] Fetching sent transactions for ${address}`);
+    const sentTxResponse = await axios.get(buildProxyUrl('/tx_search', {
+      query: `"transfer.sender='${address}'"`,
+      prove: 'true'
+    }));
+    
+    // Fetch received transactions
+    console.log(`[API Client] Fetching received transactions for ${address}`);
+    const receivedTxResponse = await axios.get(buildProxyUrl('/tx_search', {
+      query: `"transfer.recipient='${address}'"`,
+      prove: 'true'
+    }));
+    
+    // Extract transactions from responses
+    const sentTxs = sentTxResponse.data?.result?.txs || [];
+    const receivedTxs = receivedTxResponse.data?.result?.txs || [];
+    
+    // Log info about the transactions we fetched
+    console.log(`[API Client] Sent transactions count: ${sentTxs.length}`);
+    console.log(`[API Client] Received transactions count: ${receivedTxs.length}`);
+    
+    // Combine all transactions and remove duplicates by hash
+    const allTxs = [...sentTxs, ...receivedTxs];
+    const uniqueTxs = allTxs.filter((tx, index, self) => 
+      index === self.findIndex((t) => t.hash === tx.hash)
+    );
+    
+    console.log(`[API Client] Combined unique transactions: ${uniqueTxs.length}`);
+    
+    // Sort by height descending (newest first)
+    const sortedTxs = uniqueTxs.sort((a, b) => {
+      const heightA = a.height ? parseInt(a.height) : 0;
+      const heightB = b.height ? parseInt(b.height) : 0;
+      return heightB - heightA;
+    });
+    
+    // Get total transaction count
+    const totalTxs = sortedTxs.length;
+    
+    // No pagination - use all transactions
+    console.log(`[API Client] Showing all ${totalTxs} transactions`);
+    
+    // Transform transactions to our standard format
+    const formattedTxs = sortedTxs.map(tx => {
+      // Parse the transaction data
+      const txData = tx.tx_result || {};
+      const txHash = tx.hash || '';
+      const txHeight = tx.height || '0';
       
-      // Fetch received transactions using query parameter
-      console.log(`[API Client] Fetching received transactions from ZigChain API: ${ZIGCHAIN_API}/cosmos/tx/v1beta1/txs?query=transfer.recipient='${address}'&pagination.limit=${limit}&pagination.offset=${(page-1)*limit}`);
-      const receivedTxResponse = await axios.get(`${ZIGCHAIN_API}/cosmos/tx/v1beta1/txs?query=transfer.recipient='${address}'&pagination.limit=${limit}&pagination.offset=${(page-1)*limit}`);
-      console.log('[API Client] ZigChain received transactions response:', receivedTxResponse.data);
+      // Try to extract transaction details from the events
+      let txType = 'transfer';
+      let amount = '0 uzig';
+      let fromAddress = '';
+      let toAddress = '';
+      let status = txData.code === 0 ? 'success' : 'failed';
       
-      // Combine and process transactions
-      const sentTxs = sentTxResponse.data.tx_responses || [];
-      const receivedTxs = receivedTxResponse.data.tx_responses || [];
-      
-      // Get pagination info for logging
-      console.log(`[API Client] Page: ${page}, Limit: ${limit}, Offset: ${(page-1)*limit}`);
-      console.log(`[API Client] Sent transactions count: ${sentTxs.length}`);
-      console.log(`[API Client] Received transactions count: ${receivedTxs.length}`);
-      
-      // Combine all transactions and remove duplicates by txhash
-      const allTxs = [...sentTxs, ...receivedTxs];
-      const uniqueTxs = allTxs.filter((tx, index, self) => 
-        index === self.findIndex((t) => t.txhash === tx.txhash)
-      );
-      console.log(`[API Client] Combined unique transactions count: ${uniqueTxs.length}`);
-      
-      // Sort by height descending (newest first)
-      const sortedTxs = uniqueTxs.sort((a, b) => parseInt(b.height) - parseInt(a.height));
-      
-      // For client-side pagination, we need to get all transactions first
-      // and then paginate them properly
-      const startIndex = (page - 1) * limit; // Calculate start index based on page number
-      const endIndex = Math.min(startIndex + limit, sortedTxs.length);
-      console.log(`[API Client] Pagination: startIndex=${startIndex}, endIndex=${endIndex}, total=${sortedTxs.length}`);
-      const paginatedTxs = sortedTxs.slice(startIndex, endIndex);
-      
-      // Transform transactions to our standard format
-      const formattedTxs = paginatedTxs.map(tx => {
-        // Extract message details
-        const msg = tx.tx?.body?.messages?.[0] || {};
-        const msgType = msg['@type'] || '';
-        
-        // Determine transaction type based on message type
-        let txType = 'unknown';
-        let amount = '0 uzig';
-        let fromAddress = '';
-        let toAddress = '';
-        
-        if (msgType.includes('MsgSend')) {
-          txType = 'transfer';
-          fromAddress = msg.from_address || '';
-          toAddress = msg.to_address || '';
-          
-          // Get amount from first coin if available
-          if (msg.amount && msg.amount.length > 0) {
-            amount = `${msg.amount[0].amount} ${msg.amount[0].denom}`;
-          }
-        } else if (msgType.includes('MsgDelegate')) {
-          txType = 'delegate';
-          fromAddress = msg.delegator_address || '';
-          toAddress = msg.validator_address || '';
-          
-          // Get amount if available
-          if (msg.amount) {
-            amount = `${msg.amount.amount} ${msg.amount.denom}`;
-          }
-        } else if (msgType.includes('MsgWithdrawDelegatorReward')) {
-          txType = 'claim_reward';
-          fromAddress = msg.delegator_address || '';
-          toAddress = msg.validator_address || '';
-        }
-        
-        // Format the transaction
-        return {
-          hash: tx.txhash,
-          height: parseInt(tx.height),
-          timestamp: tx.timestamp,
-          type: txType,
-          status: tx.code === 0 ? 'success' : 'failed',
-          fee: tx.tx?.auth_info?.fee?.amount?.[0] ? `${tx.tx.auth_info.fee.amount[0].amount} ${tx.tx.auth_info.fee.amount[0].denom}` : '0 uzig',
-          amount: amount,
-          memo: tx.tx?.body?.memo || '',
-          from: fromAddress,
-          to: toAddress
-        };
-      });
-      
-      // Calculate total transactions from both sent and received
-      // For accurate total pages, we need to get the total count of transactions
-      // Try to get total from API response pagination, or estimate based on what we have
-      const sentTotal = sentTxResponse.data.pagination?.total ? parseInt(sentTxResponse.data.pagination.total) : 0;
-      const receivedTotal = receivedTxResponse.data.pagination?.total ? parseInt(receivedTxResponse.data.pagination.total) : 0;
-      
-      // This is an estimate as there may be overlap between sent and received
-      const estimatedTotal = Math.max(sortedTxs.length, sentTotal + receivedTotal);
-      
-      // Calculate estimated total pages
-      const estimatedPages = Math.max(Math.ceil(estimatedTotal / limit), 1);
-      
-      console.log(`[API Client] Estimated total transactions: ${estimatedTotal}, pages: ${estimatedPages}`);
-      
-      // Return formatted transactions with pagination info
-      return {
-        transactions: formattedTxs,
-        pagination: {
-          total: estimatedTotal,
-          page,
-          limit,
-          pages: estimatedPages
-        }
-      };
-    } catch (error) {
-      console.warn('[API Client] Failed to get transactions from ZigChain API:', error);
-      
-      // Try using the FastAPI backend as fallback
+      // Try to find transfer events in the transaction
       try {
-        const response = await axios.get(`${API_ENDPOINT}/accounts/${address}/transactions?page=${page}&limit=${limit}`);
-        console.log(`[API Client] Successfully fetched transactions for address ${address} from API endpoint`);
+        // Parse the events from the logs if available
+        const events = txData.events || [];
         
-        // Helper function to generate a realistic transaction hash
-        const generateRealisticHash = () => {
-          let hash = '';
-          const hexChars = '0123456789abcdef'; // Using lowercase for consistency
-          for (let j = 0; j < 64; j++) {
-            hash += hexChars.charAt(Math.floor(Math.random() * hexChars.length));
-          }
-          return hash;
-        };
-        
-        // Make sure transaction hashes are properly formatted
-        const formattedTransactions = response.data.transactions.map((tx: any) => ({
-          ...tx,
-          // Ensure hash is a proper hex string, not a placeholder like 'tx_hash_...'
-          hash: tx.hash && !tx.hash.startsWith('tx_hash_') ? tx.hash : generateRealisticHash()
-        }));
-        
-        return {
-          transactions: formattedTransactions,
-          pagination: response.data.pagination || {
-            total: formattedTransactions.length,
-            page,
-            limit,
-            pages: Math.ceil(formattedTransactions.length / limit)
-          }
-        };
-      } catch (apiError) {
-        console.warn('[API Client] API endpoint failed, creating placeholder transactions');
-        
-        // Create placeholder transactions for development/testing
-        const placeholderTxs = [];
-        
-        // Helper function to generate a realistic transaction hash
-        const generateRealisticHash = () => {
-          let hash = '';
-          const hexChars = '0123456789abcdef'; // Using lowercase for consistency
-          for (let j = 0; j < 64; j++) {
-            hash += hexChars.charAt(Math.floor(Math.random() * hexChars.length));
-          }
-          return hash;
-        };
-        
-        for (let i = 0; i < limit; i++) {
-          placeholderTxs.push({
-            hash: generateRealisticHash(),
-            height: 1000000 - i,
-            timestamp: new Date(Date.now() - i * 3600000).toISOString(), // 1 hour apart
-            type: 'transfer',
-            status: 'success',
-            fee: '0.01 ZIG',
-            amount: `${Math.floor(Math.random() * 100)} ZIG`,
-            from: i % 2 === 0 ? address : `zig1random${i}`,
-            to: i % 2 === 0 ? `zig1random${i}` : address
-          });
+        // Look for transfer events
+        const transferEvent = events.find((e: { type: string }) => e.type === 'transfer');
+        if (transferEvent) {
+          const attributes = transferEvent.attributes || [];
+          
+          // Find sender and recipient attributes
+          const senderAttr = attributes.find((a: { key: string }) => a.key === 'sender');
+          const recipientAttr = attributes.find((a: { key: string }) => a.key === 'recipient');
+          const amountAttr = attributes.find((a: { key: string }) => a.key === 'amount');
+          
+          if (senderAttr) fromAddress = senderAttr.value || '';
+          if (recipientAttr) toAddress = recipientAttr.value || '';
+          if (amountAttr) amount = amountAttr.value || '0uzig';
         }
+      } catch (error) {
+        console.warn(`[API Client] Error parsing transaction events: ${error}`);
+      }
+      
+      // Format the transaction for our UI
+      return {
+        hash: txHash,
+        height: parseInt(txHeight),
+        timestamp: tx.timestamp || new Date().toISOString(),
+        type: txType,
+        status: status,
+        fee: '0.01 ZIG', // Default fee
+        amount: amount,
+        memo: '',
+        from: fromAddress,
+        to: toAddress
+      };
+    });
+    
+    console.log(`[API Client] Returning all ${formattedTxs.length} transactions`);
+    
+    // Return all formatted transactions
+    return {
+      transactions: formattedTxs,
+      pagination: {
+        total: totalTxs,
+        page: 1,
+        limit: totalTxs,
+        pages: 1
+      }
+    };
+  } catch (error) {
+    console.error('[API Client] Error fetching address transactions:', error);
+    // Return empty results instead of throwing
+    return {
+      transactions: [],
+      pagination: {
+        total: 0,
+        page: 1,
+        limit: 0,
+        pages: 1
+      }
+    };
+  }
+};
+
+/**
+ * Get transactions by address using the exact URL format with pagination
+ * @param address Account address
+ * @param type Optional type: 'sent', 'received', or 'all' (default)
+ * @param maxPages Maximum number of pages to fetch (default: 3)
+ * @returns The raw transaction data from the API with transactions up to the page limit
+ */
+export const getTransactionsByAddress = async (
+  address: string, 
+  type: 'sent' | 'received' | 'all' = 'all',
+  maxPages: number = 3
+) => {
+  try {
+    console.log(`[API Client] Fetching ${type} transactions for address ${address} using exact URL format`);
+    
+    // Function to fetch transactions up to a maximum number of pages
+    const fetchAllPages = async (baseQuery: string) => {
+      // Start with page 1
+      let currentPage = 1;
+      const perPage = 100; // Fetch 100 per page to minimize number of requests
+      let allTxs: any[] = [];
+      let hasMorePages = true;
+      let totalTxCount = 0;
+      
+      while (hasMorePages && currentPage <= maxPages) {
+        console.log(`[API Client] Fetching page ${currentPage} of max ${maxPages} with ${perPage} transactions per page`);
         
+        // Build URL with pagination parameters
+        const paginatedUrl = buildProxyUrl('/tx_search', {
+          query: baseQuery,
+          prove: 'true',
+          page: currentPage.toString(),
+          per_page: perPage.toString(),
+          order_by: '"desc"' // Newest first
+        });
+        
+        const response = await axios.get(paginatedUrl);
+        const txs = response.data?.result?.txs || [];
+        totalTxCount = parseInt(response.data?.result?.total_count || '0');
+        
+        console.log(`[API Client] Page ${currentPage}: Found ${txs.length} transactions. Total available: ${totalTxCount}`);
+        
+        // Add transactions from this page to our collection
+        allTxs = [...allTxs, ...txs];
+        
+        // Check if we need to fetch more pages
+        const fetchedSoFar = currentPage * perPage;
+        hasMorePages = fetchedSoFar < totalTxCount;
+        
+        // Move to next page
+        currentPage++;
+        
+        // If we've reached the max pages, log how many transactions we're not fetching
+        if (currentPage > maxPages && hasMorePages) {
+          const remaining = totalTxCount - allTxs.length;
+          console.log(`[API Client] Reached maximum page limit (${maxPages}). Not fetching ${remaining} remaining transactions.`);
+        }
+      }
+      
+      // Return the transactions we've fetched along with the total count for pagination UI
+      return { txs: allTxs, totalCount: totalTxCount };
+    };
+    
+    // Handle different transaction types
+    if (type === 'sent' || type === 'all') {
+      // Fetch all pages of sent transactions
+      const sentQuery = `"transfer.sender='${address}'"`;      
+      const sentResult = await fetchAllPages(sentQuery);
+      console.log(`[API Client] Found a total of ${sentResult.txs.length} sent transactions out of ${sentResult.totalCount} total`);
+      
+      // If only sent transactions were requested, return them directly
+      if (type === 'sent') {
         return {
-          transactions: placeholderTxs,
-          pagination: {
-            total: placeholderTxs.length,
-            page,
-            limit,
-            pages: 1
+          result: {
+            txs: sentResult.txs,
+            total_count: sentResult.totalCount.toString()
           }
         };
       }
+      
+      // For 'all' type, fetch received transactions and combine them
+      const receivedQuery = `"transfer.recipient='${address}'"`;      
+      const receivedResult = await fetchAllPages(receivedQuery);
+      console.log(`[API Client] Found a total of ${receivedResult.txs.length} received transactions out of ${receivedResult.totalCount} total`);
+      
+      // Combine transactions and remove duplicates by hash
+      const allTxs = [...sentResult.txs, ...receivedResult.txs];
+      const uniqueTxs = allTxs.filter((tx, index, self) => 
+        index === self.findIndex((t) => t.hash === tx.hash)
+      );
+      
+      console.log(`[API Client] Combined ${uniqueTxs.length} unique transactions after removing duplicates`);
+      
+      // Calculate the total unique transactions (approximately)
+      const totalUniqueTxs = Math.max(sentResult.totalCount, receivedResult.totalCount);
+      
+      // Return combined transactions in the same format as the API response
+      return {
+        result: {
+          txs: uniqueTxs,
+          total_count: totalUniqueTxs.toString(),
+          // Add metadata about pagination for the UI
+          pagination_info: {
+            fetched_count: uniqueTxs.length,
+            total_count: totalUniqueTxs,
+            has_more: uniqueTxs.length < totalUniqueTxs,
+            max_pages_fetched: maxPages
+          }
+        }
+      };
+    } else if (type === 'received') {
+      // Fetch only received transactions with pagination
+      const receivedQuery = `"transfer.recipient='${address}'"`;      
+      const receivedResult = await fetchAllPages(receivedQuery);
+      
+      return {
+        result: {
+          txs: receivedResult.txs,
+          total_count: receivedResult.totalCount.toString(),
+          // Add pagination info
+          pagination_info: {
+            fetched_count: receivedResult.txs.length,
+            total_count: receivedResult.totalCount,
+            has_more: receivedResult.txs.length < receivedResult.totalCount,
+            max_pages_fetched: maxPages
+          }
+        }
+      };
     }
   } catch (error) {
-    console.error('[API Client] All methods for fetching address transactions failed:', error);
-    throw error;
+    console.error(`[API Client] Error fetching ${type} transactions for address ${address}:`, error);
+    // Return empty results instead of throwing
+    return {
+      result: {
+        txs: [],
+        total_count: '0'
+      }
+    };
   }
 };
 
