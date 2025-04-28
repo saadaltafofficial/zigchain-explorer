@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import SearchBar from './SearchBar';
 
-
 const Header: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
@@ -18,21 +17,26 @@ const Header: React.FC = () => {
 
   return (
     <header className="z-50">
-      {/* Navigation bar */}
-      <div className="bg-gray-800 border-b border-gray-700 shadow-sm">
-        <div className="container mx-auto px-4 py-3">
+      {/* Combined navigation and hero section with black background and blue gradient edges */}
+      <div className="relative overflow-visible" style={{ background: 'linear-gradient(90deg, #131e2c 0%, #131e2c 60%, #3F65C1 100%)' }}>
+        {/* Dark noisy overlay with configurable opacity */}
+        <div className="noise-overlay" style={{ opacity: '0.25' }}></div>
+        {/* Navigation bar */}
+        <div className="container mx-auto px-4 py-3 relative z-20">
           {/* Top navigation bar */}
           <div className="flex justify-between items-center">
-            <div className="flex items-center">
-              <Link href="/" className="flex items-center">
-                <Image 
-                  src="/images/zigchain-logo.png" 
-                  alt="ZIGChain Logo" 
-                  width={120} 
-                  height={40} 
-                  className="h-8 w-auto" 
-                />
-                <span className="ml-2 px-2 py-1 text-xs text-white bg-blue-600 dark:bg-blue-700 rounded-md">Testnet</span>
+            <div className="flex items-center bg-transparent">
+              <Link href="/" className="flex items-center bg-transparent">
+                <div className="bg-transparent">
+                  <Image 
+                    src="/images/zigchainlogoMainHeader.svg" 
+                    alt="ZIGChain Logo" 
+                    width={120} 
+                    height={40} 
+                    className="h-8 w-auto bg-transparent"
+                  />
+                </div>
+                <span className="ml-2 px-2 py-1 text-sm text-white rounded-md">| Testnet</span>
               </Link>
             </div>
             
@@ -40,27 +44,27 @@ const Header: React.FC = () => {
             <div className="hidden md:flex items-center space-x-6">
               <nav className="flex space-x-6">
                 {!isHomePage && (
-                  <Link href="/" className="font-medium text-gray-300 hover:text-white transition-colors">
+                  <Link href="/" className="font-normal hover:text-blue-200 transition-colors" style={{ color: 'white' }}>
                     Home
                   </Link>
                 )}
-                <Link href="/blocks" className="font-medium text-gray-300 hover:text-white transition-colors">
+                <Link href="/blocks" className="font-normal hover:text-blue-200 transition-colors" style={{ color: 'white' }}>
                   Blocks
                 </Link>
-                <Link href="/transactions" className="font-medium text-gray-300 hover:text-white transition-colors">
+                <Link href="/transactions" className="font-normal hover:text-blue-200 transition-colors" style={{ color: 'white' }}>
                   Transactions
                 </Link>
-                <Link href="/network" className="font-medium text-gray-300 hover:text-white transition-colors">
+                <Link href="/network" className="font-normal hover:text-blue-200 transition-colors" style={{ color: 'white' }}>
                   Network Stats
                 </Link>
               </nav>
             </div>
             {/* Mobile menu button */}
-            <div className="flex md:hidden items-center">
+            <div className="md:hidden flex items-center">
               <button
                 type="button"
                 onClick={toggleMobileMenu}
-                className="ml-2 p-2 rounded-md text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none"
+                className="ml-2 p-2 rounded-md text-white hover:text-blue-200 focus:outline-none"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   {mobileMenuOpen ? (
@@ -75,59 +79,63 @@ const Header: React.FC = () => {
 
           {/* Mobile Navigation */}
           {mobileMenuOpen && (
-            <div className="md:hidden mt-2 pb-3 space-y-1">
+            <div className="md:hidden mt-3 pb-3 space-y-1">
               {!isHomePage && (
                 <Link 
                   href="/" 
-                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700"
+                  className="block px-3 py-2 rounded-md text-base font-normal hover:text-blue-200"
                   onClick={() => setMobileMenuOpen(false)}
+                  style={{ color: 'white' }}
                 >
                   Home
                 </Link>
               )}
               <Link 
                 href="/blocks" 
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700"
+                className="block px-3 py-2 rounded-md text-base font-normal hover:text-blue-200"
                 onClick={() => setMobileMenuOpen(false)}
+                style={{ color: 'white' }}
               >
                 Blocks
               </Link>
               <Link 
                 href="/transactions" 
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700"
+                className="block px-3 py-2 rounded-md text-base font-normal hover:text-blue-200"
                 onClick={() => setMobileMenuOpen(false)}
+                style={{ color: 'white' }}
               >
                 Transactions
               </Link>
               <Link 
                 href="/network" 
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700"
+                className="block px-3 py-2 rounded-md text-base font-normal hover:text-blue-200"
                 onClick={() => setMobileMenuOpen(false)}
+                style={{ color: 'white' }}
               >
                 Network Stats
               </Link>
             </div>
           )}
         </div>
-      </div>
-      
-      {/* Hero section with search bar */}
-      <div className="bg-gradient-to-r from-blue-900 via-indigo-800 to-purple-900 py-8 sm:py-10 md:py-14 relative overflow-visible">
-        {/* Background pattern */}
-        <div className="absolute inset-0 overflow-hidden opacity-10">
-          <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-blue-400 blur-3xl"></div>
-          <div className="absolute top-10 right-10 w-64 h-64 rounded-full bg-purple-400 blur-3xl"></div>
-          <div className="absolute bottom-10 left-1/3 w-80 h-80 rounded-full bg-indigo-400 blur-3xl"></div>
-        </div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="text-center mb-4 sm:mb-6 md:mb-8">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2 sm:mb-3">Explore ZIGChain</h1>
-            <p className="text-blue-100 text-sm sm:text-base md:text-lg max-w-2xl mx-auto">Search transactions, blocks, validators</p>
+        
+        {/* Hero section with search bar */}
+        <div className="py-8 sm:py-10 md:py-14 relative overflow-visible">
+          {/* Background pattern */}
+          <div className="absolute inset-0 overflow-hidden opacity-10">
+            <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-blue-400 blur-3xl"></div>
+            <div className="absolute top-10 right-10 w-64 h-64 rounded-full bg-purple-400 blur-3xl"></div>
+            <div className="absolute bottom-10 left-1/3 w-80 h-80 rounded-full bg-indigo-400 blur-3xl"></div>
           </div>
-          <div className="relative z-[100] search-container">
-            <Suspense fallback={<div className="w-full max-w-3xl mx-auto px-3 py-2 sm:px-4 sm:py-3 bg-gray-700/50 rounded-full">Loading search...</div>}>
-              <SearchBar />
-            </Suspense>
+          <div className="container mx-auto px-4 relative z-10">
+            <div className="text-center mb-4 sm:mb-6 md:mb-8">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2 sm:mb-3">Explore ZIGChain</h1>
+              <p className="text-blue-100 font-light text-sm sm:text-base md:text-md max-w-2xl mx-auto">Search transactions, blocks, validators</p>
+            </div>
+            <div className="relative z-30 search-container">
+              <Suspense fallback={<div className="h-12 bg-gray-800 rounded-lg animate-pulse"></div>}>
+                <SearchBar />
+              </Suspense>
+            </div>
           </div>
         </div>
       </div>

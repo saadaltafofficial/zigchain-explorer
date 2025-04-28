@@ -96,7 +96,7 @@ const SearchBar: React.FC = () => {
     localStorage.setItem('recentSearches', JSON.stringify(newRecentSearches));
   };
 
-  const handleSearch = async (e: React.FormEvent) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchTerm.trim()) return;
 
@@ -131,6 +131,9 @@ const SearchBar: React.FC = () => {
                `${searchValue.substring(0, 8)}...${searchValue.substring(searchValue.length - 8)}` : 
                searchValue
       });
+      
+      // Clear the search input after search
+      setSearchTerm('');
     } catch (error) {
       console.error('Error searching:', error);
     } finally {
@@ -168,6 +171,9 @@ const SearchBar: React.FC = () => {
 
       // Save to recent searches
       saveToRecentSearches(suggestion);
+      
+      // Clear the search input after clicking a suggestion
+      setSearchTerm('');
     } catch (error) {
       console.error('Error navigating to suggestion:', error);
     } finally {
@@ -226,10 +232,10 @@ const SearchBar: React.FC = () => {
   };
 
   return (
-    <div className="relative w-full max-w-3xl mx-auto" ref={suggestionsRef} style={{ position: 'relative', zIndex: 1000 }}>
+    <div className="relative w-full max-w-2xl mx-auto" ref={suggestionsRef} style={{ position: 'relative', zIndex: 1000 }}>
       <form onSubmit={handleSearch} className="relative">
         <div className="relative">
-          <div className="flex items-center bg-gray-800 rounded-full shadow-md overflow-hidden border border-gray-700 hover:border-blue-500 transition-all duration-200 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
+          <div className="flex items-center bg-gray-800 rounded-full shadow-md overflow-hidden hover:border-[#347FBF] transition-all duration-200 ">
             <input
               ref={inputRef}
               type="text"
@@ -237,8 +243,9 @@ const SearchBar: React.FC = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
               onFocus={handleInputFocus}
               placeholder="Search blocks, tx, address..."
-              className="w-full px-5 py-3 text-gray-300 bg-transparent focus:outline-none"
+              className="w-full px-5 py-2 text-gray-300 bg-transparent focus:outline-none"
               aria-label="Search"
+              required
             />
             {searchTerm && (
               <button
@@ -257,7 +264,7 @@ const SearchBar: React.FC = () => {
             )}
             <button
               type="submit"
-              className="text-white focus:ring-2 focus:outline-none focus:ring-blue-300 font-medium rounded-full text-sm p-1 mr-2 transition-colors duration-200 hover:cursor-pointer"
+              className="text-white bg-[#1e2939] border-l border-[#347FBF] font-medium rounded-full text-sm p-3  transition-colors duration-200 hover:cursor-pointer"
               disabled={isLoading}
               aria-label="Search"
             >
@@ -278,7 +285,7 @@ const SearchBar: React.FC = () => {
 
       {/* Search suggestions dropdown */}
       {showSuggestions && (
-        <div className="fixed w-full max-w-3xl mt-2 bg-gray-800 rounded-lg shadow-xl border border-gray-700 overflow-hidden" style={{ zIndex: 9999, left: '50%', transform: 'translateX(-50%)' }}>
+        <div className="fixed w-full max-w-2xl mt-2 bg-gray-800 rounded-lg shadow-xl border border-gray-700 overflow-hidden" style={{ zIndex: 9999, left: '50%', transform: 'translateX(-50%)' }}>
           <div className="py-2">
             <div className="text-xs font-medium text-gray-400 px-4 py-1 mb-1">
               {searchTerm ? 'Suggestions' : 'Recent Searches'}

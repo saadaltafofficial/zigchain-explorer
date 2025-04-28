@@ -111,7 +111,7 @@ a:hover {
 }
 
 /* Form controls - Solscan inspired */
-input, select, textarea {
+/* input, select, textarea {
   background-color: rgb(var(--card-bg-rgb));
   border: 1px solid rgb(var(--card-border-rgb));
   color: rgb(var(--text-rgb));
@@ -124,7 +124,7 @@ input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: rgba(var(--primary-rgb), 0.5);
   box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
-}
+} */
 
 /* Table styling - Solscan inspired */
 .table-container {
@@ -168,6 +168,22 @@ tr:hover td {
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 500;
+}
+
+/* Noise overlay */
+.noise-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.5' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  background-size: 100px 100px;
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: multiply;
+  opacity: 0.15; /* Use opacity property instead of background-color */
+  background-color: #000;
 }
 
 .badge-success {
