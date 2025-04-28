@@ -16,7 +16,7 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="z-50 w-full overflow-x-hidden">
+    <header className="z-50 w-full overflow-hidden">
       {/* Combined navigation and hero section with black background and blue gradient edges */}
       <div className="relative w-full" style={{ background: 'linear-gradient(90deg, #131e2c 70%, #3F65C1 100%)' }}>
         {/* Dark noisy overlay with configurable opacity */}
@@ -75,7 +75,7 @@ const Header: React.FC = () => {
                         left: '0',
                         width: '0%',
                         height: '2px',
-                        backgroundColor: '#1DB3B0',
+                        backgroundColor: '#347FBF',
                         transition: 'width 0.5s ease-in-out'
                       }}
                     />
@@ -112,7 +112,7 @@ const Header: React.FC = () => {
                       left: '0',
                       width: '0%',
                       height: '2px',
-                      backgroundColor: '#1DB3B0',
+                      backgroundColor: '#347FBF',
                       transition: 'width 0.5s ease-in-out'
                     }}
                   />
@@ -148,7 +148,7 @@ const Header: React.FC = () => {
                       left: '0',
                       width: '0%',
                       height: '2px',
-                      backgroundColor: '#1DB3B0',
+                      backgroundColor: '#347FBF',
                       transition: 'width 0.5s ease-in-out'
                     }}
                   />
@@ -184,7 +184,7 @@ const Header: React.FC = () => {
                       left: '0',
                       width: '0%',
                       height: '2px',
-                      backgroundColor: '#1DB3B0',
+                      backgroundColor: '#347FBF',
                       transition: 'width 0.5s ease-in-out'
                     }}
                   />
