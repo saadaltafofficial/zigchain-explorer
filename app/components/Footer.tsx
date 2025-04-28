@@ -9,9 +9,9 @@ const Footer: React.FC = () => {
       <div className="container mx-auto px-4 md:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
           <div>
-            <h3 className="text-xl font-semibold mb-4 text-white">ZigChain Explorer</h3>
+            <h3 className="text-xl font-semibold mb-4 text-white">ZIGChain Explorer</h3>
             <p className="text-gray-400 mb-6">
-              A comprehensive blockchain explorer for the ZigChain network.
+              A comprehensive blockchain explorer for the ZIGChain network.
             </p>
             
             <div className="flex space-x-6 mb-4 justify-center md:justify-start">
