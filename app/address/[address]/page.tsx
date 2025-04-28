@@ -462,16 +462,6 @@ export default function AddressPage() {
             <div className="dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
               <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4">
                 <h2 className="text-xl font-semibold text-white mb-2 md:mb-0">Transactions</h2>
-                <div className="flex items-center space-x-2">
-                  <button 
-                    onClick={() => fetchTransactions(true)}
-                    className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 flex items-center"
-                    disabled={isRefreshingTx}
-                  >
-                    <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshingTx ? 'animate-spin' : ''}`} />
-                    {isRefreshingTx ? 'Refreshing...' : 'Refresh'}
-                  </button>
-                </div>
               </div>
               
               {isLoadingTx && !isRefreshingTx ? (
