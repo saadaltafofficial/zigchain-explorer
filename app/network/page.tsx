@@ -157,7 +157,7 @@ export default function NetworkStatsPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4">
       {error ? (
         // Site Under Maintenance message
         <div className="flex flex-col items-center justify-center py-20">
@@ -179,18 +179,17 @@ export default function NetworkStatsPage() {
         </div>
       ) : (
         <>
-          <h1 className="text-3xl font-bold mb-16">Network Statistics</h1>
+          <h1 className="text-3xl font-bold">Network Statistics</h1>
           
           {/* Manual refresh button */}
-          <div className="mb-6 flex items-center justify-end">
+          <div className="flex items-center justify-end">
             <button 
               onClick={fetchNetworkStats}
-              className="px-4 py-2 hover:cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-4xl flex items-center"
+              className="pr-2 py-4 hover:cursor-pointer hover:text-[#347fbf] text-gray-400 font-medium rounded-4xl flex items-center"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              Refresh Data
             </button>
           </div>
           
