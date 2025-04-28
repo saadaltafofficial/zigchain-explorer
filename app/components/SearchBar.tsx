@@ -239,6 +239,8 @@ const SearchBar: React.FC = () => {
             <input
               ref={inputRef}
               type="text"
+              id="search-input"
+              name="search-query"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onFocus={handleInputFocus}

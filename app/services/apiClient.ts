@@ -26,7 +26,7 @@ const checkApiAvailability = async () => {
   try {
     const response = await axios.get(`${API_ENDPOINT}/chain/info`);
     if (response.status === 200) {
-      console.log('[API Client] FastAPI backend is available');
+      // FastAPI backend is available
       useDirectRpc = false;
       return true;
     }
@@ -430,9 +430,9 @@ export const getChainInfo = async () => {
     // Try using the FastAPI backend first
     if (!useDirectRpc) {
       try {
-        console.log('[API Client] Fetching chain info from API endpoint:', `${API_ENDPOINT}/chain/info`);
+        // Fetching chain info from API endpoint
         const response = await axios.get(`${API_ENDPOINT}/chain/info`);
-        console.log('[API Client] Raw chain info response:', response.data);
+        // Process chain info response
         
         // Check if the API response matches the expected format
         if (response.data && typeof response.data === 'object') {
@@ -449,7 +449,7 @@ export const getChainInfo = async () => {
             }
           };
           
-          console.log('[API Client] Processed chain info:', chainInfo);
+          // Return processed chain info
           return chainInfo;
         }
       } catch (error) {
@@ -511,9 +511,9 @@ export const getLatestBlocks = async (limit = 10) => {
     // Try using the FastAPI backend first
     if (!useDirectRpc) {
       try {
-        console.log('[API Client] Fetching latest blocks from API endpoint:', `${API_ENDPOINT}/blocks/latest?limit=${limit}`);
+        // Fetching latest blocks from API endpoint
         const response = await axios.get(`${API_ENDPOINT}/blocks/latest?limit=${limit}`);
-        console.log('[API Client] Raw blocks response:', response.data);
+        // Process blocks response
         
         // Check if the API response matches the expected format
         if (response.data && Array.isArray(response.data)) {
@@ -566,7 +566,6 @@ export const getLatestBlocks = async (limit = 10) => {
  */
 export const getTransactionBlockHeight = async (txHash: string): Promise<string | null> => {
   try {
-    console.log(`[API Client] Fetching block height for transaction: ${txHash}`);
     // Remove 0x prefix if present
     const cleanHash = txHash.startsWith('0x') ? txHash.substring(2) : txHash;
     
@@ -575,11 +574,9 @@ export const getTransactionBlockHeight = async (txHash: string): Promise<string 
     
     if (txResponse.data && txResponse.data.result && txResponse.data.result.height) {
       const height = txResponse.data.result.height;
-      console.log(`[API Client] Found block height for tx ${txHash}: ${height}`);
       return height;
     }
     
-    console.log(`[API Client] No block height found for transaction ${txHash}`);
     return null;
   } catch (error) {
     console.error(`[API Client] Error fetching block height for transaction ${txHash}:`, error);
@@ -596,9 +593,9 @@ export const getLatestTransactions = async (limit = 10) => {
     // Try using the FastAPI backend first
     if (!useDirectRpc) {
       try {
-        console.log('[API Client] Fetching latest transactions from API endpoint:', `${API_ENDPOINT}/transactions/latest?limit=${limit}`);
+        // Fetching latest transactions from API endpoint
         const response = await axios.get(`${API_ENDPOINT}/transactions/latest?limit=${limit}`);
-        console.log('[API Client] Raw transactions response:', response.data);
+        // Process transactions response
         
         // Check if the API response matches the expected format
         if (response.data) {

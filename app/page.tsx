@@ -64,51 +64,43 @@ export default function Home() {
       setLoading(true);
       setError(null);
       
-      console.log('Fetching initial data for home page...');
-      console.log('API URL:', process.env.NEXT_PUBLIC_API_URL);
-      console.log('RPC URL:', process.env.RPC_URL);
+      // Fetching initial data for home page
       
       // Try to fetch data with error handling for each call
       try {
         // Fetch latest blocks using our new API client
-        console.log('Fetching latest blocks...');
         const blocks = await getLatestBlocks(10);
-        console.log('Received initial blocks:', blocks);
         if (blocks && blocks.length > 0) {
           setLatestBlocks(blocks);
         } else {
-          console.warn('No blocks received from API');
+          // No blocks received from API
         }
       } catch (blockErr) {
-        console.error('Error fetching blocks:', blockErr);
+        // Error fetching blocks
       }
       
       try {
         // Fetch latest transactions using our new API client
-        console.log('Fetching latest transactions...');
         const transactions = await getLatestTransactions(10);
-        console.log('Received initial transactions:', transactions);
         if (transactions && transactions.length > 0) {
           setLatestTransactions(transactions);
         } else {
-          console.warn('No transactions received from API');
+          // No transactions received from API
         }
       } catch (txErr) {
-        console.error('Error fetching transactions:', txErr);
+        // Error fetching transactions
       }
       
       try {
         // Fetch chain info using our new API client
-        console.log('Fetching chain info...');
         const info = await getChainInfo();
-        console.log('Received initial chain info:', info);
         if (info) {
           setChainInfo(info);
         } else {
-          console.warn('No chain info received from API');
+          // No chain info received from API
         }
       } catch (infoErr) {
-        console.error('Error fetching chain info:', infoErr);
+        // Error fetching chain info
       }
       
       setLoading(false);

@@ -48,7 +48,6 @@ export default function RootLayout({
                 document.documentElement.classList.add('dark');
                 document.documentElement.setAttribute('data-theme', 'dark');
                 localStorage.setItem('theme', 'dark');
-                console.log('Dark theme enforced');
               } catch (error) {
                 console.error('Error setting initial theme:', error);
               }

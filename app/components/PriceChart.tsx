@@ -41,7 +41,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
         // Try each coin ID until we get data
         for (const id of possibleCoinIds) {
           try {
-            console.log(`Trying to fetch price data for coin ID: ${id}`);
+            // Trying to fetch price data
 
             // Get current price data
             const priceData = await getCoinPriceData(id, currency);
@@ -53,11 +53,11 @@ const PriceChart: React.FC<PriceChartProps> = ({
               currentData = priceData;
               historicalData = histData;
               successfulCoinId = id;
-              console.log(`Successfully fetched data for coin ID: ${id}`);
+              // Successfully fetched price data
               break;
             }
           } catch (e) {
-            console.error(`Error fetching data for coin ID ${id}:`, e);
+            // Error fetching price data
             // Continue to the next coin ID
           }
         }

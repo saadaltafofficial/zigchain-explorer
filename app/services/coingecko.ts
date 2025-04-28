@@ -76,7 +76,7 @@ export const getCoinPriceData = async (coinId: string, currency = 'usd'): Promis
   
   try {
     return await getOrSetCache(cacheKey, async () => {
-      console.log(`Fetching price data for ${coinId} in ${currency}`);
+      // Fetching price data
       
       const params: Record<string, any> = {
         vs_currency: currency,
@@ -92,10 +92,10 @@ export const getCoinPriceData = async (coinId: string, currency = 'usd'): Promis
       const response = await api.get(`${COINGECKO_API_URL}/coins/markets`, { params });
 
       if (response.data && response.data.length > 0) {
-        console.log('Price data received successfully');
+        // Price data received successfully
         return response.data[0];
       }
-      console.log('No price data received');
+      // No price data received
       return null;
     });
   } catch (error) {
@@ -127,7 +127,7 @@ export const getHistoricalPriceData = async (
   
   try {
     return await getOrSetCache(cacheKey, async () => {
-      console.log(`Fetching historical price data for ${coinId} over ${days} days in ${currency}`);
+      // Fetching historical price data
       const url = `${COINGECKO_API_URL}/coins/${coinId}/market_chart`;
       
       const params: Record<string, any> = {
@@ -137,15 +137,14 @@ export const getHistoricalPriceData = async (
         x_cg_api_key: API_KEY
       };
       
-      console.log('Request params:', params);
+      // Request params prepared
       
       const response = await api.get(url, { params });
 
       if (response.data) {
-        console.log('Historical price data received successfully');
+        // Historical price data received successfully
         return response.data;
       }
-      console.log('No data received from API');
       return null;
     });
   } catch (error) {

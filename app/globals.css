@@ -193,9 +193,24 @@ tr:hover td {
   cursor: help;
 }
 
+/* Hide tooltips on mobile */
+@media (max-width: 640px) {
+  .tooltip .tooltip-text {
+    display: none !important;
+  }
+}
+
+/* Enhance tooltip visibility on desktop */
+@media (min-width: 641px) {
+  .tooltip:hover .tooltip-text {
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+}
+
 .tooltip .tooltip-text {
   visibility: hidden;
-  width: 200px;
+  width: min(200px, 80vw); /* Responsive width for mobile */
   background-color: #131e2c;
   color: #fff;
   text-align: center;
@@ -212,6 +227,9 @@ tr:hover td {
   font-weight: normal;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   border: 1px solid rgba(63, 101, 193, 0.3);
+  max-width: 100%; /* Ensure it doesn't overflow the viewport */
+  word-wrap: break-word; /* Allow text to wrap */
+  pointer-events: none; /* Prevent tooltip from interfering with mouse events */
 }
 
 .tooltip .tooltip-text::after {

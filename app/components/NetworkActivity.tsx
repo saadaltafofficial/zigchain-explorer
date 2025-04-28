@@ -146,7 +146,7 @@ const NetworkActivity: React.FC = () => {
       setBlocksData(mockBlockData);
       setAddressesData(mockAddrData);
       
-      console.log('Using fallback mock data for network activity charts');
+      // Using fallback mock data for network activity charts
     } finally {
       setIsLoading(false);
     }
