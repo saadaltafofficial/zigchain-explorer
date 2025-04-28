@@ -243,7 +243,7 @@ const SearchBar: React.FC = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
               onFocus={handleInputFocus}
               placeholder="Search blocks, tx, address..."
-              className="w-full px-5 py-2 text-gray-300 bg-transparent focus:outline-none"
+              className="w-full px-5 py-2 text-sm text-gray-300 bg-transparent focus:outline-none"
               aria-label="Search"
               required
             />
