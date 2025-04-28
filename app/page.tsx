@@ -317,11 +317,11 @@ export default function Home() {
           {/* Price Chart and Network Activity */}
           {/* Only show charts on larger screens */}
           <div className="hidden md:block">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-              <div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              <div className="bg-[#131e2c] rounded-lg overflow-hidden shadow-lg h-full">
                 <PriceChart coinId="zignaly" currency="usd" displayName="ZIG" />
               </div>
-              <div className="w-full">
+              <div className="bg-[#131e2c] rounded-lg overflow-hidden shadow-lg h-full">
                 <NetworkActivity />
               </div>
             </div>

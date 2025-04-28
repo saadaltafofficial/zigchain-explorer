@@ -159,7 +159,7 @@ const NetworkActivity: React.FC = () => {
   const renderTabContent = () => {
     if (isLoading) {
       return (
-        <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-full"></div>
+        <div className="h-48 bg-gray-800 rounded animate-pulse w-full"></div>
       );
     }
 
@@ -191,8 +191,8 @@ const NetworkActivity: React.FC = () => {
     }
 
     return (
-      <div className="h-64 w-full">
-        <h3 className="text-lg font-semibold mb-2 text-gray-700 dark:text-gray-200">{title}</h3>
+      <div className="h-48 w-full">
+        <h3 className="text-sm font-medium mb-2 text-gray-400">{title}</h3>
         <ResponsiveContainer width="100%" height="100%">
           {activeTab === 'blocks' ? (
             <BarChart data={data}>
@@ -251,28 +251,28 @@ const NetworkActivity: React.FC = () => {
   };
 
   return (
-    <div className="dark:bg-gray-800 rounded-lg shadow-md p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Network Activity</h2>
+    <div className="p-4 h-full">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold text-white">Network Activity</h2>
         <button 
-          onClick={handleRefresh}
-          disabled={isLoading}
-          className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center"
+          onClick={handleRefresh} 
+          className="text-gray-400 hover:text-[#347FBF] transition-colors"
+          aria-label="Refresh data"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
-          {isLoading ? 'Refreshing...' : 'Refresh'}
         </button>
       </div>
-
-      <div className="flex space-x-2 mb-6">
+      
+      {/* Tab buttons */}
+      <div className="flex space-x-1 mb-4">
         <button 
           onClick={() => setActiveTab('transactions')} 
-          className={`px-3 py-1 text-sm rounded-md ${
+          className={`pr-3 py-1 text-sm rounded-md ${
             activeTab === 'transactions' 
-              ? 'bg-blue-600 text-white' 
-              : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              ? 'text-white' 
+              : 'text-gray-600'
           }`}
         >
           Transactions
@@ -281,8 +281,8 @@ const NetworkActivity: React.FC = () => {
           onClick={() => setActiveTab('blocks')} 
           className={`px-3 py-1 text-sm rounded-md ${
             activeTab === 'blocks' 
-              ? 'bg-blue-600 text-white' 
-              : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              ? ' text-white' 
+              : 'text-gray-600'
           }`}
         >
           Blocks
@@ -291,8 +291,8 @@ const NetworkActivity: React.FC = () => {
           onClick={() => setActiveTab('addresses')} 
           className={`px-3 py-1 text-sm rounded-md ${
             activeTab === 'addresses' 
-              ? 'bg-blue-600 text-white' 
-              : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              ? 'text-white' 
+              : 'text-gray-600'
           }`}
         >
           Active Addresses

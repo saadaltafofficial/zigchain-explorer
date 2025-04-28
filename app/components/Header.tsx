@@ -18,7 +18,7 @@ const Header: React.FC = () => {
   return (
     <header className="z-50">
       {/* Combined navigation and hero section with black background and blue gradient edges */}
-      <div className="relative overflow-visible" style={{ background: 'linear-gradient(90deg, #131e2c 0%, #131e2c 60%, #3F65C1 100%)' }}>
+      <div className="relative overflow-visible" style={{ background: 'linear-gradient(90deg, #131e2c 70%, #3F65C1 100%)' }}>
         {/* Dark noisy overlay with configurable opacity */}
         <div className="noise-overlay" style={{ opacity: '0.25' }}></div>
         {/* Navigation bar */}

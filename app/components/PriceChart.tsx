@@ -168,39 +168,41 @@ const PriceChart: React.FC<PriceChartProps> = ({
   const priceChange = getPriceChange();
 
   return (
-    <div className="dark:bg-gray-900 rounded-lg shadow-md p-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+    <div className="p-4 h-full">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-4">
         <div>
-          <h2 className="text-2xl font-bold">{displayName} Price</h2>
-          {isLoading ? (
-            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-32 mt-2"></div>
-          ) : (
-            <div className="flex items-center mt-1">
-              <span className="text-3xl font-bold">
-                {formatCurrency(priceData?.current_price || 0)}
+          <h2 className="text-xl font-bold text-white">
+            {displayName} Price
+            {priceData && (
+              <span className="ml-2 text-2xl">
+                {formatCurrency(priceData.current_price)}
               </span>
-              <span className={`ml-2 text-sm font-medium px-2 py-1 rounded flex items-center ${
-                priceChange.isPositive
-                  ? 'text-green-800 bg-green-100 dark:text-green-400 dark:bg-green-900/30'
-                  : 'text-red-800 bg-red-100 dark:text-red-400 dark:bg-red-900/30'
-              }`}>
-                {priceChange.isPositive ? (
-                  <TrendingUp size={14} className="mr-1" />
-                ) : (
-                  <TrendingDown size={14} className="mr-1" />
-                )}
-                {Math.abs(priceChange.percentage).toFixed(2)}%
+            )}
+          </h2>
+          {priceData && (
+            <div className={`flex items-center text-sm ${priceData.price_change_percentage_24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              {priceData.price_change_percentage_24h >= 0 ? (
+                <TrendingUp size={14} className="mr-1" />
+              ) : (
+                <TrendingDown size={14} className="mr-1" />
+              )}
+              <span>
+                {priceData.price_change_percentage_24h >= 0 ? '+' : ''}
+                {priceData.price_change_percentage_24h.toFixed(2)}%
               </span>
             </div>
           )}
         </div>
-        <div className="mt-4 md:mt-0 flex space-x-2">
+        
+        {/* Time range selector */}
+        <div className="flex space-x-1">
           <button 
             onClick={() => setTimeframe('1')} 
             className={`px-3 py-1 text-sm rounded-md ${
               timeframe === '1' 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-gray-800 text-gray-300 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-700 dark:hover:bg-gray-700'
+                ? 'text-white' 
+                : 'text-gray-600'
             }`}
           >
             24h
@@ -209,8 +211,8 @@ const PriceChart: React.FC<PriceChartProps> = ({
             onClick={() => setTimeframe('7')} 
             className={`px-3 py-1 text-sm rounded-md ${
               timeframe === '7' 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-gray-800 text-gray-300 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-700 dark:hover:bg-gray-700'
+                ? 'text-white' 
+                : 'text-gray-600'
             }`}
           >
             7d
@@ -219,18 +221,18 @@ const PriceChart: React.FC<PriceChartProps> = ({
             onClick={() => setTimeframe('30')} 
             className={`px-3 py-1 text-sm rounded-md ${
               timeframe === '30' 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-gray-800 text-gray-300 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-700 dark:hover:bg-gray-700'
+                ? 'text-white' 
+                : 'text-gray-600'
             }`}
           >
             30d
           </button>
           <button 
             onClick={() => setTimeframe('90')} 
-            className={`px-3 py-1 text-sm rounded-md ${
+            className={`pl-3 py-1 text-sm rounded-md ${
               timeframe === '90' 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-gray-800 text-gray-300 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-700 dark:hover:bg-gray-700'
+                ? 'text-white' 
+                : 'text-gray-600'
             }`}
           >
             90d
@@ -242,72 +244,74 @@ const PriceChart: React.FC<PriceChartProps> = ({
       <div className="relative h-48 mb-6">
         {isLoading ? (
           <div className="absolute inset-0 flex items-center justify-center">
-            <Loader2 size={24} className="animate-spin text-blue-500" />
+            <Loader2 size={24} className="animate-spin text-[#347FBF]" />
           </div>
         ) : error ? (
           <div className="absolute inset-0 flex items-center justify-center text-red-500">
             {error}
           </div>
         ) : priceHistory.length === 0 ? (
-          <div className="absolute inset-0 flex items-center justify-center text-gray-500">
+          <div className="absolute inset-0 flex items-center justify-center text-gray-400">
             No price data available
           </div>
         ) : (
           <>
-            <svg
-              className="w-full h-full"
-              viewBox="0 0 100 100"
-              preserveAspectRatio="none"
-            >
+            {/* Price labels */}
+            <div className="absolute left-0 top-0 text-xs text-gray-400">
+              {formatCurrency(maxValue)}
+            </div>
+            <div className="absolute left-0 bottom-0 text-xs text-gray-400">
+              {formatCurrency(minValue)}
+            </div>
+            
+            {/* SVG Chart */}
+            <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+              {/* Chart line */}
               <polyline
                 points={chartPoints}
                 fill="none"
-                stroke="#10b981"
+                stroke={priceData && priceData.price_change_percentage_24h >= 0 ? "#10b981" : "#ef4444"}
                 strokeWidth="2"
                 vectorEffect="non-scaling-stroke"
               />
-              <linearGradient id="gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#10b981" stopOpacity="0.2" />
-                <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+              
+              {/* Gradient fill under the line */}
+              <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop
+                  offset="0%"
+                  stopColor={priceData && priceData.price_change_percentage_24h >= 0 ? "#10b981" : "#ef4444"}
+                  stopOpacity="0.2"
+                />
+                <stop
+                  offset="100%"
+                  stopColor={priceData && priceData.price_change_percentage_24h >= 0 ? "#10b981" : "#ef4444"}
+                  stopOpacity="0"
+                />
               </linearGradient>
+              
+              {/* Area under the line */}
               <polygon
                 points={`0,100 ${chartPoints} 100,100`}
-                fill="url(#gradient)"
+                fill="url(#chartGradient)"
               />
             </svg>
-            <div className="absolute top-0 left-0 text-xs text-gray-500 dark:text-gray-400">
-              {formatCurrency(maxValue)}
-            </div>
-            <div className="absolute bottom-0 left-0 text-xs text-gray-500 dark:text-gray-400">
-              {formatCurrency(minValue)}
-            </div>
           </>
         )}
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-gray-700/50 p-4 rounded-lg">
-          <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Market Cap</div>
-          {isLoading ? (
-            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-24"></div>
-          ) : (
-            <div className="text-lg font-semibold">
-              {formatLargeNumber(priceData?.market_cap)}
-            </div>
-          )}
+      {priceData && (
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-gray-800 p-3 rounded-lg">
+            <div className="text-gray-400 text-xs mb-1">Market Cap</div>
+            <div className="font-medium text-white">{formatLargeNumber(priceData.market_cap)}</div>
+          </div>
+          <div className="bg-gray-800 p-3 rounded-lg">
+            <div className="text-gray-400 text-xs mb-1">24h Volume</div>
+            <div className="font-medium text-white">{formatLargeNumber(priceData.total_volume)}</div>
+          </div>
         </div>
-        <div className="bg-gray-700/50 p-4 rounded-lg">
-          <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">24h Volume</div>
-          {isLoading ? (
-            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-24"></div>
-          ) : (
-            <div className="text-lg font-semibold">
-              {formatLargeNumber(priceData?.total_volume)}
-            </div>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   );
 };
