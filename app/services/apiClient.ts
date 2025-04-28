@@ -765,18 +765,86 @@ export const getTransactionByHash = async (hash: string) => {
       
       // Extract transaction details from Cosmos SDK format
       const txData = response.data.tx_response || {};
+      const messages = txData.tx?.body?.messages || [];
+      
+      // Determine transaction type
+      let txType = 'unknown';
+      let amount = '';
+      let from = '';
+      let to = '';
+      let multiSendData = null;
+      
+      if (messages.length > 0) {
+        const firstMsg = messages[0];
+        const typeUrl = firstMsg['@type'] || '';
+        
+        if (typeUrl.includes('MsgSend')) {
+          txType = 'transfer';
+          from = firstMsg.from_address || '';
+          to = firstMsg.to_address || '';
+          
+          if (firstMsg.amount && firstMsg.amount.length > 0) {
+            amount = `${firstMsg.amount[0].amount} ${firstMsg.amount[0].denom || 'uzig'}`;
+          }
+        } else if (typeUrl.includes('MsgMultiSend')) {
+          txType = 'multisend';
+          
+          // Extract inputs (senders) and outputs (receivers)
+          const inputs = firstMsg.inputs || [];
+          const outputs = firstMsg.outputs || [];
+          
+          // Format for display
+          multiSendData = {
+            inputs: inputs.map((input: any) => ({
+              address: input.address,
+              amounts: input.coins?.map((coin: any) => 
+                `${coin.amount} ${coin.denom || 'uzig'}`
+              ).join(', ') || ''
+            })),
+            outputs: outputs.map((output: any) => ({
+              address: output.address,
+              amounts: output.coins?.map((coin: any) => 
+                `${coin.amount} ${coin.denom || 'uzig'}`
+              ).join(', ') || ''
+            }))
+          };
+          
+          // Set simplified from/to for basic display
+          if (inputs.length > 0) from = inputs[0].address;
+          if (outputs.length > 0) to = outputs[0].address;
+          
+          // Calculate total amount for display
+          const totalAmount = outputs.reduce((total: number, output: any) => {
+            const outputAmount = output.coins?.reduce((sum: number, coin: any) => {
+              return sum + (parseInt(coin.amount) || 0);
+            }, 0) || 0;
+            return total + outputAmount;
+          }, 0);
+          
+          const denom = outputs[0]?.coins?.[0]?.denom || 'uzig';
+          amount = `${totalAmount} ${denom}`;
+        } else {
+          // Handle other transaction types
+          txType = typeUrl.split('.').pop() || 'unknown';
+        }
+      }
       
       return {
         hash: txData.txhash,
-        height: parseInt(txData.height || '0'),
+        height: txData.height || '0',
         timestamp: txData.timestamp,
-        type: 'transfer', // Simplified type for now
+        type: txType,
         status: txData.code === 0 ? 'success' : 'failed',
         fee: txData.tx?.auth_info?.fee?.amount?.[0]?.amount + ' ' + (txData.tx?.auth_info?.fee?.amount?.[0]?.denom || 'uzig'),
-        amount: txData.tx?.body?.messages?.[0]?.amount?.[0]?.amount + ' ' + (txData.tx?.body?.messages?.[0]?.amount?.[0]?.denom || 'uzig'),
+        amount: amount,
         memo: txData.tx?.body?.memo || '',
-        from: txData.tx?.body?.messages?.[0]?.from_address || '',
-        to: txData.tx?.body?.messages?.[0]?.to_address || ''
+        from: from,
+        to: to,
+        multiSendData: multiSendData,
+        gas_used: txData.gas_used,
+        gas_wanted: txData.gas_wanted,
+        raw_log: txData.raw_log,
+        messages: messages
       };
     } catch (error) {
       console.warn('[API Client] Failed to get transaction from ZigChain API, falling back to API endpoint');

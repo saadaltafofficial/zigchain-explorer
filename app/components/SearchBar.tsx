@@ -232,10 +232,10 @@ const SearchBar: React.FC = () => {
   };
 
   return (
-    <div className="relative w-full max-w-2xl mx-auto" ref={suggestionsRef} style={{ position: 'relative', zIndex: 1000 }}>
+    <div className="relative w-full max-w-2xl mx-auto px-4 sm:px-0" ref={suggestionsRef} style={{ position: 'relative', zIndex: 1000 }}>
       <form onSubmit={handleSearch} className="relative">
         <div className="relative">
-          <div className="flex items-center bg-gray-800 rounded-full shadow-md overflow-hidden hover:border-[#347FBF] transition-all duration-200 ">
+          <div className="flex items-center bg-gray-800 rounded-full shadow-md overflow-hidden transition-all duration-200">
             <input
               ref={inputRef}
               type="text"

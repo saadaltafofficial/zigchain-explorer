@@ -148,6 +148,37 @@ export const formatTokenAmount = (amount: string | number, decimals: number = 6)
   }
 };
 
+// Convert uzig to ZIG (1 ZIG = 1,000,000 uzig)
+export const convertUzigToZig = (amount: string | undefined): string => {
+  try {
+    // Check if the input is a valid string
+    if (!amount) return '0 ZIG';
+    
+    // Extract the numeric part and the denomination
+    const parts = amount.trim().split(' ');
+    const numericPart = parts[0];
+    const denom = parts.length > 1 ? parts[1].toLowerCase() : '';
+    
+    // If the denomination is not uzig, return the original amount
+    if (denom !== 'uzig') return amount;
+    
+    // Convert uzig to ZIG
+    const uzigAmount = parseFloat(numericPart);
+    if (isNaN(uzigAmount)) return '0 ZIG';
+    
+    const zigAmount = uzigAmount / 1000000;
+    
+    // Format with appropriate precision
+    return `${zigAmount.toLocaleString(undefined, { 
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 6 
+    })} ZIG`;
+  } catch (error) {
+    console.error('Error converting uzig to ZIG:', error);
+    return amount || '0 ZIG'; // Return original amount or default on error
+  }
+};
+
 // Format percentage values
 export const formatPercentage = (value: string | number): string => {
   try {

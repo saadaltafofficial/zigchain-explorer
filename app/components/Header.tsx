@@ -16,13 +16,13 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="z-50">
+    <header className="z-50 w-full overflow-x-hidden">
       {/* Combined navigation and hero section with black background and blue gradient edges */}
-      <div className="relative overflow-visible" style={{ background: 'linear-gradient(90deg, #131e2c 70%, #3F65C1 100%)' }}>
+      <div className="relative w-full" style={{ background: 'linear-gradient(90deg, #131e2c 70%, #3F65C1 100%)' }}>
         {/* Dark noisy overlay with configurable opacity */}
         <div className="noise-overlay" style={{ opacity: '0.25' }}></div>
         {/* Navigation bar */}
-        <div className="container mx-auto px-4 py-3 relative z-20">
+        <div className="container mx-auto px-6 py-3 relative z-20">
           {/* Top navigation bar */}
           <div className="flex justify-between items-center">
             <div className="flex items-center bg-transparent">
@@ -44,18 +44,150 @@ const Header: React.FC = () => {
             <div className="hidden md:flex items-center space-x-6">
               <nav className="flex space-x-6">
                 {!isHomePage && (
-                  <Link href="/" className="font-normal hover:text-blue-200 transition-colors" style={{ color: 'white' }}>
-                    Home
+                  <Link 
+                    href="/" 
+                    className="font-normal hover:text-blue-200 transition-colors relative" 
+                    style={{ 
+                      color: 'white',
+                      position: 'relative',
+                      display: 'inline-block',
+                      paddingBottom: '2px'
+                    }}
+                    onMouseEnter={(e) => {
+                      const underline = e.currentTarget.querySelector('.nav-underline') as HTMLElement;
+                      if (underline) {
+                        underline.style.width = '100%';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      const underline = e.currentTarget.querySelector('.nav-underline') as HTMLElement;
+                      if (underline) {
+                        underline.style.width = '0%';
+                      }
+                    }}
+                  >
+                    <span>Home</span>
+                    <span 
+                      className="nav-underline"
+                      style={{
+                        position: 'absolute',
+                        bottom: '-2px',
+                        left: '0',
+                        width: '0%',
+                        height: '2px',
+                        backgroundColor: '#1DB3B0',
+                        transition: 'width 0.5s ease-in-out'
+                      }}
+                    />
                   </Link>
                 )}
-                <Link href="/blocks" className="font-normal hover:text-blue-200 transition-colors" style={{ color: 'white' }}>
-                  Blocks
+                <Link 
+                  href="/blocks" 
+                  className="font-normal hover:text-blue-200 transition-colors relative" 
+                  style={{ 
+                    color: 'white',
+                    position: 'relative',
+                    display: 'inline-block',
+                    paddingBottom: '2px'
+                  }}
+                  onMouseEnter={(e) => {
+                    const underline = e.currentTarget.querySelector('.nav-underline') as HTMLElement;
+                    if (underline) {
+                      underline.style.width = '100%';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    const underline = e.currentTarget.querySelector('.nav-underline') as HTMLElement;
+                    if (underline) {
+                      underline.style.width = '0%';
+                    }
+                  }}
+                >
+                  <span>Blocks</span>
+                  <span 
+                    className="nav-underline"
+                    style={{
+                      position: 'absolute',
+                      bottom: '-2px',
+                      left: '0',
+                      width: '0%',
+                      height: '2px',
+                      backgroundColor: '#1DB3B0',
+                      transition: 'width 0.5s ease-in-out'
+                    }}
+                  />
                 </Link>
-                <Link href="/transactions" className="font-normal hover:text-blue-200 transition-colors" style={{ color: 'white' }}>
-                  Transactions
+                <Link 
+                  href="/transactions" 
+                  className="font-normal hover:text-blue-200 transition-colors relative" 
+                  style={{ 
+                    color: 'white',
+                    position: 'relative',
+                    display: 'inline-block',
+                    paddingBottom: '2px'
+                  }}
+                  onMouseEnter={(e) => {
+                    const underline = e.currentTarget.querySelector('.nav-underline') as HTMLElement;
+                    if (underline) {
+                      underline.style.width = '100%';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    const underline = e.currentTarget.querySelector('.nav-underline') as HTMLElement;
+                    if (underline) {
+                      underline.style.width = '0%';
+                    }
+                  }}
+                >
+                  <span>Transactions</span>
+                  <span 
+                    className="nav-underline"
+                    style={{
+                      position: 'absolute',
+                      bottom: '-2px',
+                      left: '0',
+                      width: '0%',
+                      height: '2px',
+                      backgroundColor: '#1DB3B0',
+                      transition: 'width 0.5s ease-in-out'
+                    }}
+                  />
                 </Link>
-                <Link href="/network" className="font-normal hover:text-blue-200 transition-colors" style={{ color: 'white' }}>
-                  Network Stats
+                <Link 
+                  href="/network" 
+                  className="font-normal hover:text-blue-200 transition-colors relative" 
+                  style={{ 
+                    color: 'white',
+                    position: 'relative',
+                    display: 'inline-block',
+                    paddingBottom: '2px'
+                  }}
+                  onMouseEnter={(e) => {
+                    const underline = e.currentTarget.querySelector('.nav-underline') as HTMLElement;
+                    if (underline) {
+                      underline.style.width = '100%';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    const underline = e.currentTarget.querySelector('.nav-underline') as HTMLElement;
+                    if (underline) {
+                      underline.style.width = '0%';
+                    }
+                  }}
+                >
+                  <span>Network Stats</span>
+                  <span 
+                    className="nav-underline"
+                    style={{
+                      position: 'absolute',
+                      bottom: '-2px',
+                      left: '0',
+                      width: '0%',
+                      height: '2px',
+                      backgroundColor: '#1DB3B0',
+                      transition: 'width 0.5s ease-in-out'
+                    }}
+                  />
                 </Link>
               </nav>
             </div>
@@ -83,48 +215,52 @@ const Header: React.FC = () => {
               {!isHomePage && (
                 <Link 
                   href="/" 
-                  className="block px-3 py-2 rounded-md text-base font-normal hover:text-blue-200"
+                  className="block px-3 py-2 rounded-md text-base font-normal hover:text-blue-200 relative group"
                   onClick={() => setMobileMenuOpen(false)}
                   style={{ color: 'white' }}
                 >
                   Home
+                  <span className="absolute left-3 bottom-1 h-0.5 w-[calc(100%-24px)] bg-blue-200 transition-all duration-500 ease-in-out origin-left transform scale-x-0 group-hover:scale-x-100"></span>
                 </Link>
               )}
               <Link 
                 href="/blocks" 
-                className="block px-3 py-2 rounded-md text-base font-normal hover:text-blue-200"
+                className="block px-3 py-2 rounded-md text-base font-normal hover:text-blue-200 relative group"
                 onClick={() => setMobileMenuOpen(false)}
                 style={{ color: 'white' }}
               >
                 Blocks
+                <span className="absolute left-3 bottom-1 h-0.5 w-[calc(100%-24px)] bg-blue-200 transition-all duration-500 ease-in-out origin-left transform scale-x-0 group-hover:scale-x-100"></span>
               </Link>
               <Link 
                 href="/transactions" 
-                className="block px-3 py-2 rounded-md text-base font-normal hover:text-blue-200"
+                className="block px-3 py-2 rounded-md text-base font-normal hover:text-blue-200 relative group"
                 onClick={() => setMobileMenuOpen(false)}
                 style={{ color: 'white' }}
               >
                 Transactions
+                <span className="absolute left-3 bottom-1 h-0.5 w-[calc(100%-24px)] bg-blue-200 transition-all duration-500 ease-in-out origin-left transform scale-x-0 group-hover:scale-x-100"></span>
               </Link>
               <Link 
                 href="/network" 
-                className="block px-3 py-2 rounded-md text-base font-normal hover:text-blue-200"
+                className="block px-3 py-2 rounded-md text-base font-normal hover:text-blue-200 relative group"
                 onClick={() => setMobileMenuOpen(false)}
                 style={{ color: 'white' }}
               >
                 Network Stats
+                <span className="absolute left-3 bottom-1 h-0.5 w-[calc(100%-24px)] bg-blue-200 transition-all duration-500 ease-in-out origin-left transform scale-x-0 group-hover:scale-x-100"></span>
               </Link>
             </div>
           )}
         </div>
         
         {/* Hero section with search bar */}
-        <div className="py-8 sm:py-10 md:py-14 relative overflow-visible">
-          {/* Background pattern */}
+        <div className="py-8 sm:py-10 md:py-14 relative w-full overflow-x-hidden">
+          {/* Background pattern - responsive version */}
           <div className="absolute inset-0 overflow-hidden opacity-10">
-            <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-blue-400 blur-3xl"></div>
-            <div className="absolute top-10 right-10 w-64 h-64 rounded-full bg-purple-400 blur-3xl"></div>
-            <div className="absolute bottom-10 left-1/3 w-80 h-80 rounded-full bg-indigo-400 blur-3xl"></div>
+            <div className="absolute sm:-top-24 -top-12 sm:-left-24 -left-12 sm:w-96 w-64 sm:h-96 h-64 rounded-full bg-blue-400 blur-3xl"></div>
+            <div className="absolute sm:top-10 top-5 sm:right-10 right-5 sm:w-64 w-48 sm:h-64 h-48 rounded-full bg-purple-400 blur-3xl"></div>
+            <div className="absolute sm:bottom-10 bottom-5 sm:left-1/3 left-1/4 sm:w-80 w-56 sm:h-80 h-56 rounded-full bg-indigo-400 blur-3xl"></div>
           </div>
           <div className="container mx-auto px-4 relative z-10">
             <div className="text-center mb-4 sm:mb-6 md:mb-8">

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { getTransactionByHash } from '@/app/services/apiClient';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { formatDate, truncateString } from '@/app/utils/format';
+import { formatDate, truncateString, convertUzigToZig } from '@/app/utils/format';
 
 interface TransactionDetailClientProps {
   params: {
@@ -29,6 +29,19 @@ interface Transaction {
   memo?: string;
   gas_used?: string;
   gas_wanted?: string;
+  type?: string;
+  multiSendData?: {
+    inputs: Array<{
+      address: string;
+      amounts: string;
+    }>;
+    outputs: Array<{
+      address: string;
+      amounts: string;
+    }>;
+  } | null;
+  messages?: any[];
+  raw_log?: string;
 }
 
 export default function TransactionDetailClient({ params }: TransactionDetailClientProps) {
@@ -200,35 +213,93 @@ export default function TransactionDetailClient({ params }: TransactionDetailCli
             <div>
               <h2 className="text-xl font-semibold mb-4">Transaction Details</h2>
               <div className="space-y-4">
-                {transaction.from && (
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">From</p>
-                    <span title="Address details coming soon" className="text-blue-500 cursor-not-allowed font-mono text-sm break-all">
-                      {transaction.from}
-                    </span>
+                {/* Transaction type */}
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Type</p>
+                  <p className="capitalize">{transaction.type || 'transfer'}</p>
+                </div>
+
+                {/* For regular transfers */}
+                {transaction.type === 'transfer' && (
+                  <>
+                    {transaction.from && (
+                      <div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">From</p>
+                        <span title="Address details coming soon" className="text-blue-500 cursor-not-allowed font-mono text-sm break-all">
+                          {transaction.from}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {transaction.to && (
+                      <div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">To</p>
+                        <span title="Address details coming soon" className="text-blue-500 cursor-not-allowed font-mono text-sm break-all">
+                          {transaction.to}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {transaction.amount && (
+                      <div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Amount</p>
+                        <p>{convertUzigToZig(transaction.amount)}</p>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* For MultiSend transactions */}
+                {transaction.type === 'multisend' && transaction.multiSendData && (
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Total Amount</p>
+                      <p>{convertUzigToZig(transaction.amount)}</p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Senders</p>
+                      <div className="bg-gray-50 dark:bg-gray-900 rounded-md p-3 space-y-2">
+                        {transaction.multiSendData.inputs.map((input, index) => (
+                          <div key={`input-${index}`} className="border-b border-gray-200 dark:border-gray-700 pb-2 last:border-0 last:pb-0">
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Address</p>
+                            <p className="font-mono text-sm break-all">{input.address}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Amount</p>
+                            <p>{convertUzigToZig(input.amounts)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Recipients</p>
+                      <div className="bg-gray-50 dark:bg-gray-900 rounded-md p-3 space-y-2">
+                        {transaction.multiSendData.outputs.map((output, index) => (
+                          <div key={`output-${index}`} className="border-b border-gray-200 dark:border-gray-700 pb-2 last:border-0 last:pb-0">
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Address</p>
+                            <p className="font-mono text-sm break-all">{output.address}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Amount</p>
+                            <p>{convertUzigToZig(output.amounts)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
                 
-                {transaction.to && (
+                {/* For other transaction types */}
+                {!['transfer', 'multisend'].includes(transaction.type || '') && (
                   <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">To</p>
-                    <span title="Address details coming soon" className="text-blue-500 cursor-not-allowed font-mono text-sm break-all">
-                      {transaction.to}
-                    </span>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Details</p>
+                    <p className="text-sm">This transaction type doesn't have standard details to display.</p>
                   </div>
                 )}
                 
-                {transaction.amount && (
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Amount</p>
-                    <p>{transaction.amount}</p>
-                  </div>
-                )}
-                
+                {/* Fee is common for all transaction types */}
                 {transaction.fee && (
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Fee</p>
-                    <p>{transaction.fee}</p>
+                    <p>{convertUzigToZig(transaction.fee)}</p>
                   </div>
                 )}
               </div>
