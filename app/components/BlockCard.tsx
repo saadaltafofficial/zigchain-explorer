@@ -7,12 +7,14 @@ interface BlockCardProps {
   height: number;
   hash: string;
   time: string;
+  txCount?: number;
 }
 
-const BlockCard: React.FC<BlockCardProps> = ({ height, hash, time }) => {
+const BlockCard: React.FC<BlockCardProps> = ({ height, hash, time, txCount }) => {
   // Ensure we have valid values
   const safeHeight = height || 0;
   const safeHash = hash || 'Unknown';
+  const safeTxCount = txCount || 0;
 
   return (
     <div className="px-4 py-3 sm:px-6 sm:py-4 bg-[#1e2939] hover:bg-gray-700/30 transition-colors rounded-lg">
@@ -43,9 +45,9 @@ const BlockCard: React.FC<BlockCardProps> = ({ height, hash, time }) => {
             </span>
           </div>
           
-          {/* <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-medium">
+          <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-medium">
             {safeTxCount} {safeTxCount === 1 ? 'Tx' : 'Txs'}
-          </div> */}
+          </div>
           
           
         </div>
