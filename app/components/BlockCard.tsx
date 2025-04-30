@@ -7,18 +7,12 @@ interface BlockCardProps {
   height: number;
   hash: string;
   time: string;
-  txCount: number;
 }
 
-const BlockCard: React.FC<BlockCardProps> = ({ height, hash, time, txCount }) => {
+const BlockCard: React.FC<BlockCardProps> = ({ height, hash, time }) => {
   // Ensure we have valid values
   const safeHeight = height || 0;
   const safeHash = hash || 'Unknown';
-  const safeTime = time || new Date().toISOString();
-  const safeTxCount = txCount || 0;
-  
-  // Debug the timestamp format
-  console.log(`Block #${height} timestamp:`, time);
 
   return (
     <div className="px-4 py-3 sm:px-6 sm:py-4 bg-[#1e2939] hover:bg-gray-700/30 transition-colors rounded-lg">
@@ -36,7 +30,7 @@ const BlockCard: React.FC<BlockCardProps> = ({ height, hash, time, txCount }) =>
             </Link>
             <div className="flex items-center text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">
               <Clock size={12} className="mr-1" />
-              <span>Just now</span>
+              <span>{time}</span>
             </div>
           </div>
         </div>

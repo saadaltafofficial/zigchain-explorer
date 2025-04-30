@@ -3,26 +3,8 @@ import Link from 'next/link';
 import { formatDate, truncateString } from '../utils/format';
 import HashDisplay from './HashDisplay';
 import { CheckCircle, XCircle, Database, ArrowRight, Clock, Hash, User } from 'lucide-react';
-import { getTransactionBlockHeight } from '../services/apiClient';
-
-// Format time to "X seconds/minutes/hours ago" format to match BlockCard
-const formatTimeAgo = (time: string | number): string => {
-  if (!time) return 'Unknown';
-  
-  const txTime = typeof time === 'string' ? new Date(time) : new Date(time);
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - txTime.getTime()) / 1000);
-  
-  if (diffInSeconds < 60) {
-    return `${diffInSeconds} seconds ago`;
-  } else if (diffInSeconds < 3600) {
-    return `${Math.floor(diffInSeconds / 60)} minutes ago`;
-  } else if (diffInSeconds < 86400) {
-    return `${Math.floor(diffInSeconds / 3600)} hours ago`;
-  } else {
-    return `${Math.floor(diffInSeconds / 86400)} days ago`;
-  }
-};
+import { formatExplorerDate, getTransactionBlockHeight } from '../services/apiClient';
+import { getBlockTime } from '../services/apiClient';
 
 interface TransactionCardProps {
   hash: string;
@@ -34,8 +16,8 @@ interface TransactionCardProps {
 }
 
 const TransactionCard: React.FC<TransactionCardProps> = ({ 
-  hash, 
-  time, 
+  hash,
+  time,
   status, 
   from, 
   to,
@@ -60,10 +42,11 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
   // Convert to uppercase for display
   const displayUppercaseHash = displayHash.toUpperCase();
   
-  const safeTime = time || new Date().toISOString();
+  
   const safeStatus = status || 'success';
-  const safeFrom = from || '';
+  const safeFrom = from || '';6
   const safeTo = to || '';
+
   
   // Fetch block height from RPC if not provided or is zero
   useEffect(() => {
@@ -117,7 +100,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
             </Link>
             <div className="flex items-center text-gray-400 text-xs sm:text-sm">
               <Clock size={12} className="mr-1" />     
-              <span>Just now</span>
+              <span>{time.slice(17)}</span>
             </div>
           </div>
         </div>

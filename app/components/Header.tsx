@@ -42,7 +42,7 @@ const Header: React.FC = () => {
             
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-6">
-              <nav className="flex space-x-6">
+              <nav className="flex space-x-4">
                 {!isHomePage && (
                   <Link 
                     href="/" 
@@ -66,7 +66,7 @@ const Header: React.FC = () => {
                       }
                     }}
                   >
-                    <span>Home</span>
+                    <span className='hover:bg-gray-100/10 py-1 px-2'>Home</span>
                     <span 
                       className="nav-underline"
                       style={{
@@ -103,7 +103,7 @@ const Header: React.FC = () => {
                     }
                   }}
                 >
-                  <span>Blocks</span>
+                  <span className='hover:bg-gray-100/10 py-1 px-2'>Blocks</span>
                   <span 
                     className="nav-underline"
                     style={{
@@ -139,7 +139,7 @@ const Header: React.FC = () => {
                     }
                   }}
                 >
-                  <span>Transactions</span>
+                  <span className='hover:bg-gray-100/10 py-1 px-2'>Transactions</span>
                   <span 
                     className="nav-underline"
                     style={{
@@ -175,7 +175,7 @@ const Header: React.FC = () => {
                     }
                   }}
                 >
-                  <span>Network Stats</span>
+                  <span className='hover:bg-gray-100/10 py-1 px-2'>Network Stats</span>
                   <span 
                     className="nav-underline"
                     style={{

@@ -9,6 +9,7 @@ import TransactionCard from './components/TransactionCard';
 import PriceChart from './components/PriceChart';
 import NetworkActivity from './components/NetworkActivity';
 import HomeStats from './components/HomeStats';
+import { formatExplorerDate } from './services/apiClient';
 // We no longer need this import as we're using our API client
 // import { fetchTransactions } from './utils/transactionFetcher';
 import { ArrowRight, TrendingUp } from 'lucide-react';
@@ -24,19 +25,28 @@ interface Block {
   numTxs: number;
 }
 
+// {
+//   "block_id": 1394346,
+//   "to_address": "zig17xpfvakm2amg962yls6f84z3kell8c5l3nxjf4",
+//   "amount": null,
+//   "status": "success",
+//   "hash": "5749F5C62D8E8DA205E430BAEC26E17193FA311E4F3D7C410A2DFC4843C3343F",
+//   "id": 78928,
+//   "from_address": "zig14hyccud258xg4ww30r47aaudcgzzu8qxaq3yq8",
+//   "fee": "1938uzig",
+//   "created_at": "2025-04-30T16:33:56.300320"
+// },
+
 interface Transaction {
   hash: string;
-  height: string;
-  time: string;
-  from?: string;
-  to?: string;
-  amount?: string;
-  denom?: string;
-  status?: string;
-  code?: number;
-  tx_result?: {
-    code: number;
-  };
+  block_id: number;
+  from_address: string;
+  to_address: string;
+  amount: string | null;
+  status: string;
+  id: number;
+  fee: string;
+  created_at: string;
 }
 
 interface ChainInfo {
@@ -102,6 +112,7 @@ export default function Home() {
       } catch (infoErr) {
         // Error fetching chain info
       }
+
       
       setLoading(false);
     } catch (err: unknown) {
@@ -120,23 +131,7 @@ export default function Home() {
     fetchInitialData();
   };
 
-  const formatBlockTime = (time: string | number): string => {
-    if (!time) return 'Unknown';
-    
-    const blockTime = typeof time === 'string' ? new Date(time) : new Date(time);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - blockTime.getTime()) / 1000);
-    
-    if (diffInSeconds < 60) {
-      return `${diffInSeconds} seconds ago`;
-    } else if (diffInSeconds < 3600) {
-      return `${Math.floor(diffInSeconds / 60)} minutes ago`;
-    } else if (diffInSeconds < 86400) {
-      return `${Math.floor(diffInSeconds / 3600)} hours ago`;
-    } else {
-      return `${Math.floor(diffInSeconds / 86400)} days ago`;
-    }
-  };
+
 
   const LatestBlocks = ({ blocks }: { blocks: Block[] }) => {
     return (
@@ -171,9 +166,8 @@ export default function Home() {
               <BlockCard 
                 key={block.height}
                 height={block.height}
-                time={formatBlockTime(block.time)}
+                time={formatExplorerDate(block.time).slice(17)}
                 hash={block.hash}
-                txCount={block.numTxs}
               />
             ))}
           </div>
@@ -219,17 +213,11 @@ export default function Home() {
               <div key={tx.hash || index} onClick={setTxReferrer}>
                 <TransactionCard 
                   hash={tx.hash}
-                  time={tx.time}
-                  status={
-                    // Check all possible ways a transaction could be marked as failed
-                    tx.status === 'failed' || 
-                    tx.code === 1 || 
-                    tx.tx_result?.code === 1 ? 
-                    'failed' : 'success'
-                  }
-                  from={tx.from || ''}
-                  to={tx.to || ''}
-                  blockHeight={tx.height.toString()}
+                  time={formatExplorerDate(tx.created_at)}
+                  status={tx.status as 'success' | 'failed'}
+                  from={tx.from_address}
+                  to={tx.to_address}
+                  blockHeight={tx.block_id.toString()}
                 />
               </div>
             ))}
