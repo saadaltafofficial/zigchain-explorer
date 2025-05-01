@@ -404,10 +404,10 @@ function TransactionsContent() {
                             onClick={() => handleTransactionClick(tx.hash)}
                             className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-lg font-semibold transition-colors"
                           >
-                            <span className="hidden md:inline" title={tx.hash}>
+                            <span className="hidden lg:inline" title={tx.hash}>
                               {formatHash(tx.hash, true)}
                             </span>
-                            <span className="inline md:hidden" title={tx.hash}>
+                            <span className="inline lg:hidden" title={tx.hash}>
                               {formatHash(tx.hash)}
                             </span>
                           </button>
