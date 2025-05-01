@@ -9,7 +9,7 @@ import TransactionCard from './components/TransactionCard';
 import PriceChart from './components/PriceChart';
 import NetworkActivity from './components/NetworkActivity';
 import HomeStats from './components/HomeStats';
-import { formatExplorerDate } from './services/apiClient';
+import { formatDate } from './services/apiClient';
 // We no longer need this import as we're using our API client
 // import { fetchTransactions } from './utils/transactionFetcher';
 import { ArrowRight, TrendingUp } from 'lucide-react';
@@ -166,7 +166,7 @@ export default function Home() {
               <BlockCard 
                 key={block.height}
                 height={block.height}
-                time={formatExplorerDate(block.time).slice(17)}
+                time={formatDate(block.time)}
                 hash={block.hash}
               />
             ))}
@@ -213,7 +213,7 @@ export default function Home() {
               <div key={tx.hash || index} onClick={setTxReferrer}>
                 <TransactionCard 
                   hash={tx.hash}
-                  time={formatExplorerDate(tx.created_at)}
+                  time={formatDate(tx.created_at)}
                   status={tx.status as 'success' | 'failed'}
                   from={tx.from_address}
                   to={tx.to_address}

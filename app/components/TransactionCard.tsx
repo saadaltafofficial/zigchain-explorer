@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { formatDate, truncateString } from '../utils/format';
 import HashDisplay from './HashDisplay';
 import { CheckCircle, XCircle, Database, ArrowRight, Clock, Hash, User } from 'lucide-react';
-import { formatExplorerDate, getTransactionBlockHeight } from '../services/apiClient';
+import { getTransactionBlockHeight } from '../services/apiClient';
 import { getBlockTime } from '../services/apiClient';
 
 interface TransactionCardProps {
@@ -100,7 +100,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
             </Link>
             <div className="flex items-center text-gray-400 text-xs sm:text-sm">
               <Clock size={12} className="mr-1" />     
-              <span>{time.slice(17)}</span>
+              <span>{formatDate(time)}</span>
             </div>
           </div>
         </div>

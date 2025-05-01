@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { getLatestBlocks } from '../services/apiClient';
+import { formatDate, getLatestBlocks } from '../services/apiClient';
 import BlockCard from '../components/BlockCard';
 
 export default function BlocksPage() {
@@ -208,7 +208,7 @@ export default function BlocksPage() {
                   key={block.height}
                   height={block.height}
                   hash={block.hash}
-                  time={block.time}
+                  time={formatDate(block.time)}
                   txCount={block.numTxs}
                 />
               ))

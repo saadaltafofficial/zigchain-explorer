@@ -45,9 +45,9 @@ const BlockCard: React.FC<BlockCardProps> = ({ height, hash, time, txCount }) =>
             </span>
           </div>
           
-          <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-medium">
+          {/* <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-medium">
             {safeTxCount} {safeTxCount === 1 ? 'Tx' : 'Txs'}
-          </div>
+          </div> */}
           
           
         </div>

@@ -42,7 +42,7 @@ const Header: React.FC = () => {
             
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-6">
-              <nav className="flex space-x-4">
+              <nav className="flex space-x-8">
                 {!isHomePage && (
                   <Link 
                     href="/" 
@@ -66,7 +66,7 @@ const Header: React.FC = () => {
                       }
                     }}
                   >
-                    <span className='hover:bg-gray-100/10 py-1 px-2'>Home</span>
+                    <span>Home</span>
                     <span 
                       className="nav-underline"
                       style={{
@@ -74,7 +74,7 @@ const Header: React.FC = () => {
                         bottom: '-2px',
                         left: '0',
                         width: '0%',
-                        height: '2px',
+                        height: '3px',
                         backgroundColor: '#347FBF',
                         transition: 'width 0.5s ease-in-out'
                       }}
@@ -103,7 +103,7 @@ const Header: React.FC = () => {
                     }
                   }}
                 >
-                  <span className='hover:bg-gray-100/10 py-1 px-2'>Blocks</span>
+                  <span>Blocks</span>
                   <span 
                     className="nav-underline"
                     style={{
@@ -111,7 +111,7 @@ const Header: React.FC = () => {
                       bottom: '-2px',
                       left: '0',
                       width: '0%',
-                      height: '2px',
+                      height: '3px',
                       backgroundColor: '#347FBF',
                       transition: 'width 0.5s ease-in-out'
                     }}
@@ -139,7 +139,7 @@ const Header: React.FC = () => {
                     }
                   }}
                 >
-                  <span className='hover:bg-gray-100/10 py-1 px-2'>Transactions</span>
+                  <span>Transactions</span>
                   <span 
                     className="nav-underline"
                     style={{
@@ -147,7 +147,7 @@ const Header: React.FC = () => {
                       bottom: '-2px',
                       left: '0',
                       width: '0%',
-                      height: '2px',
+                      height: '3px',
                       backgroundColor: '#347FBF',
                       transition: 'width 0.5s ease-in-out'
                     }}
@@ -175,7 +175,7 @@ const Header: React.FC = () => {
                     }
                   }}
                 >
-                  <span className='hover:bg-gray-100/10 py-1 px-2'>Network Stats</span>
+                  <span>Network Stats</span>
                   <span 
                     className="nav-underline"
                     style={{
@@ -183,7 +183,7 @@ const Header: React.FC = () => {
                       bottom: '-2px',
                       left: '0',
                       width: '0%',
-                      height: '2px',
+                      height: '3px',
                       backgroundColor: '#347FBF',
                       transition: 'width 0.5s ease-in-out'
                     }}

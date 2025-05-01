@@ -292,34 +292,11 @@ export const getAddressTransactions = async (address: string) => {
  * @returns          A formatted date-time, e.g. "April 30, 2025, 1:21:38 PM"
  */
 
-export function formatExplorerDate(
-  isoString: string,
-  locale?: string,
-  timeZone?: string
-): string {
-  // 1) Ensure the string ends with a timezone designator. If missing, treat as UTC.
-  const safeString = /[Zz]|[+\-]\d{2}:\d{2}$/.test(isoString)
-    ? isoString
-    : `${isoString}Z`;
 
-  // 2) Parse into a JS Date (ISO-8601 is supported by Date constructor) 
-  const date = new Date(safeString);
-
-  // 3) Build formatting options
-  const options: Intl.DateTimeFormatOptions = {
-    year: "numeric",
-    month: "long",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-    timeZone,    // if undefined, uses runtime’s locale zone
-  };
-
-  // 4) Format with Intl.DateTimeFormat for consistent, locale-sensitive output
-  return new Intl.DateTimeFormat(locale, options).format(date);
-}
+ export const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleString();
+};
 
 export async function getBlockTime(block: string): Promise<string> {
   const request = await axios.get(`${RPC_URL}/block?height=${block}`);
