@@ -89,7 +89,7 @@ const StatCard: React.FC<StatCardProps> = ({
       
       <div className="mt-3">
         {isLoading ? (
-          <div className="h-7 bg-gray-200 rounded animate-pulse w-3/4"></div>
+          <div className="h-7 rounded animate-pulse w-3/4"></div>
         ) : (
           <p className="text-2xl font-semibold text-gray-900">{value}</p>
         )}
