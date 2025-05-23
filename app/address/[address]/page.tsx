@@ -394,18 +394,18 @@ export default function AddressPage() {
         
         {isLoading ? (
           <div className="space-y-4">
-            <div className="dark:bg-gray-800 rounded-lg shadow-md p-6 animate-pulse">
-              <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4"></div>
-              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-2"></div>
-              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+            <div className="rounded-lg shadow-md p-6 animate-pulse">
+              <div className="h-6 bg-gray-200 rounded w-3/4 mb-4"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/3"></div>
             </div>
             
-            <div className="dark:bg-gray-800 rounded-lg shadow-md p-6">
-              <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-4"></div>
+            <div className="rounded-lg shadow-md p-6">
+              <div className="h-6 bg-gray-200 rounded w-1/4 mb-4"></div>
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="border-b border-gray-200 dark:border-gray-700 py-3">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full mb-2"></div>
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
+                <div key={i} className="border-b border-gray-200 py-3">
+                  <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-2/3"></div>
                 </div>
               ))}
             </div>
@@ -413,13 +413,13 @@ export default function AddressPage() {
         ) : (
           <>
             {/* Address Overview Card */}
-            <div className="dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+            <div className="rounded-lg shadow-md p-6 mb-6">
               <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4">
                 <h2 className="text-xl font-semibold text-white mb-2 md:mb-0">Account Overview</h2>
                 <div className="flex items-center space-x-2">
                   <button 
                     onClick={copyToClipboard}
-                    className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 flex items-center"
+                    className="text-blue-500 hover:text-blue-600 flex items-center"
                   >
                     <Copy className="h-4 w-4 mr-1" />
                     {copied ? 'Copied!' : 'Copy Address'}
@@ -429,12 +429,12 @@ export default function AddressPage() {
               </div>
               
               <div className="bg-gray-700/30 p-4 rounded-lg mb-4 break-all">
-                <span className="font-mono text-gray-700 dark:text-gray-300">{address}</span>
+                <span className="font-mono text-gray-700 ">{address}</span>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Balance</h3>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Balance</h3>
                   <p className="text-lg font-semibold text-white">{formatAmount(accountInfo?.balance || '0')}</p>
                 </div>
                 
@@ -442,14 +442,14 @@ export default function AddressPage() {
                 
                 {accountInfo?.delegated_amount && (
                   <div className="bg-gray-700/30 p-4 rounded-lg">
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Delegated</h3>
+                    <h3 className="text-sm font-medium text-gray-500 mb-1">Delegated</h3>
                     <p className="text-lg font-semibold text-white">{formatAmount(accountInfo.delegated_amount)}</p>
                   </div>
                 )}
                 
                 {accountInfo?.rewards && (
                   <div className="bg-gray-700/30 p-4 rounded-lg">
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Rewards</h3>
+                    <h3 className="text-sm font-medium text-gray-500 mb-1">Rewards</h3>
                     <p className="text-lg font-semibold text-white">{formatAmount(accountInfo.rewards)}</p>
                   </div>
                 )}
@@ -459,7 +459,7 @@ export default function AddressPage() {
             </div>
             
             {/* Transactions Section */}
-            <div className="dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+            <div className="rounded-lg shadow-md p-6 mb-6">
               <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4">
                 <h2 className="text-xl font-semibold text-white mb-2 md:mb-0">Transactions</h2>
               </div>
