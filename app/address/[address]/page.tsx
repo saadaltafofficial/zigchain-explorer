@@ -386,10 +386,9 @@ export default function AddressPage() {
       */}
 
       {/* Original Content (hidden behind overlay) */}
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-white">Address Details</h1>
-          
+      <div className="container mx-auto py-4">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold text-white px-6">Address Details</h1>
         </div>
         
         {isLoading ? (
@@ -413,42 +412,35 @@ export default function AddressPage() {
         ) : (
           <>
             {/* Address Overview Card */}
-            <div className="rounded-lg shadow-md p-6 mb-6">
-              <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4">
-                <h2 className="text-xl font-semibold text-white mb-2 md:mb-0">Account Overview</h2>
-                <div className="flex items-center space-x-2">
-                  <button 
-                    onClick={copyToClipboard}
-                    className="text-blue-500 hover:text-blue-600 flex items-center"
-                  >
-                    <Copy className="h-4 w-4 mr-1" />
-                    {copied ? 'Copied!' : 'Copy Address'}
-                  </button>
-                  
-                </div>
+            <div className="rounded-lg shadow-md p-6 mb-4">              
+              <div className="bg-gray-700/30 p-4 rounded-sm mb-4 break-all flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <span className="text-gray-300 text-sm sm:text-base">{address}</span>
+                <button 
+                  onClick={copyToClipboard}
+                  className="text-blue-500 hover:text-blue-600 flex items-center self-end sm:self-auto"
+                >
+                  <Copy className="h-4 w-4 mr-1" />
+                  {copied ? 'Copied!' : 'copy'}
+                </button>
               </div>
               
-              <div className="bg-gray-700/30 p-4 rounded-lg mb-4 break-all">
-                <span className="font-mono text-gray-700 ">{address}</span>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Balance</h3>
-                  <p className="text-lg font-semibold text-white">{formatAmount(accountInfo?.balance || '0')}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="bg-gray-700/30 p-4 rounded-sm">
+                  <h3 className="text-sm  text-gray-300 mb-1">Balance</h3>
+                  <p className="text-lg text-gray-300">{formatAmount(accountInfo?.balance || '0')}</p>
                 </div>
                 
 
                 
-                {accountInfo?.delegated_amount && (
-                  <div className="bg-gray-700/30 p-4 rounded-lg">
+                {accountInfo?.delegated_amount && parseInt(accountInfo.delegated_amount) > 0 && (
+                  <div className="bg-gray-700/30 p-4 rounded-sm">
                     <h3 className="text-sm font-medium text-gray-500 mb-1">Delegated</h3>
                     <p className="text-lg font-semibold text-white">{formatAmount(accountInfo.delegated_amount)}</p>
                   </div>
                 )}
                 
-                {accountInfo?.rewards && (
-                  <div className="bg-gray-700/30 p-4 rounded-lg">
+                {accountInfo?.rewards && parseInt(accountInfo.rewards) > 0 && (
+                  <div className="bg-gray-700/30 p-4 rounded-sm">
                     <h3 className="text-sm font-medium text-gray-500 mb-1">Rewards</h3>
                     <p className="text-lg font-semibold text-white">{formatAmount(accountInfo.rewards)}</p>
                   </div>
@@ -477,28 +469,30 @@ export default function AddressPage() {
                   <p className="text-gray-400">No transactions found for this address.</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto overflow-y-auto max-h-[70vh] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
+                <>
+                {/* Desktop view - Table */}
+                <div className="hidden sm:block overflow-x-auto overflow-y-auto max-h-[70vh] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
                   <table className="min-w-full divide-y divide-gray-700">
-                    <thead>
+                    <thead className=''>
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Tx Hash</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Type</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Amount</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
+                        <th className="p-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Tx Hash</th>
+                        <th className="p-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Type</th>
+                        <th className="p-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Amount</th>
+                        <th className="p-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-700">
                       {transactions.map((tx, index) => (
-                        <tr key={`${tx.hash}-${index}`} className="hover:bg-gray-700/30">
-                          <td className="px-4 py-3 whitespace-nowrap">
+                        <tr key={`${tx.hash}-${index}-desktop`} className="hover:bg-gray-700/30">
+                          <td className="p-4 whitespace-nowrap">
                             <Link href={`/tx/${tx.hash}`} className="text-blue-400 hover:text-blue-300 hover:underline flex items-center">
                               {shortenHash(tx.hash)}
                               <ExternalLink className="h-3 w-3 ml-1" />
                             </Link>
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-gray-300">{tx.type}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-gray-300">{convertUzigToZig(tx.amount)}</td>
-                          <td className="px-4 py-3 whitespace-nowrap">
+                          <td className="p-4 whitespace-nowrap text-gray-300">{tx.type}</td>
+                          <td className="p-4 whitespace-nowrap text-gray-300">{convertUzigToZig(tx.amount)}</td>
+                          <td className="p-4 whitespace-nowrap">
                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${tx.status === 'success' ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'}`}>
                               {tx.status}
                             </span>
@@ -508,6 +502,34 @@ export default function AddressPage() {
                     </tbody>
                   </table>
                 </div>
+                
+                {/* Mobile view - Card style list */}
+                <div className="sm:hidden space-y-4">
+                  {transactions.map((tx, index) => (
+                    <div key={`${tx.hash}-${index}-mobile`} className="bg-gray-700/30 p-4 rounded-lg">
+                      <div className="flex justify-between items-start mb-2">
+                        <Link href={`/tx/${tx.hash}`} className="text-blue-400 hover:text-blue-300 hover:underline flex items-center text-sm break-all">
+                          {shortenHash(tx.hash)}
+                          <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
+                        </Link>
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${tx.status === 'success' ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'}`}>
+                          {tx.status}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-gray-400">Type:</span>
+                          <p className="text-gray-300">{tx.type}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Amount:</span>
+                          <p className="text-gray-300">{convertUzigToZig(tx.amount)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                </>
               )}
               
               {transactions.length > 0 && (
