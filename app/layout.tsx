@@ -28,7 +28,6 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="color-scheme" content="dark" />
         <meta name="theme-color" content="#111827" />
-        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
         <style dangerouslySetInnerHTML={{ __html: `
           :root { color-scheme: dark; }
           /* Hide scrollbar for Chrome, Safari and Opera */

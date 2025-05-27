@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Turnstile from './Turnstile';
+import TurnstileWidget from './TurnstileWidget';
 
 const ContactForm = () => {
   const [name, setName] = useState('');
@@ -112,11 +112,14 @@ const ContactForm = () => {
           />
         </div>
         
-        <div className="my-4">
-          <Turnstile 
+        <div className="my-6">
+          <div className="mb-2 text-sm text-gray-400">Please verify you're human</div>
+          <TurnstileWidget
             siteKey="0x4AAAAAABew5HhnhEinNHWQ"
-            onVerify={(token) => setTurnstileToken(token)}
+            onVerify={(token: string) => setTurnstileToken(token)}
             theme="dark"
+            size="normal"
+            className="bg-gray-800 p-2 rounded border border-gray-700"
           />
         </div>
         

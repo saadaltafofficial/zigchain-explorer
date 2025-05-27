@@ -25,4 +25,7 @@ interface Turnstile {
 
 interface Window {
   turnstile: Turnstile;
+  turnstileCallback: (token: string) => void;
+  onloadTurnstileCallback: () => void;
+  onloadGlobalTurnstileCallback: () => void;
 }

@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
+import Script from 'next/script';
 
 interface TurnstileProps {
   siteKey: string;
   onVerify?: (token: string) => void;
-  action?: string;
   theme?: 'light' | 'dark' | 'auto';
   size?: 'normal' | 'compact';
   className?: string;
@@ -14,57 +14,42 @@ interface TurnstileProps {
 const Turnstile = ({
   siteKey,
   onVerify,
-  action,
   theme = 'dark',
   size = 'normal',
   className = '',
 }: TurnstileProps) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const widgetIdRef = useRef<string | null>(null);
-
+  // Define callback function for Turnstile
   useEffect(() => {
-    // Ensure window.turnstile is available
-    if (!window.turnstile) {
-      const checkTurnstile = setInterval(() => {
-        if (window.turnstile) {
-          clearInterval(checkTurnstile);
-          renderWidget();
-        }
-      }, 100);
-      
-      return () => clearInterval(checkTurnstile);
-    } else {
-      renderWidget();
-    }
-
-    function renderWidget() {
-      if (!containerRef.current) return;
-      
-      // Reset if already rendered
-      if (widgetIdRef.current) {
-        window.turnstile.reset(widgetIdRef.current);
-      }
-
-      // Render the widget
-      widgetIdRef.current = window.turnstile.render(containerRef.current, {
-        sitekey: siteKey,
-        callback: (token: string) => {
-          onVerify && onVerify(token);
-        },
-        'theme': theme,
-        'size': size,
-        'action': action,
-      });
-    }
+    // Create global callback function
+    window.turnstileCallback = (token: string) => {
+      console.log('Turnstile verified with token:', token);
+      if (onVerify) onVerify(token);
+    };
 
     return () => {
-      if (widgetIdRef.current) {
-        window.turnstile.remove(widgetIdRef.current);
-      }
+      // @ts-ignore - Clean up global callback
+      window.turnstileCallback = undefined;
     };
-  }, [siteKey, onVerify, action, theme, size]);
+  }, [onVerify]);
 
-  return <div ref={containerRef} className={className} />;
+  return (
+    <>
+      {/* Load Turnstile script directly in the component */}
+      <Script 
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+        strategy="afterInteractive"
+      />
+      
+      {/* Turnstile container */}
+      <div 
+        className={`cf-turnstile ${className}`}
+        data-sitekey={siteKey}
+        data-callback="turnstileCallback"
+        data-theme={theme}
+        data-size={size}
+      />
+    </>
+  );
 };
 
 export default Turnstile;
