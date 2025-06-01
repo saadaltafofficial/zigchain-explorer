@@ -1,0 +1,35 @@
+# Ignore webpack cache files but preserve essential chunks
+cache/
+**/cache/
+**/.cache/
+**/cache/webpack/
+**/*.pack
+
+# Do NOT ignore webpack chunk files needed for runtime
+!**/_next/static/chunks/webpack-*.js
+!**/_next/static/chunks/main-*.js
+!**/_next/static/chunks/pages/_app-*.js
+!**/_next/static/chunks/framework-*.js
+
+# Node modules
+node_modules/
+
+# Development files
+.git/
+.github/
+.vscode/
+.idea/
+
+# Build artifacts not needed for deployment
+.swc/
+.turbo/
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
