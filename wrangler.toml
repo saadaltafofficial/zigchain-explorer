@@ -1,13 +1,13 @@
 # Cloudflare Pages configuration
 [build]
-command = "npm run build"
+command = "npm run deploy:cloudflare"
 
 [build.environment]
 NODE_VERSION = "18"
 
 # Specify the directory to deploy
 [site]
-pages_build_output_dir = ".next"
+pages_build_output_dir = "cloudflare-deploy"
 
 # Enable Node.js compatibility
 [build.processing]

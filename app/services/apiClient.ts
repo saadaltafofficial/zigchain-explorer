@@ -1,13 +1,13 @@
 import axios from 'axios';
 
 // API endpoint for our FastAPI backend - homepage will use this
-const API_ENDPOINT = process.env.NEXT_PUBLIC_API_URL || 'https://zigscan.net/api';
+const API_ENDPOINT = '/api';
 
 // Direct RPC endpoint for fallback
-const RPC_URL = process.env.RPC_URL || 'https://zigscan.net';
+const RPC_URL = '/api/rpc';
 
 // ZigChain Testnet API endpoint - address page will use this
-const ZIGCHAIN_API = 'https://testnet-api.zigchain.com';
+const ZIGCHAIN_API = process.env.REMOTE_API_ENDPOINT || 'https://testnet-api.zigchain.com';
 
 // Local RPC proxy to avoid CORS issues
 const RPC_PROXY_URL = '/api/rpc';
@@ -31,7 +31,7 @@ const checkApiAvailability = async () => {
       return true;
     }
   } catch (error) {
-    console.warn('[API Client] FastAPI backend is not available, falling back to direct RPC calls');
+    console.warn('[API Client] FastAPI backend is not available, falling back to RPC proxy');
     useDirectRpc = true;
   }
   return false;
