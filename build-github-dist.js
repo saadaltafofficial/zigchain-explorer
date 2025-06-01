@@ -123,6 +123,55 @@ Built on: ${new Date().toISOString()}
   fs.writeFileSync(path.join(DIST_DIR, 'README.md'), readmeContent);
 }
 
+// Function to remove webpack cache files
+function removeWebpackCache() {
+  console.log('Removing webpack cache files...');
+  
+  // Find and remove cache directories
+  const cacheDirs = [
+    path.join(__dirname, 'cache'),
+    path.join(__dirname, '.next', 'cache'),
+    path.join(__dirname, 'out', 'cache'),
+    path.join(DIST_DIR, 'cache')
+  ];
+  
+  cacheDirs.forEach(dir => {
+    if (fs.existsSync(dir)) {
+      console.log(`Removing cache directory: ${dir}`);
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+  
+  // Find and remove all .pack files
+  console.log('Searching for .pack files...');
+  
+  function findAndRemovePackFiles(dir) {
+    if (!fs.existsSync(dir)) return;
+    
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      
+      if (entry.isDirectory()) {
+        // If it's a webpack directory, remove it entirely
+        if (entry.name === 'webpack') {
+          console.log(`Removing webpack directory: ${fullPath}`);
+          fs.rmSync(fullPath, { recursive: true, force: true });
+        } else {
+          findAndRemovePackFiles(fullPath);
+        }
+      } else if (entry.name.endsWith('.pack')) {
+        console.log(`Removing .pack file: ${fullPath}`);
+        fs.unlinkSync(fullPath);
+      }
+    }
+  }
+  
+  findAndRemovePackFiles(DIST_DIR);
+  console.log('Webpack cache files removed!');
+}
+
 // Main function
 async function main() {
   try {
@@ -131,6 +180,9 @@ async function main() {
     // Build the Next.js application
     console.log('Building Next.js application...');
     execSync('npm run build', { stdio: 'inherit' });
+    
+    // Remove webpack cache files before copying
+    removeWebpackCache();
     
     // Create the dist directory
     createDistDir();
@@ -143,11 +195,18 @@ async function main() {
     console.log('Copying Cloudflare Functions...');
     copyDir(FUNCTIONS_DIR, path.join(DIST_DIR, 'functions'));
     
+    // Remove webpack cache files again (in case any were copied)
+    removeWebpackCache();
+    
     // Compress JS files
     compressJsFiles();
     
     // Create GitHub-specific files
     createGitHubFiles();
+    
+    // Copy wrangler.toml to dist directory
+    console.log('Copying wrangler.toml to dist directory...');
+    fs.copyFileSync(path.join(__dirname, 'wrangler.toml'), path.join(DIST_DIR, 'wrangler.toml'));
     
     console.log('Build for GitHub deployment complete!');
     console.log(`Optimized distribution created at: ${DIST_DIR}`);

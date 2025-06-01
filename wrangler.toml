@@ -1,14 +1,30 @@
 # Cloudflare Pages configuration
 [build]
-command = "npm run deploy:cloudflare"
+command = ""  # Empty command to skip build process
 
 [build.environment]
 NODE_VERSION = "18"
 
 # Specify the directory to deploy
 [site]
-pages_build_output_dir = "cloudflare-deploy"
+bucket = "."  # Use current directory
 
-# Enable Node.js compatibility
+# Skip all processing
 [build.processing]
-skip_processing = true
+skip = true
+
+# Exclude webpack cache files
+[site.exclude]
+patterns = ["**/cache/**", "**/node_modules/**", "**/*.pack"]
+
+# Define output directory for functions
+[functions]
+directory = "functions"
+
+# Configure headers
+[[headers]]
+for = "/api/*"
+[headers.values]
+Access-Control-Allow-Origin = "*"
+Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+Access-Control-Allow-Headers = "Content-Type"
