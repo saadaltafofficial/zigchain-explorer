@@ -5,11 +5,13 @@ const nextConfig = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
-  // Optimize for Cloudflare Pages
-  output: 'export',  // Use static export for Cloudflare Pages
+  // For Cloudflare Pages, we'll use static export
+  output: 'export',
   images: {
     unoptimized: true, // Required for static export
   },
+  // Add trailing slash to help with routing
+  trailingSlash: true,
   // Configure webpack to split chunks more aggressively
   webpack: (config, { isServer }) => {
     // Only apply to client-side bundles

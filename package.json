@@ -5,8 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:cloudflare": "NODE_ENV=production NEXT_CONFIG_FILE=next.export.config.js next build && next export && node cloudflare-static-export.js",
-    "export": "next export",
+    "build:cloudflare": "node cloudflare-pages.js && node prepare-static-export.js backup && cross-env NODE_ENV=production next build && node prepare-static-export.js restore",
     "start": "next start",
     "lint": "next lint"
   },
@@ -34,6 +33,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "cross-env": "^7.0.3",
     "eslint": "^9",
     "eslint-config-next": "15.2.2",
     "tailwindcss": "^4",

@@ -1,4 +1,4 @@
-# Handle Next.js routes
-/_next/* /_next/:splat 200
-/api/* /api/:splat 200
+# Redirects for Cloudflare Pages
+/api/rpc/* /api/rpc 200
+/api/verify-turnstile/* /api/verify-turnstile 200
 /* /index.html 200

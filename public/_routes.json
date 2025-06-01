@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "include": ["/*"],
+  "exclude": ["/_next/*"],
+  "routes": [
+    { "src": "/api/rpc", "dest": "/api/rpc" },
+    { "src": "/api/verify-turnstile", "dest": "/api/verify-turnstile" },
+    { "src": "/api/*", "dest": "/api/$1" },
+    { "src": "/_next/static/*", "dest": "/_next/static/$1" },
+    { "src": "/static/*", "dest": "/static/$1" },
+    { "src": "/favicon.ico", "dest": "/favicon.ico" },
+    { "src": "/*", "dest": "/index.html" }
+  ]
+}

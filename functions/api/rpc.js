@@ -1,14 +1,14 @@
-import { NextRequest } from 'next/server';
-
-const RPC_URL = process.env.RPC_URL || 'https://zigscan.net';
-
-// Log the RPC URL being used
-console.log('[RPC PROXY] Using RPC_URL:', RPC_URL);
-
-export async function GET(request: NextRequest) {
+// Cloudflare Pages Function to proxy RPC requests
+export async function onRequest(context) {
+  const { request } = context;
+  
   try {
+    // Default RPC URL with fallback
+    const RPC_URL = context.env.RPC_URL || 'https://zigscan.net';
+    
     // Extract path and search params
-    const { searchParams } = new URL(request.url);
+    const url = new URL(request.url);
+    const { searchParams } = url;
     const path = searchParams.get('path') || '';
     // Remove 'path' from params for the real request
     searchParams.delete('path');
@@ -29,38 +29,53 @@ export async function GET(request: NextRequest) {
     const queryString = searchParams.toString();
     
     // Construct the URL - ensure we're using the correct format for zigscan.net
-    let url = '';
+    let targetUrl = '';
     if (path === '/validators') {
       // Special handling for validators endpoint
-      url = `${RPC_URL}/validators`;
+      targetUrl = `${RPC_URL}/validators`;
     } else if (path === '/status') {
       // Special handling for status endpoint
-      url = `${RPC_URL}/status`;
+      targetUrl = `${RPC_URL}/status`;
     } else {
       // Default handling for other endpoints
-      url = `${RPC_URL}${path.startsWith('/') ? path : '/' + path}${queryString ? '?' + queryString : ''}`;
+      targetUrl = `${RPC_URL}${path.startsWith('/') ? path : '/' + path}${queryString ? '?' + queryString : ''}`;
     }
     
-    console.log('[RPC PROXY] Fetching:', url);
+    console.log('[RPC PROXY] Fetching:', targetUrl);
     
     // Fetch from the real RPC endpoint with proper headers
-    const rpcRes = await fetch(url, {
+    const rpcRes = await fetch(targetUrl, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
         'User-Agent': 'ZigChain-Explorer/1.0'
       }
     });
+    
     const body = await rpcRes.text();
     if (rpcRes.status !== 200) {
       console.error('[RPC PROXY] Non-200 response:', rpcRes.status, body);
     }
+    
     return new Response(body, {
       status: rpcRes.status,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type'
+      },
     });
   } catch (err) {
     console.error('[RPC PROXY] Proxy error:', err);
-    return new Response(JSON.stringify({ error: 'Proxy error', detail: String(err) }), { status: 502 });
+    return new Response(JSON.stringify({ error: 'Proxy error', detail: String(err) }), {
+      status: 502,
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type'
+      }
+    });
   }
 }

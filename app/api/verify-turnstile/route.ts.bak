@@ -5,6 +5,9 @@ const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/sit
 // Your secret key from Cloudflare Turnstile
 const TURNSTILE_SECRET_KEY = '0x4AAAAAABfltL9Uqbz7lyBC4Dydi485j7Y';
 
+// Make this route compatible with static exports
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     const { token } = await request.json();

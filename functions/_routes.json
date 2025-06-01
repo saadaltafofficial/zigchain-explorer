@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "include": [
+    "/*"
+  ],
+  "exclude": [
+    "/_next/*",
+    "/static/*",
+    "/images/*"
+  ],
+  "routes": [
+    {
+      "src": "/api/rpc",
+      "dest": "/api/rpc"
+    },
+    {
+      "src": "/api/verify-turnstile",
+      "dest": "/api/verify-turnstile"
+    }
+  ]
+}
