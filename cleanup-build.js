@@ -4,8 +4,8 @@ const path = require('path');
 // Paths to clean up
 const PATHS_TO_REMOVE = [
   'out/cache',                // Remove webpack cache
+  'out/.next/cache',          // Remove Next.js cache in .next
   'out/_next/cache',          // Remove Next.js cache
-  'out/_next/static/chunks',  // We'll selectively copy only needed chunks
 ];
 
 // Function to delete a directory recursively
