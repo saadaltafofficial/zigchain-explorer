@@ -22,6 +22,11 @@
 /dist
 /cloudflare-deploy
 
+# webpack cache files
+cache/webpack/
+**/cache/webpack/client-production/0.pack
+**/cache/webpack/server-production/0.pack
+
 # misc
 .DS_Store
 *.pem
