@@ -1,0 +1,16 @@
+{
+  "build": {
+    "command": "npm run build",
+    "environment": {
+      "NODE_VERSION": "18"
+    },
+    "output_directory": ".next"
+  },
+  "routes": [
+    { "pattern": "/api/*", "script": "api" },
+    { "pattern": "/assets/*", "destination": "/assets/$1" },
+    { "pattern": "/_next/static/*", "destination": "/_next/static/$1" },
+    { "pattern": "/_next/data/*", "destination": "/_next/data/$1" },
+    { "pattern": "/*", "script": "index" }
+  ]
+}

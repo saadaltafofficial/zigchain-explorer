@@ -5,15 +5,14 @@ const nextConfig = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
-};
-
-// Check if we're running on Cloudflare Pages
-if (process.env.CF_PAGES === '1') {
-  // Use Cloudflare Pages specific configuration
-  nextConfig.output = 'standalone';
-  nextConfig.images = {
+  // Cloudflare Pages specific configuration
+  output: 'standalone',
+  // Enable image optimization through Cloudflare
+  images: {
     unoptimized: true,
-  };
-}
+  },
+  // Disable React strict mode for production
+  reactStrictMode: false,
+};
 
 module.exports = nextConfig;
