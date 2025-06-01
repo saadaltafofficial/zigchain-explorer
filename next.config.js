@@ -5,15 +5,55 @@ const nextConfig = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
+  // Optimize for Cloudflare Pages
+  output: 'export',  // Use static export for Cloudflare Pages
+  images: {
+    unoptimized: true, // Required for static export
+  },
+  // Configure webpack to split chunks more aggressively
+  webpack: (config, { isServer }) => {
+    // Only apply to client-side bundles
+    if (!isServer) {
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        maxInitialRequests: 25,
+        minSize: 20000,
+        maxSize: 20000000, // 20MB max chunk size
+        cacheGroups: {
+          default: false,
+          vendors: false,
+          framework: {
+            name: 'framework',
+            test: /[\/]node_modules[\/](@react|react|react-dom|next|scheduler)[\/]/,
+            priority: 40,
+            enforce: true,
+          },
+          lib: {
+            test: /[\/]node_modules[\/]/,
+            name(module) {
+              const packageName = module.context.match(/[\/]node_modules[\/](.*?)(?:[\/]|$)/)[1];
+              return `npm.${packageName.replace('@', '')}`;
+            },
+            priority: 30,
+            minChunks: 1,
+            reuseExistingChunk: true,
+          },
+          commons: {
+            name: 'commons',
+            minChunks: 2,
+            priority: 20,
+          },
+          shared: {
+            name: false,
+            priority: 10,
+            minChunks: 2,
+            reuseExistingChunk: true,
+          },
+        },
+      };
+    }
+    return config;
+  },
 };
-
-// Check if we're running on Cloudflare Pages
-if (process.env.CF_PAGES === '1') {
-  // Use Cloudflare Pages specific configuration
-  nextConfig.output = 'standalone';
-  nextConfig.images = {
-    unoptimized: true,
-  };
-}
 
 module.exports = nextConfig;

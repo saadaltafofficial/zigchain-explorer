@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "build:cloudflare": "next build",
+    "build": "next build && node cloudflare-static-export.js",
+    "build:cloudflare": "next build && node cloudflare-static-export.js",
+    "export": "next export",
     "start": "next start",
     "lint": "next lint"
   },
