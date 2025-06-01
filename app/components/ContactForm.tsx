@@ -115,7 +115,7 @@ const ContactForm = () => {
         <div className="my-6">
           <div className="mb-2 text-sm text-gray-400">Please verify you're human</div>
           <TurnstileWidget
-            siteKey="0x4AAAAAABew5HhnhEinNHWQ"
+            siteKey="0x4AAAAAABfltOPM6LaLW2br"
             onVerify={(token: string) => setTurnstileToken(token)}
             theme="dark"
             size="normal"

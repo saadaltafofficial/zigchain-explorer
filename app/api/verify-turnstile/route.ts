@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // Cloudflare Turnstile verification endpoint
 const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 // Your secret key from Cloudflare Turnstile
-const TURNSTILE_SECRET_KEY = '0x4AAAAAABew5Em_yqc4KU03gAblPApA_FY';
+const TURNSTILE_SECRET_KEY = '0x4AAAAAABfltL9Uqbz7lyBC4Dydi485j7Y';
 
 export async function POST(request: NextRequest) {
   try {
