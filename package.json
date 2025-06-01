@@ -8,6 +8,7 @@
     "build:cloudflare": "node cloudflare-pages.js && node prepare-static-export.js backup && cross-env NODE_ENV=production next build && node prepare-static-export.js restore && node cleanup-build.js",
     "optimize:cloudflare": "node optimize-cloudflare-build.js",
     "deploy:cloudflare": "npm run build:cloudflare && node prepare-cloudflare-deploy.js && npm run optimize:cloudflare",
+    "build:github": "node build-github-dist.js",
     "start": "next start",
     "lint": "next lint"
   },

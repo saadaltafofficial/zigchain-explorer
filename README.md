@@ -36,8 +36,38 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Deploy on Cloudflare Pages
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+To deploy this application on Cloudflare Pages, follow these steps:
+
+1. **Build the optimized distribution**:
+   ```bash
+   # Build the optimized distribution for GitHub deployment
+   npm run build:github
+   ```
+   This will create a `dist` directory with all the optimized files.
+
+2. **Push to GitHub**:
+   ```bash
+   # Create a new repository for the distribution files
+   cd dist
+   git init
+   git add .
+   git commit -m "Add pre-built distribution files"
+   git remote add origin https://github.com/yourusername/zigchain-explorer-dist.git
+   git push -u origin main
+   ```
+
+3. **Connect to Cloudflare Pages**:
+   - Go to Cloudflare Pages dashboard
+   - Create a new project and connect your GitHub repository
+   - In the build settings, set:
+     - Framework preset: None
+     - Build command: (leave empty)
+     - Build output directory: `/`
+     - Root directory: `/`
+   - Deploy!
+
+This approach avoids the build size limitations by using pre-built files.

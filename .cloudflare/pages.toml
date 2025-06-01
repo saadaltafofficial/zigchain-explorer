@@ -1,0 +1,19 @@
+# Cloudflare Pages configuration file
+
+# Specify the directory that contains your pre-built assets
+# This tells Cloudflare Pages to skip the build process and use these files directly
+[build]
+  command = ""  # No build command - use pre-built files
+  publish = "dist"  # The directory containing your pre-built site
+
+# Skip build step completely
+[build.processing]
+  skip = true
+
+# Configure headers for API routes
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type"
