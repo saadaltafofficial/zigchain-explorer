@@ -18,9 +18,9 @@ const nextConfig = {
     if (!isServer) {
       config.optimization.splitChunks = {
         chunks: 'all',
-        maxInitialRequests: 25,
-        minSize: 20000,
-        maxSize: 20000000, // 20MB max chunk size
+        maxInitialRequests: 50, // Increased to allow more chunks
+        minSize: 10000, // Reduced minimum size
+        maxSize: 20000000, // 20MB max chunk size (under Cloudflare's 25MB limit)
         cacheGroups: {
           default: false,
           vendors: false,
@@ -29,7 +29,22 @@ const nextConfig = {
             test: /[\/]node_modules[\/](@react|react|react-dom|next|scheduler)[\/]/,
             priority: 40,
             enforce: true,
+            chunks: 'all',
           },
+          // Split larger libraries into separate chunks
+          cosmjs: {
+            test: /[\/]node_modules[\/](@cosmjs|cosmjs-types)[\/]/,
+            name: 'cosmjs-lib',
+            priority: 35,
+            chunks: 'all',
+          },
+          recharts: {
+            test: /[\/]node_modules[\/](recharts|d3)[\/]/,
+            name: 'recharts-lib',
+            priority: 34,
+            chunks: 'all',
+          },
+          // General node_modules splitting
           lib: {
             test: /[\/]node_modules[\/]/,
             name(module) {
@@ -49,6 +64,7 @@ const nextConfig = {
             name: 'commons',
             minChunks: 2,
             priority: 20,
+            reuseExistingChunk: true,
           },
           shared: {
             name: false,
@@ -58,6 +74,11 @@ const nextConfig = {
           },
         },
       };
+      
+      // Add a minimizer to further reduce bundle size
+      if (config.optimization.minimizer) {
+        config.optimization.minimize = true;
+      }
     }
     return config;
   },
