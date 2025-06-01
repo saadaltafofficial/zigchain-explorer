@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && node cloudflare-static-export.js",
-    "build:cloudflare": "next build && node cloudflare-static-export.js",
+    "build": "next build",
+    "build:cloudflare": "NODE_ENV=production NEXT_CONFIG_FILE=next.export.config.js next build && next export && node cloudflare-static-export.js",
     "export": "next export",
     "start": "next start",
     "lint": "next lint"
