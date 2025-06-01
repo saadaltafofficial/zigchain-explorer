@@ -87,6 +87,57 @@ function copyFunctions() {
   }
 }
 
+// Function to remove webpack cache files
+function removeWebpackCache() {
+  console.log('Explicitly removing webpack cache files...');
+  
+  // Check for cache directory
+  const cacheDir = path.join(DEPLOY_DIR, 'cache');
+  if (fs.existsSync(cacheDir)) {
+    console.log(`Removing cache directory: ${cacheDir}`);
+    fs.rmSync(cacheDir, { recursive: true, force: true });
+  }
+  
+  // Check for webpack directory
+  const webpackDir = path.join(DEPLOY_DIR, '_next', 'cache', 'webpack');
+  if (fs.existsSync(webpackDir)) {
+    console.log(`Removing webpack directory: ${webpackDir}`);
+    fs.rmSync(webpackDir, { recursive: true, force: true });
+  }
+  
+  // Find and remove all .pack files
+  console.log('Searching for .pack files...');
+  findAndRemoveLargeFiles(DEPLOY_DIR);
+}
+
+// Function to find and remove large files
+function findAndRemoveLargeFiles(directory, maxSizeMB = 20) {
+  const entries = fs.readdirSync(directory, { withFileTypes: true });
+  
+  for (const entry of entries) {
+    const fullPath = path.join(directory, entry.name);
+    
+    if (entry.isDirectory()) {
+      findAndRemoveLargeFiles(fullPath, maxSizeMB);
+    } else {
+      // Check if it's a .pack file or a large file
+      if (entry.name.endsWith('.pack')) {
+        console.log(`Removing .pack file: ${fullPath}`);
+        fs.unlinkSync(fullPath);
+      } else {
+        // Check file size
+        const stats = fs.statSync(fullPath);
+        const fileSizeMB = stats.size / (1024 * 1024);
+        
+        if (fileSizeMB > maxSizeMB) {
+          console.log(`Removing large file (${fileSizeMB.toFixed(2)}MB): ${fullPath}`);
+          fs.unlinkSync(fullPath);
+        }
+      }
+    }
+  }
+}
+
 // Main function
 async function main() {
   try {
@@ -100,6 +151,9 @@ async function main() {
     
     // Copy functions
     copyFunctions();
+    
+    // Remove webpack cache files
+    removeWebpackCache();
     
     console.log('Deployment preparation complete!');
     console.log(`Optimized deployment package created at: ${DEPLOY_DIR}`);
