@@ -1,0 +1,14 @@
+[build]
+command = "npm run build"
+publishDirectory = ".next"
+
+[build.environment]
+NODE_VERSION = "18"
+
+[site]
+bucket = ".next"
+
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200
