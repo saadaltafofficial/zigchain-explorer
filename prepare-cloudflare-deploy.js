@@ -13,7 +13,8 @@ const EXCLUDE_PATTERNS = [
   '_next/cache',
   'node_modules',
   '.git',
-  '.pack'
+  '.pack',
+  'webpack'
 ];
 
 // Function to check if path should be excluded
