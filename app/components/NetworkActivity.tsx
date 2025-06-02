@@ -51,7 +51,7 @@ const NetworkActivity: React.FC = () => {
     try {
       // Fetch the latest blocks - we'll use these to calculate all our stats
       // Limit to 100 to avoid overloading the API but still get a good sample
-      const blocksResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'https://zigscan.net/api'}/blocks/latest?limit=100`);
+      const blocksResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'https://zigscan.net/api'}/blocks/latest?limit=50`);
       
       if (blocksResponse.data && blocksResponse.data.length > 0) {
         const blocks: BlockData[] = blocksResponse.data;

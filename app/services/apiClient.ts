@@ -1,16 +1,16 @@
 import axios from 'axios';
 
 // API endpoint for our FastAPI backend - homepage will use this
-const API_ENDPOINT = 'https://www.zigscan.net/api';
+const API_ENDPOINT = 'https://zigscan.net/api';
 
 // Direct RPC endpoint for fallback
-const RPC_URL = 'https://www.zigscan.net';
+const RPC_URL = 'https://zigscan.net';
 
 // ZigChain Testnet API endpoint - address page will use this
 const ZIGCHAIN_API = process.env.REMOTE_API_ENDPOINT || 'https://testnet-api.zigchain.com';
 
 // RPC proxy URL for direct access to RPC endpoints
-const RPC_PROXY_URL = 'https://www.zigscan.net';
+const RPC_PROXY_URL = 'https://zigscan.net';
 
 // Helper function to build proxy URL
 const buildProxyUrl = (path: string, params: Record<string, string> = {}) => {

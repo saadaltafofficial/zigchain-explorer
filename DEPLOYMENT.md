@@ -70,7 +70,7 @@ git push -u origin main
 
 1. Visit your Cloudflare Pages URL or custom domain
 2. Check that the ZigChain Explorer loads correctly
-3. Verify that API requests are correctly going to `www.zigscan.net/api`
+3. Verify that API requests are correctly going to `zigscan.net/api`
 4. Test the blockchain data loading functionality
 
 ## Updating the Deployment
@@ -95,7 +95,7 @@ When you need to update the deployment:
 If you encounter API connection issues:
 
 1. Check the browser console for CORS errors
-2. Verify that `apiClient.ts` is correctly configured to use `https://www.zigscan.net/api`
+2. Verify that `apiClient.ts` is correctly configured to use `https://zigscan.net/api`
 3. Ensure Cloudflare Functions are properly deployed
 
 ### Build Size Issues
