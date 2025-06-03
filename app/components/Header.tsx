@@ -17,8 +17,8 @@ const Header: React.FC = () => {
 
   return (
     <header className="z-50 w-full overflow-hidden">
-      {/* Combined navigation and hero section with black background and blue gradient edges */}
-      <div className="relative w-full" style={{ background: 'linear-gradient(90deg, #131e2c 70%, #3F65C1 100%)' }}>
+      {/* Sticky navigation bar */}
+      <div className="fixed top-0 left-0 right-0 z-50 shadow-md" style={{ background: 'linear-gradient(90deg, #131e2c 70%, #3F65C1 100%)' }}>
         {/* Dark noisy overlay with configurable opacity */}
         <div className="noise-overlay" style={{ opacity: '0.25' }}></div>
         {/* Navigation bar */}
@@ -254,7 +254,13 @@ const Header: React.FC = () => {
           )}
         </div>
         
-        {/* Hero section with search bar */}
+      </div>
+
+      
+      {/* Hero section with search bar */}
+      <div className="relative w-full mt-12" style={{ background: 'linear-gradient(90deg, #131e2c 70%, #3F65C1 100%)' }}>
+        {/* Dark noisy overlay with configurable opacity */}
+        <div className="noise-overlay" style={{ opacity: '0.25' }}></div>
         <div className="py-8 sm:py-10 md:py-14 relative w-full overflow-x-hidden">
           {/* Background pattern - responsive version */}
           <div className="absolute inset-0 overflow-hidden opacity-10">

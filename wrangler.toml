@@ -1,8 +1,0 @@
-# Cloudflare Pages configuration for ZigChain Explorer
-
-# Basic configuration
-name = "zigchain-explorer"
-compatibility_date = "2024-01-01"
-
-# Explicitly set output directory for Pages deployment
-pages_build_output_dir = ".next"
