@@ -463,10 +463,9 @@ export const getBlockTime = async (block: string): Promise<string> => {
 export const getChainInfo = async () => {
   try {
     console.log('[API Client] Fetching from zigscan.net/info');
-    const response = await axios.get('https://zigscan.net/info');
+    const response = await axios.get('https://zigscan.net/api/chain/info');
 
     const data = response.data;
-    console.log('[API Client] Received chain info response:', data);
 
     const result = {
       chainId: data.chain_id ?? 'unknown',
