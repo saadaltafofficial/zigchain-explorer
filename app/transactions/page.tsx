@@ -273,17 +273,12 @@ function TransactionsContent() {
   };
 
   const handleTransactionClick = (hash: string) => {
-    // Update URL with transaction hash
-    router.push(`${pathname}?tx=${hash}${currentPage > 1 ? `&page=${currentPage}` : ''}${itemsPerPage !== 25 ? `&per_page=${itemsPerPage}` : ''}${maxBlocksToFetch !== 50 ? `&blocks=${maxBlocksToFetch}` : ''}`);
+    // Navigate to the well-designed transaction detail page
+    router.push(`/tx/${hash}`);
     
     // Set the referrer for the transaction detail page
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('txReferrer', '/transactions');
-    }
-    
-    const tx = transactions.find(t => t.hash === hash);
-    if (tx) {
-      fetchTransactionDetails(tx);
     }
   };
 
