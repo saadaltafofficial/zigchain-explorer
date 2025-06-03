@@ -1,6 +1,7 @@
+'use client';
 import React from 'react';
 import StatCard from './StatCard';
-import { Database, Clock, Users, Layers, BarChart2, Cpu } from 'lucide-react';
+import { Database, Clock, Users, Layers, BarChart2, Cpu, Activity, Award } from 'lucide-react';
 
 interface HomeStatsProps {
   chainInfo: {
@@ -8,6 +9,10 @@ interface HomeStatsProps {
     blockHeight: number;
     blockTime: number;
     validatorCount: number;
+    activeValidators?: number;
+    votingPower?: number;
+    uptime?: number;
+    transactionsPerSecond?: number;
     bondedTokens: string;
     nodeInfo?: {
       version: string;
@@ -26,9 +31,11 @@ const HomeStats: React.FC<HomeStatsProps> = ({ chainInfo, isLoading }) => {
     } else if (parsedNum >= 1000) {
       return `${(parsedNum / 1000).toFixed(2)}K`;
     } else {
-      return parsedNum.toString();
+      return parsedNum.toFixed(2).replace(/\.?0+$/, '');
     }
   };
+
+  console.log('HomeStats rendering with chainInfo:', chainInfo);
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
@@ -56,8 +63,32 @@ const HomeStats: React.FC<HomeStatsProps> = ({ chainInfo, isLoading }) => {
         icon={<Database size={20} />}
         color="orange"
         isLoading={isLoading}
+        tooltip="The unique identifier for this blockchain network"
       />
-      
+      {/* <StatCard
+        title="TPS"
+        value={isLoading ? '...' : formatNumber(chainInfo?.transactionsPerSecond || 0)}
+        icon={<BarChart2 size={20} />}
+        color="purple"
+        isLoading={isLoading}
+        tooltip="Transactions Per Second"
+      />
+      <StatCard
+        title="Active Validators"
+        value={isLoading ? '...' : formatNumber(chainInfo?.activeValidators || 0)}
+        icon={<Award size={20} />}
+        color="orange"
+        isLoading={isLoading}
+        tooltip="Number of active validators securing the network"
+      />
+      <StatCard
+        title="Network Uptime"
+        value={isLoading ? '...' : `${chainInfo?.uptime}%`}
+        icon={<Activity size={20} />}
+        color="green"
+        isLoading={isLoading}
+        tooltip="Network uptime percentage"
+      /> */}
     </div>
   );
 };

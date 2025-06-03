@@ -79,78 +79,98 @@ const formatDenom = (amount: string, denom: string) => {
  * @param address Account address
  */
 export const getAccountInfo = async (address: string) => {
-  try {
-    console.log('[API Client] Fetching account info for address:', address);
-    
-    // Try fetching from ZigChain Testnet API first
-    try {
-      console.log('[API Client] Fetching from ZigChain API:', `${ZIGCHAIN_API}/cosmos/auth/v1beta1/accounts/${address}`);
-      const authResponse = await axios.get(`${ZIGCHAIN_API}/cosmos/auth/v1beta1/accounts/${address}`);
-      console.log('[API Client] ZigChain Auth API response:', authResponse.data);
-      
-      // Get balance information
-      console.log('[API Client] Fetching balance from ZigChain API:', `${ZIGCHAIN_API}/cosmos/bank/v1beta1/balances/${address}`);
-      const balanceResponse = await axios.get(`${ZIGCHAIN_API}/cosmos/bank/v1beta1/balances/${address}`);
-      console.log('[API Client] ZigChain Balance API response:', balanceResponse.data);
-      
-      // Get delegation information
-      console.log('[API Client] Fetching delegations from ZigChain API:', `${ZIGCHAIN_API}/cosmos/staking/v1beta1/delegations/${address}`);
-      const delegationResponse = await axios.get(`${ZIGCHAIN_API}/cosmos/staking/v1beta1/delegations/${address}`);
-      console.log('[API Client] ZigChain Delegation API response:', delegationResponse.data);
-      
-      // Get rewards information
-      console.log('[API Client] Fetching rewards from ZigChain API:', `${ZIGCHAIN_API}/cosmos/distribution/v1beta1/delegators/${address}/rewards`);
-      const rewardsResponse = await axios.get(`${ZIGCHAIN_API}/cosmos/distribution/v1beta1/delegators/${address}/rewards`);
-      console.log('[API Client] ZigChain Rewards API response:', rewardsResponse.data);
-      
-      // Extract account details
-      const account = authResponse.data.account;
-      const baseAccount = account.base_account || account;
-      
-      // Extract balance information
-      const balances = balanceResponse.data.balances || [];
-      const zigBalance = balances.find((b: any) => b.denom === 'uzig') || { amount: '0', denom: 'uzig' };
-      
-      // Extract delegation information
-      const delegations = delegationResponse.data.delegation_responses || [];
-      let totalDelegated = 0;
-      
-      delegations.forEach((delegation: any) => {
-        if (delegation.balance && delegation.balance.amount) {
-          totalDelegated += parseInt(delegation.balance.amount);
-        }
-      });
-      
-      // Extract rewards information
-      const rewards = rewardsResponse.data.total || [];
-      let totalRewards = 0;
-      
-      rewards.forEach((reward: any) => {
-        if (reward.denom === 'uzig') {
-          totalRewards += parseFloat(reward.amount);
-        }
-      });
-      
-      // Format the account information
-      return {
-        address: address,
-        balance: formatDenom(zigBalance.amount, zigBalance.denom),
-        sequence: parseInt(baseAccount.sequence || '0'),
-        account_number: parseInt(baseAccount.account_number || '0'),
-        delegated_amount: formatDenom(totalDelegated.toString(), 'uzig'),
-        rewards: formatDenom(Math.floor(totalRewards).toString(), 'uzig'),
-        total_transactions: 0 // Will be updated by the transaction count API
-      };
-    } catch (error) {
-      console.warn('[API Client] Failed to get account info from ZigChain API, falling back to API endpoint');
-      
-      // Fallback to our API endpoint
-      const response = await axios.get(`${API_ENDPOINT}/accounts/${address}`);
-      return response.data;
+  // Use browser console.log for client-side and global console for server-side
+  const log = (...args: any[]) => {
+    if (typeof window !== 'undefined') {
+      window.console.log(...args);
     }
+    console.log(...args);
+  };
+  
+  try {
+    log(`[API Client] Fetching account details for ${address}`);
+    
+    // Fetch account details from auth API
+    const authUrl = `https://testnet-api.zigchain.com/cosmos/auth/v1beta1/accounts/${address}`;
+    log(`[API Client] Auth API URL: ${authUrl}`);
+    
+    const authResponse = await axios.get(authUrl);
+    log(`[API Client] Auth API response:`, authResponse.data);
+    
+    // Extract account details
+    const accountData = authResponse.data.account || {};
+    const accountDetails = {
+      address: accountData.address || address,
+      account_number: accountData.account_number || '0',
+      sequence: accountData.sequence || '0',
+      pub_key: accountData.pub_key?.key || null,
+      pub_key_type: accountData.pub_key?.['@type'] || null
+    };
+    
+    // Fetch account balances from bank API
+    const bankUrl = `https://testnet-api.zigchain.com/cosmos/bank/v1beta1/balances/${address}`;
+    log(`[API Client] Bank API URL: ${bankUrl}`);
+    
+    const bankResponse = await axios.get(bankUrl);
+    log(`[API Client] Bank API response:`, bankResponse.data);
+    
+    // Process balances
+    const balances = bankResponse.data.balances || [];
+    
+    // Find uzig balance
+    const uzigBalance = balances.find((b: any) => b.denom === 'uzig');
+    const uzigAmount = uzigBalance ? uzigBalance.amount : '0';
+    
+    // Calculate ZIG amount (1 ZIG = 1,000,000 uzig)
+    const zigAmount = (parseInt(uzigAmount) / 1000000).toFixed(6);
+    
+    // Format other tokens
+    const tokens = balances.map((b: any) => {
+      // Extract token name from denom
+      let tokenName = b.denom;
+      if (tokenName.startsWith('coin.')) {
+        // Extract the last part after the last dot
+        const parts = tokenName.split('.');
+        tokenName = parts[parts.length - 1];
+      }
+      
+      return {
+        denom: b.denom,
+        amount: b.amount,
+        tokenName: tokenName
+      };
+    });
+    
+    // Return combined data
+    const result = {
+      ...accountDetails,
+      balance: formatDenom(uzigAmount, 'uzig'),
+      uzig_balance: uzigAmount,
+      zig_balance: zigAmount,
+      tokens: tokens,
+      total_tokens: tokens.length
+    };
+    
+    log(`[API Client] Processed account info:`, result);
+    return result;
+    
   } catch (error) {
-    console.error('[API Client] Error fetching account info:', error);
-    throw error;
+    log(`[API Client] Error fetching account info for ${address}:`, error);
+    if (error instanceof Error) {
+      log(`[API Client] Error details: ${error.message}`);
+    }
+    
+    // Return a default object with error information
+    return {
+      address: address,
+      balance: '0',
+      uzig_balance: '0',
+      account_number: '0',
+      sequence: '0',
+      tokens: [],
+      total_tokens: 0,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
   }
 };
 
@@ -442,48 +462,79 @@ export const getBlockTime = async (block: string): Promise<string> => {
  */
 export const getChainInfo = async () => {
   try {
-    console.log('[API Client] Fetching chain info');
-    
-    // Try fetching from our API endpoint first
+    console.log('[API Client] Fetching from zigscan.net/info');
+    const response = await axios.get('https://zigscan.net/info');
+
+    const data = response.data;
+    console.log('[API Client] Received chain info response:', data);
+
+    const result = {
+      chainId: data.chain_id ?? 'unknown',
+      blockHeight: data.latest_block_height ?? 0,
+      blockTime: data.block_time ?? 5.0,
+      validatorCount: data.validator_count ?? 0,
+      activeValidators: data.active_validators ?? 0,
+      votingPower: data.voting_power ?? 0,
+      uptime: parseFloat(data.uptime),
+      transactionsPerSecond: data.transactionsPerSecond ?? 0,
+      bondedTokens: `${data.voting_power ?? 0} ZIG`,
+      nodeInfo: {
+        version: '1.0.0'
+      },
+      version: '1.0.0'
+    };
+
+    console.log('[API Client] Chain info:', result);
+    return result;
+
+  } catch (error) {
+    console.warn('[API Client] Primary info fetch failed, falling back to RPC...');
+    console.error(error);
+
     try {
-      const response = await axios.get(`${API_ENDPOINT}/chain/info`);
-      return response.data;
-    } catch (error) {
-      console.warn('[API Client] Failed to get chain info from API endpoint, falling back to RPC');
-      
-      // Fallback to direct RPC call
-      const statusResponse = await axios.get(buildProxyUrl('/status'));
-      const validatorsResponse = await axios.get(buildProxyUrl('/validators'));
-      
-      // Extract chain info from status response
-      const nodeInfo = statusResponse.data?.result?.node_info || {};
-      const syncInfo = statusResponse.data?.result?.sync_info || {};
-      const validatorInfo = statusResponse.data?.result?.validator_info || {};
-      
-      // Extract validators info
-      const validators = validatorsResponse.data?.result?.validators || [];
-      
-      // Format the chain information
+      const statusRes = await axios.get(buildProxyUrl('/status'));
+      const validatorsRes = await axios.get(buildProxyUrl('/validators'));
+
+      const nodeInfo = statusRes.data?.result?.node_info || {};
+      const syncInfo = statusRes.data?.result?.sync_info || {};
+      const validators = validatorsRes.data?.result?.validators || [];
+
       return {
-        chain_id: nodeInfo.network,
-        latest_block_height: parseInt(syncInfo.latest_block_height || '0'),
-        latest_block_time: syncInfo.latest_block_time,
-        active_validators: validators.length,
-        total_validators: validators.length,
-        average_block_time: '6.0', // Placeholder - calculate from actual data if available
-        total_transactions: '0', // Placeholder - get from a stats endpoint if available
-        community_pool: '0 ZIG', // Placeholder - get from a stats endpoint if available
-        inflation: '0.0%', // Placeholder - get from a stats endpoint if available
-        staking_ratio: '0.0%', // Placeholder - get from a stats endpoint if available
-        bonded_tokens: '0 ZIG', // Placeholder - get from a stats endpoint if available
+        chainId: nodeInfo.network ?? 'unknown',
+        blockHeight: parseInt(syncInfo.latest_block_height ?? '0'),
+        blockTime: 5.0,
+        validatorCount: validators.length,
+        activeValidators: validators.length,
+        votingPower: 0,
+        uptime: 0,
+        transactionsPerSecond: 0,
+        bondedTokens: '0 ZIG',
+        nodeInfo: {
+          version: nodeInfo.version ?? '0.0.0'
+        },
+        version: nodeInfo.version ?? '0.0.0'
+      };
+
+    } catch (fallbackError) {
+      console.error('[API Client] Fallback RPC call failed:', fallbackError);
+      return {
+        chainId: 'unknown',
+        blockHeight: 0,
+        blockTime: 5.0,
+        validatorCount: 0,
+        activeValidators: 0,
+        votingPower: 0,
+        uptime: 0,
+        transactionsPerSecond: 0,
+        bondedTokens: '0 ZIG',
+        nodeInfo: {
+          version: '0.0.0'
+        },
+        version: '0.0.0'
       };
     }
-  } catch (error) {
-    console.error('[API Client] Error fetching chain info:', error);
-    throw error;
   }
 };
-
 /**
  * Get latest blocks
  * @param limit Number of blocks to fetch

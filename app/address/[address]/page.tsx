@@ -9,11 +9,19 @@ import { getAccountInfo, getTransactionsByAddress } from '@/app/services/api';
 interface AccountInfo {
   address: string;
   balance: string;
-  sequence: number;
-  account_number: number;
-  delegated_amount?: string;
-  rewards?: string;
-  total_transactions?: number;
+  uzig_balance?: string;
+  zig_balance?: string;
+  sequence: string | number;
+  account_number: string | number;
+  pub_key?: string | null;
+  pub_key_type?: string | null;
+  tokens?: Array<{
+    denom: string;
+    amount: string;
+    tokenName: string;
+  }>;
+  total_tokens?: number;
+  error?: string;
 }
 
 export default function AddressPage() {
@@ -33,7 +41,7 @@ export default function AddressPage() {
   const [isRefreshingTx, setIsRefreshingTx] = useState(false);
   const [hasMoreTx, setHasMoreTx] = useState(false);
   const [totalTxCount, setTotalTxCount] = useState(0);
-  const [currentMaxPages, setCurrentMaxPages] = useState(3); // Start with 3 pages
+  const [currentMaxPages, setCurrentMaxPages] = useState(10); // Start with 3 pages
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   
   // Function to fetch transactions for the address
@@ -41,7 +49,7 @@ export default function AddressPage() {
     if (isRefreshing) {
       setIsRefreshingTx(true);
       // Reset pagination when refreshing
-      setCurrentMaxPages(3);
+      setCurrentMaxPages(10);
     } else if (loadMore) {
       setIsLoadingMore(true);
     } else {
@@ -449,29 +457,67 @@ export default function AddressPage() {
               </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Balance Card */}
                 <div className="bg-gray-700/30 p-4 rounded-sm">
-                  <h3 className="text-sm  text-gray-300 mb-1">Balance</h3>
-                  <p className="text-lg text-gray-300">{formatAmount(accountInfo?.balance || '0')}</p>
+                  <h3 className="text-sm text-gray-300 mb-1">Balance</h3>
+                  <p className="text-lg text-gray-300">{accountInfo?.zig_balance || '0'} ZIG</p>
+                  <p className="text-xs text-gray-400">{accountInfo?.uzig_balance || '0'} uzig</p>
                 </div>
                 
-
-                
-                {accountInfo?.delegated_amount && parseInt(accountInfo.delegated_amount) > 0 && (
-                  <div className="bg-gray-700/30 p-4 rounded-sm">
-                    <h3 className="text-sm font-medium text-gray-500 mb-1">Delegated</h3>
-                    <p className="text-lg font-semibold text-white">{formatAmount(accountInfo.delegated_amount)}</p>
+                {/* Account Details Card */}
+                <div className="bg-gray-700/30 p-4 rounded-sm">
+                  <h3 className="text-sm text-gray-300 mb-1">Account Details</h3>
+                  <div className="text-xs text-gray-400">
+                    <div className="flex justify-between">
+                      <span>Account Number:</span>
+                      <span>{accountInfo?.account_number || '0'}</span>
+                    </div>
+                    <div className="flex justify-between mt-1">
+                      <span>Sequence:</span>
+                      <span>{accountInfo?.sequence || '0'}</span>
+                    </div>
                   </div>
-                )}
+                </div>
                 
-                {accountInfo?.rewards && parseInt(accountInfo.rewards) > 0 && (
-                  <div className="bg-gray-700/30 p-4 rounded-sm">
-                    <h3 className="text-sm font-medium text-gray-500 mb-1">Rewards</h3>
-                    <p className="text-lg font-semibold text-white">{formatAmount(accountInfo.rewards)}</p>
-                  </div>
-                )}
-                
-
+                {/* Token Count Card */}
+                <div className="bg-gray-700/30 p-4 rounded-sm">
+                  <h3 className="text-sm text-gray-300 mb-1">Token Holdings</h3>
+                  <p className="text-lg text-gray-300">{accountInfo?.total_tokens || 0} tokens</p>
+                </div>
               </div>
+              
+              {/* Token List Section */}
+              {accountInfo?.tokens && accountInfo.tokens.length > 0 && (
+                <div className="mt-6 bg-gray-700/30 p-4 rounded-sm">
+                  <h3 className="text-sm text-gray-300 mb-3">Token Holdings</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-600">
+                      <thead>
+                        <tr>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Token</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Amount</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Denom</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-600">
+                        {accountInfo.tokens.map((token, index) => (
+                          <tr key={`token-${index}`} className="hover:bg-gray-700/50">
+                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-300">{token.tokenName}</td>
+                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-300">{token.amount}</td>
+                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-300">{token.denom}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+              
+              {accountInfo?.error && (
+                <div className="mt-4 p-3 bg-red-900/30 text-red-400 rounded-sm text-sm">
+                  <p>Error loading account details: {accountInfo.error}</p>
+                </div>
+              )}
             </div>
             
             {/* Transactions Section */}
