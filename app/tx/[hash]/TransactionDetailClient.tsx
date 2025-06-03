@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { getTransactionByHash } from '@/app/services/api';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Copy, Check } from 'lucide-react';
 import Link from 'next/link';
 import { formatDate, truncateString, convertUzigToZig } from '@/app/utils/format';
 
@@ -49,6 +49,9 @@ export default function TransactionDetailClient({ params }: TransactionDetailCli
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [showJson, setShowJson] = useState(false);
+  const jsonRef = useRef<HTMLPreElement>(null);
 
   useEffect(() => {
     const fetchTransaction = async () => {
@@ -110,6 +113,19 @@ export default function TransactionDetailClient({ params }: TransactionDetailCli
         return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+    }
+  };
+
+  // Function to copy JSON to clipboard
+  const copyToClipboard = () => {
+    if (jsonRef.current && transaction) {
+      const jsonText = JSON.stringify(transaction, null, 2);
+      navigator.clipboard.writeText(jsonText).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }).catch(err => {
+        console.error('Failed to copy: ', err);
+      });
     }
   };
 
@@ -273,7 +289,7 @@ export default function TransactionDetailClient({ params }: TransactionDetailCli
                     
                     <div>
                       <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Recipients</p>
-                      <div className="bg-gray-50 dark:bg-gray-900 rounded-md p-3 space-y-2">
+                      <div className="bg-gray-50 dark:bg-gray-900 rounded-md p-3 space-y-2 h-96 overflow-y-scroll">
                         {transaction.multiSendData.outputs.map((output, index) => (
                           <div key={`output-${index}`} className="border-b border-gray-200 dark:border-gray-700 pb-2 last:border-0 last:pb-0">
                             <p className="text-xs text-gray-500 dark:text-gray-400">Address</p>
@@ -287,6 +303,38 @@ export default function TransactionDetailClient({ params }: TransactionDetailCli
                   </div>
                 )}
                 
+          {/* JSON Data Section */}
+          <div className="mt-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Raw Transaction Data</h2>
+              <button
+                onClick={() => setShowJson(!showJson)}
+                className="text-blue-500 hover:text-blue-700 text-sm font-medium"
+              >
+                {showJson ? 'Hide JSON' : 'Show JSON'}
+              </button>
+            </div>
+            
+            {showJson && (
+              <div className="mt-2 relative">
+                <div className="absolute top-2 right-6">
+                  <button
+                    onClick={copyToClipboard}
+                    className="p-2 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                    title="Copy to clipboard"
+                  >
+                    {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                  </button>
+                </div>
+                <pre
+                  ref={jsonRef}
+                  className="bg-gray-100 dark:bg-gray-900 p-4 rounded-md overflow-auto text-xs font-mono max-h-96"
+                >
+                  {JSON.stringify(transaction, null, 2)}
+                </pre>
+              </div>
+            )}
+          </div>
                 {/* For other transaction types */}
                 {!['transfer', 'multisend'].includes(transaction.type || '') && (
                   <div>
@@ -336,6 +384,7 @@ export default function TransactionDetailClient({ params }: TransactionDetailCli
               </div>
             </div>
           )}
+          
         </div>
       </div>
     </div>

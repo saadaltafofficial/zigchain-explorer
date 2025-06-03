@@ -261,7 +261,7 @@ const Header: React.FC = () => {
       <div className="relative w-full mt-12" style={{ background: 'linear-gradient(90deg, #131e2c 70%, #3F65C1 100%)' }}>
         {/* Dark noisy overlay with configurable opacity */}
         <div className="noise-overlay" style={{ opacity: '0.25' }}></div>
-        <div className="py-8 sm:py-10 md:py-14 relative w-full overflow-x-hidden">
+        <div className="py-6 sm:py-8 md:py-12 relative w-full overflow-x-hidden overflow-y-hidden">
           {/* Background pattern - responsive version */}
           <div className="absolute inset-0 overflow-hidden opacity-10">
             <div className="absolute sm:-top-24 -top-12 sm:-left-24 -left-12 sm:w-96 w-64 sm:h-96 h-64 rounded-full bg-blue-400 blur-3xl"></div>
@@ -273,7 +273,7 @@ const Header: React.FC = () => {
               <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2 sm:mb-3">Explore ZIGChain</h1>
               <p className="text-blue-100 font-light text-sm sm:text-base md:text-md max-w-2xl mx-auto">Search transactions, blocks, validators</p>
             </div>
-            <div className="relative z-30 search-container">
+            <div className="relative z-60 search-container">
               <Suspense fallback={<div className="h-12 bg-gray-800 rounded-lg animate-pulse"></div>}>
                 <SearchBar />
               </Suspense>

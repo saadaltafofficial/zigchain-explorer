@@ -9,8 +9,6 @@ const RPC_URL = 'https://rpc.zigscan.net';
 // ZigChain API endpoint (Cosmos API/REST)
 const ZIGCHAIN_API = process.env.NEXT_PUBLIC_ZIGCHAIN_API || 'https://api.zigscan.net';
 
-// Indexer API URL for transaction indexing
-const INDEXER_API_URL = 'https://indexer-api.zigscan.net';
 
 // RPC proxy URL for direct access to RPC endpoints (Tendermint RPC)
 const RPC_PROXY_URL = 'https://rpc.zigscan.net';
@@ -31,27 +29,6 @@ const buildProxyUrl = (path: string, params: Record<string, string> = {}) => {
   return baseUrl;
 };
 
-// Flag to determine if we should use direct RPC calls
-let useDirectRpc = false;
-
-// Function to check if the API is available
-const checkApiAvailability = async () => {
-  try {
-    const response = await axios.get(`${INDEXER_API_URL}/chain/info`);
-    if (response.status === 200) {
-      // FastAPI backend is available
-      useDirectRpc = false;
-      return true;
-    }
-  } catch (error) {
-    console.warn('[API Client] FastAPI backend is not available, falling back to RPC proxy');
-    useDirectRpc = true;
-  }
-  return false;
-};
-
-// Check API availability on startup
-checkApiAvailability();
 
 // Helper function to log and handle errors
 const handleApiError = (error: unknown, context: string): never => {
@@ -308,101 +285,86 @@ export const getBlockTime = async (block: string): Promise<string> => {
 /**
  * Get chain information
  */
-export const getChainInfo = async () => {
-  // Try the main API endpoint first
+// Define the ChainInfo interface based on expected structure and new API data
+export interface ChainInfo {
+  chainId: string;
+  blockHeight: number;
+  blockTime: number; // Represents an average block time, default to 5s as new API gives specific timestamp
+  latestBlockTimestamp?: string; // Actual timestamp of the latest block from new API
+  validatorCount: number;
+  activeValidators: number;
+  votingPower: number; // Voting power of the specific validator in validator_info, not total network voting power
+  uptime: number; // Not available from /status, will be defaulted
+  transactionsPerSecond: number; // Not available from /status, will be defaulted
+  bondedTokens: string; // Not available from /status, will be defaulted
+  nodeInfo: {
+    protocol_version: { p2p: string; block: string; app: string };
+    id: string;
+    listen_addr: string;
+    network: string;
+    version: string;
+    channels: string;
+    moniker: string;
+    other: { tx_index: string; rpc_address: string };
+  } | null;
+  version: string;
+  isCatchingUp?: boolean;
+}
+
+const DEFAULT_CHAIN_INFO: ChainInfo = {
+  chainId: 'unknown',
+  blockHeight: 0,
+  blockTime: 5.0, // Default average block time
+  latestBlockTimestamp: undefined,
+  validatorCount: 0,
+  activeValidators: 0,
+  votingPower: 0,
+  uptime: 0,
+  transactionsPerSecond: 0,
+  bondedTokens: '0 ZIG',
+  nodeInfo: null,
+  version: '0.0.0',
+  isCatchingUp: false,
+};
+
+/**
+ * Get chain information from the RPC status endpoint
+ */
+export const getChainInfo = async (): Promise<ChainInfo> => {
   try {
-    console.log('[API Client] Fetching chain info from API endpoint');
-    const response = await axios.get(`${INDEXER_API_URL}/chain/info`, { timeout: 5000 });
+    console.log('[API Client] Fetching chain info from RPC endpoint: https://rpc.zigscan.net/status');
+    const response = await axios.get('https://rpc.zigscan.net/status', { timeout: 10000 });
 
-    if (response.status === 200 && response.data) {
-      const data = response.data;
+    if (response.status === 200 && response.data && response.data.result) {
+      const result = response.data.result;
+      const nodeInfo = result.node_info;
+      const syncInfo = result.sync_info;
+      const validatorInfo = result.validator_info;
+
       return {
-        chainId: data.chain_id || 'zig-test-2',
-        blockHeight: parseInt(data.latest_block_height) || 0,
-        blockTime: parseFloat(data.block_time) || 5,
-        validatorCount: parseInt(data.validator_count) || 0,
-        activeValidators: parseInt(data.active_validators) || 0,
-        votingPower: parseInt(data.voting_power) || 0,
-        uptime: parseFloat(data.uptime) || 0,
-        transactionsPerSecond: parseFloat(data.transactions_per_second) || 0,
-        bondedTokens: data.bonded_tokens || '0 ZIG',
-        nodeInfo: data.node_info || { version: '0.38.17' },
-        version: data.node_info?.version || '0.38.17'
+        chainId: nodeInfo?.network || 'unknown',
+        blockHeight: syncInfo?.latest_block_height ? parseInt(syncInfo.latest_block_height) : 0,
+        blockTime: 5.0, // Default average block time as /status provides a timestamp not an average
+        latestBlockTimestamp: syncInfo?.latest_block_time || undefined,
+        validatorCount: validatorInfo ? 3 : 0, // /status provides info for one validator, not total count
+        activeValidators: validatorInfo ? 3 : 0, // Assuming if one is present, it's active
+        votingPower: validatorInfo?.voting_power ? parseInt(validatorInfo.voting_power) : 0, // Voting power of the specific validator
+        uptime: 0, // Not available from /status
+        transactionsPerSecond: 0, // Not available from /status
+        bondedTokens: '0 ZIG', // Not available from /status
+        nodeInfo: nodeInfo || null,
+        version: nodeInfo?.version || '0.0.0',
+        isCatchingUp: syncInfo?.catching_up || false,
       };
     }
+    console.error('[API Client] Failed to fetch valid data from RPC, status:', response.status);
+    return DEFAULT_CHAIN_INFO;
   } catch (error) {
-    console.warn('[API Client] Primary API endpoint fetch failed, trying indexer API...');
-  }
-  
-  // Try the indexer API as a second option
-  try {
-    console.log('[API Client] Fetching chain info from indexer API');
-    const response = await axios.get(`${INDEXER_API_URL}/chain/info`, { timeout: 5000 });
-
-    if (response.status === 200 && response.data) {
-      const data = response.data;
-      return {
-        chainId: data.chain_id || 'zig-test-2',
-        blockHeight: parseInt(data.latest_block_height) || 0,
-        blockTime: parseFloat(data.block_time) || 5,
-        validatorCount: parseInt(data.validator_count) || 0,
-        activeValidators: parseInt(data.active_validators) || 0,
-        votingPower: parseInt(data.voting_power) || 0,
-        uptime: parseFloat(data.uptime) || 0,
-        transactionsPerSecond: parseFloat(data.transactions_per_second) || 0,
-        bondedTokens: data.bonded_tokens || '0 ZIG',
-        nodeInfo: data.node_info || { version: '0.38.17' },
-        version: data.node_info?.version || '0.38.17'
-      };
-    }
-  } catch (error) {
-    console.warn('[API Client] Indexer API fetch failed, falling back to RPC...');
-    console.error(error);
-
-    try {
-      const statusRes = await axios.get(buildProxyUrl('/status'));
-      const validatorsRes = await axios.get(buildProxyUrl('/validators'));
-
-      const nodeInfo = statusRes.data?.result?.node_info || {};
-      const syncInfo = statusRes.data?.result?.sync_info || {};
-      const validators = validatorsRes.data?.result?.validators || [];
-
-      return {
-        chainId: nodeInfo.network ?? 'unknown',
-        blockHeight: parseInt(syncInfo.latest_block_height ?? '0'),
-        blockTime: 5.0,
-        validatorCount: validators.length,
-        activeValidators: validators.length,
-        votingPower: 0,
-        uptime: 0,
-        transactionsPerSecond: 0,
-        bondedTokens: '0 ZIG',
-        nodeInfo: {
-          version: nodeInfo.version ?? '0.0.0'
-        },
-        version: nodeInfo.version ?? '0.0.0'
-      };
-
-    } catch (fallbackError) {
-      console.error('[API Client] Fallback RPC call failed:', fallbackError);
-      return {
-        chainId: 'unknown',
-        blockHeight: 0,
-        blockTime: 5.0,
-        validatorCount: 0,
-        activeValidators: 0,
-        votingPower: 0,
-        uptime: 0,
-        transactionsPerSecond: 0,
-        bondedTokens: '0 ZIG',
-        nodeInfo: {
-          version: '0.0.0'
-        },
-        version: '0.0.0'
-      };
-    }
+    console.error('[API Client] Error fetching chain info from RPC:', error);
+    return DEFAULT_CHAIN_INFO;
   }
 };
+
 /**
  * Get latest blocks
  * @param limit Number of blocks to fetch
@@ -422,21 +384,7 @@ export const getLatestBlocks = async (limit = 5) => {
         return response.data;
       }
     } catch (error) {
-      console.warn('[API Client] Failed to get latest blocks from main API endpoint, trying indexer API');
-    }
-    
-    // Try fetching from indexer API next
-    try {
-      console.log(`[API Client] Trying indexer API: ${INDEXER_API_URL}/blocks/latest`);
-      const response = await axios.get(`${INDEXER_API_URL}/blocks/latest`, {
-        params: { limit },
-        timeout: 5000
-      });
-      if (response.status === 200) {
-        return response.data;
-      }
-    } catch (error) {
-      console.warn('[API Client] Failed to get latest blocks from indexer API, falling back to RPC');
+      console.warn('[API Client] Failed to get latest blocks from main API endpoint, falling back to RPC');
     }
     
     // Fallback to direct RPC call
@@ -509,36 +457,25 @@ export const getTransactionBlockHeight = async (txHash: string): Promise<string 
 export const getLatestTransactions = async (limit = 5) => {
   try {
     console.log(`[API Client] Fetching latest ${limit} transactions`);
-    
+
     // Try fetching from our main API endpoint first
     try {
-      console.log(`[API Client] Trying main API endpoint: ${INDEXER_API_URL}/transactions/latest`);
-      const response = await axios.get(`${INDEXER_API_URL}/transactions/latest`, {
+      console.log(`[API Client] Trying main API endpoint for transactions: ${API_ENDPOINT}/transactions/latest`);
+      const response = await axios.get(`${API_ENDPOINT}/transactions/latest`, {
         params: { limit },
         timeout: 5000
       });
-      if (response.status === 200) {
+      if (response.status === 200 && response.data) {
+        console.log('[API Client] Successfully fetched latest transactions from main API endpoint.');
         return response.data;
       }
+      console.warn(`[API Client] Main API endpoint for latest transactions returned status: ${response.status}, falling back to RPC.`);
     } catch (error) {
-      console.warn('[API Client] Failed to get latest transactions from main API endpoint, trying indexer API');
-    }
-    
-    // Try fetching from indexer API next
-    try {
-      console.log(`[API Client] Trying indexer API: ${INDEXER_API_URL}/transactions/latest`);
-      const response = await axios.get(`${INDEXER_API_URL}/transactions/latest`, {
-        params: { limit },
-        timeout: 5000
-      });
-      if (response.status === 200) {
-        return response.data;
-      }
-    } catch (error) {
-      console.warn('[API Client] Failed to get latest transactions from indexer API, falling back to RPC');
+      console.warn('[API Client] Failed to get latest transactions from main API endpoint, falling back to RPC:', error instanceof Error ? error.message : error);
     }
     
     // Fallback to direct RPC call - query recent transactions
+    console.log('[API Client] Falling back to RPC for latest transactions.');
     // Build the URL with parameters directly to avoid issues with parameter encoding
     const queryParam = encodeURIComponent('"tx.height > 0"');
     const perPage = encodeURIComponent(limit.toString());
@@ -551,77 +488,68 @@ export const getLatestTransactions = async (limit = 5) => {
       const txs = txSearchResponse.data?.result?.txs || [];
       
       // Format the transactions
-      return txs.map((tx: any) => {
+      const formattedTransactions = await Promise.all(txs.map(async (tx: any) => {
         // Extract basic transaction info
         const txHash = tx.hash || '';
         const txHeight = tx.height || '0';
-        
-        // Try to extract more details from the tx result
-        let txType = 'transfer';
-        let amount = '0 ZIG';
-        let from = '';
-        let to = '';
-        
-        // Safe base64 decode function that handles errors
-        const safeAtob = (str: string) => {
+        let blockTime = new Date().toISOString(); // Default, will be overwritten by actual block time
+
+        if (txHeight !== '0') {
           try {
-            // Check if the string is valid base64
-            if (typeof str !== 'string') return '';
-            if (str.trim() === '') return '';
-            
-            // Some base64 strings might need padding
-            const padded = str.padEnd(Math.ceil(str.length / 4) * 4, '=');
-            return atob(padded);
+            // console.log(`[API Client] Fetching block header for height ${txHeight} to get timestamp for tx ${txHash}`);
+            const blockResponse = await axios.get(`${RPC_URL}/block?height=${txHeight}`, { timeout: 5000 });
+            if (blockResponse.data && blockResponse.data.result && blockResponse.data.result.block && blockResponse.data.result.block.header && blockResponse.data.result.block.header.time) {
+              blockTime = blockResponse.data.result.block.header.time;
+            } else {
+              console.warn(`[API Client] Could not fetch valid block time for height ${txHeight}. Response:`, blockResponse.data);
+            }
+          } catch (blockError) {
+            console.warn(`[API Client] Error fetching block at height ${txHeight} for timestamp:`, blockError instanceof Error ? blockError.message : String(blockError));
+          }
+        }
+        
+        let amount = '0 ZIG';
+        let fromAddress = '';
+        let toAddress = '';
+        
+        const safeAtob = (str: string): string => {
+          try {
+            if (typeof str !== 'string' || str.trim() === '') return '';
+            const paddedStr = str.padEnd(Math.ceil(str.length / 4) * 4, '=');
+            return atob(paddedStr);
           } catch (error) {
-            console.warn(`[API Client] Error decoding base64 string: ${str}`, error);
+            console.warn(`[API Client] Error decoding base64 string: '${str}'`, error instanceof Error ? error.message : String(error));
             return '';
           }
         };
         
-        // Extract events if available
         const events = tx.tx_result?.events || [];
-        
-        // Look for transfer events
         const transferEvent = events.find((event: any) => event.type === 'transfer');
         if (transferEvent) {
           const attributes = transferEvent.attributes || [];
+          const senderAttr = attributes.find((attr: any) => safeAtob(attr.key) === 'sender');
+          const recipientAttr = attributes.find((attr: any) => safeAtob(attr.key) === 'recipient');
+          const amountAttr = attributes.find((attr: any) => safeAtob(attr.key) === 'amount');
           
-          // Find sender and recipient using safe decoding
-          const senderAttr = attributes.find((attr: any) => {
-            try { return safeAtob(attr.key) === 'sender'; } 
-            catch { return false; }
-          });
-          
-          const recipientAttr = attributes.find((attr: any) => {
-            try { return safeAtob(attr.key) === 'recipient'; } 
-            catch { return false; }
-          });
-          
-          const amountAttr = attributes.find((attr: any) => {
-            try { return safeAtob(attr.key) === 'amount'; } 
-            catch { return false; }
-          });
-          
-          if (senderAttr) from = safeAtob(senderAttr.value);
-          if (recipientAttr) to = safeAtob(recipientAttr.value);
+          if (senderAttr) fromAddress = safeAtob(senderAttr.value);
+          if (recipientAttr) toAddress = safeAtob(recipientAttr.value);
           if (amountAttr) amount = safeAtob(amountAttr.value);
         }
         
         return {
           hash: txHash,
-          height: txHeight,
-          time: new Date().toISOString(), // Placeholder - get actual time from block if available
-          type: txType,
+          block_id: parseInt(txHeight) || 0,
+          created_at: blockTime,
           status: tx.tx_result?.code === 0 ? 'success' : 'failed',
-          fee: '0.01 ZIG', // Placeholder - extract from tx data if available
+          fee: '0.01 ZIG', // Placeholder
           amount: amount,
-          from: from,
-          to: to
+          from_address: fromAddress,
+          to_address: toAddress,
         };
-      });
-    }
-  catch (error) {
-    console.error('[API Client] Error fetching latest transactions:', error);
+      }));
+      return formattedTransactions;
+  } catch (error) {
+    console.error('[API Client] Error fetching latest transactions (overall process):', error);
     return [];
   } 
 };

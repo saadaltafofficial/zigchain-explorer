@@ -1,8 +1,8 @@
 import React from 'react';
-import { getLatestBlocks, getLatestTransactions, getChainInfo } from './services/api';
+import { getLatestBlocks, getLatestTransactions, getChainInfo, ChainInfo } from './services/api'; // Updated import
 import HomeWrapper from './HomeWrapper';
 
-// Define types for the state
+// Define types for the state (local ChainInfo removed)
 interface Block {
   height: number;
   hash: string;
@@ -21,17 +21,6 @@ interface Transaction {
   id: number;
   fee: string;
   created_at: string;
-}
-
-interface ChainInfo {
-  chainId: string;
-  blockHeight: number;
-  blockTime: number;
-  validatorCount: number;
-  bondedTokens: string;
-  nodeInfo: {
-    version: string;
-  };
 }
 
 // Server component - fetches data on the server

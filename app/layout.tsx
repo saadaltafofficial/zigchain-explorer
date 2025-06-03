@@ -28,18 +28,6 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="color-scheme" content="dark" />
         <meta name="theme-color" content="#111827" />
-        <style dangerouslySetInnerHTML={{ __html: `
-          :root { color-scheme: dark; }
-          /* Hide scrollbar for Chrome, Safari and Opera */
-          ::-webkit-scrollbar {
-            display: none;
-          }
-          /* Hide scrollbar for IE, Edge and Firefox */
-          html {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
-          }
-        `}} />
         <script
           dangerouslySetInnerHTML={{
             __html: `
