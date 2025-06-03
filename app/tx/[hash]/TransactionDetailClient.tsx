@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { getTransactionByHash } from '@/app/services/apiClient';
+import { getTransactionByHash } from '@/app/services/api';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { formatDate, truncateString, convertUzigToZig } from '@/app/utils/format';

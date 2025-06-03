@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { formatDate, getLatestBlocks } from '../services/apiClient';
+import { formatDate, getLatestBlocks } from '../services/api';
 import BlockCard from '../components/BlockCard';
 
 export default function BlocksPage() {

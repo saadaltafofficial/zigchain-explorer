@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { getBlockByHeight } from '@/app/services/apiClient';
+import { getBlockByHeight } from '@/app/services/api';
 import { formatDate } from '@/app/utils/format';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';

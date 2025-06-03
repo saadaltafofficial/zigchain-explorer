@@ -4,7 +4,7 @@ import { ArrowRight, Copy, ExternalLink, RefreshCw, CheckCheck } from 'lucide-re
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { getAccountInfo, getTransactionsByAddress } from '@/app/services/apiClient';
+import { getAccountInfo, getTransactionsByAddress } from '@/app/services/api';
 
 interface AccountInfo {
   address: string;
@@ -49,17 +49,41 @@ export default function AddressPage() {
     }
     setTxError(null);
     
+    console.log(`[CLIENT] Fetching transactions for address: ${address}`);
+    console.log(`[CLIENT] Current page: ${currentMaxPages}, Max pages: ${currentMaxPages}`);
+
     try {
-      console.log(`Fetching transactions for address: ${address} with maxPages: ${currentMaxPages}`);
-      const response = await getTransactionsByAddress(address, 'all', currentMaxPages);
+      console.log(`[CLIENT] Calling getTransactionsByAddress with: address=${address}, type=all, maxPages=${currentMaxPages}`);
+      
+      // Add a timeout to prevent hanging requests
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timed out')), 15000)
+      );
+
+      console.log('Fetching transactions for address:', address);
+      
+      const response = await Promise.race([
+        getTransactionsByAddress(address, 'all', currentMaxPages),
+        timeoutPromise
+      ]);
+      
+      console.log(`[CLIENT] Response received:`, response?.result?.txs?.length || 0, 'transactions');
+      
       console.log('Transaction response:', response);
       
+      // Type check the response to ensure it has the expected structure
+      if (!response || typeof response !== 'object') {
+        throw new Error('Invalid response format');
+      }
+      
       // Extract and format transactions
-      const txs = response?.result?.txs || [];
+      const responseObj = response as { result?: { txs?: any[], pagination_info?: any } };
+      const result = responseObj.result || {};
+      const txs = result.txs || [];
       console.log(`Found ${txs.length} transactions`);
       
       // Get pagination info
-      const paginationInfo = response?.result?.pagination_info || {
+      const paginationInfo = result.pagination_info || {
         fetched_count: txs.length,
         total_count: txs.length,
         has_more: false,

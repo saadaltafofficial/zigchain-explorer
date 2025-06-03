@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { ArrowRight, Clock, Database, Hash, ChevronLeft, ChevronRight, Copy, Check } from "lucide-react";
-import { getLatestTransactions, getTransactionByHash } from "../services/apiClient";
+import { getLatestTransactions, getTransactionByHash } from "../services/api";
 import TransactionDetailView from "../components/TransactionDetailView";
 
 interface Transaction {

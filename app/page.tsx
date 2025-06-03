@@ -1,5 +1,5 @@
 import React from 'react';
-import { getLatestBlocks, getLatestTransactions, getChainInfo } from './services/apiClient';
+import { getLatestBlocks, getLatestTransactions, getChainInfo } from './services/api';
 import HomeWrapper from './HomeWrapper';
 
 // Define types for the state

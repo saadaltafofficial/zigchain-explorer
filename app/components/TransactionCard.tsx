@@ -3,8 +3,7 @@ import Link from 'next/link';
 import { formatDate, truncateString } from '../utils/format';
 import HashDisplay from './HashDisplay';
 import { CheckCircle, XCircle, Database, ArrowRight, Clock, Hash, User } from 'lucide-react';
-import { getTransactionBlockHeight } from '../services/apiClient';
-import { getBlockTime } from '../services/apiClient';
+import { getTransactionBlockHeight, getBlockTime } from '../services/api';
 
 interface TransactionCardProps {
   hash: string;
