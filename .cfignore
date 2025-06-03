@@ -1,35 +1,36 @@
-# Ignore webpack cache files but preserve essential chunks
-cache/
-**/cache/
-**/.cache/
-**/cache/webpack/
-**/*.pack
-
-# Do NOT ignore webpack chunk files needed for runtime
-!**/_next/static/chunks/webpack-*.js
-!**/_next/static/chunks/main-*.js
-!**/_next/static/chunks/pages/_app-*.js
-!**/_next/static/chunks/framework-*.js
-
-# Node modules
-node_modules/
-
-# Development files
+# Exclude large cache files and development artifacts
 .git/
 .github/
 .vscode/
 .idea/
+node_modules/
 
-# Build artifacts not needed for deployment
-.swc/
+# Cache directories that may contain large files
+.next/cache/
+.next/cache/webpack/
+.next/**/*.pack
+.next/**/*.pack.gz
+
+# Other build artifacts
+out/
+dist/
+.vercel/
 .turbo/
+.swc/
 
-# Logs
-logs/
+# Log files
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment files
+.env*
+!.env.example
 
 # Temporary files
+.DS_Store
+Thumbs.db
 *.tmp
-*.temp
-tmp/
-temp/
+*.bak

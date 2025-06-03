@@ -5,17 +5,14 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:cloudflare": "node cloudflare-pages.js && node prepare-static-export.js backup && cross-env NODE_ENV=production next build && node prepare-static-export.js restore && node cleanup-build.js",
-    "optimize:cloudflare": "node optimize-cloudflare-build.js",
-    "cleanup:cache": "node cleanup-cache.js",
-    "cleanup:cloudflare": "node cloudflare-cleanup.js",
-    "copy:webpack": "node copy-webpack-files.js",
-    "inject:runtime": "node inject-runtime-fix.js",
-    "deploy:cloudflare": "npm run build:cloudflare && npm run cleanup:cache && node prepare-cloudflare-deploy.js && node inject-runtime-fix.js && npm run cleanup:cloudflare && npm run optimize:cloudflare",
-    "deploy:cloudflare:safe": "npm run build:cloudflare && npm run cleanup:cache && node prepare-cloudflare-deploy.js && node inject-runtime-fix.js && npm run cleanup:cloudflare && npm run optimize:cloudflare && npx wrangler pages deploy cloudflare-deploy --skip-caching",
-    "build:github": "node build-github-dist.js && npm run cleanup:cache",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "clean:cache": "node -e \"const { execSync } = require('child_process'); const { existsSync, readdirSync, statSync } = require('fs'); const path = require('path'); const cacheDir = path.join('.next', 'cache'); if (existsSync(cacheDir)) { console.log('Cleaning cache files...'); try { execSync('rimraf .next\\cache\\webpack'); console.log('Removed webpack cache directory'); } catch (e) { console.warn('Error removing webpack cache:', e.message); } }\"",
+    "analyze": "node analyze-bundle.js",
+    "clean:cloudflare": "node cloudflare-cleanup.js",
+    "inject:runtime-fix": "node inject-runtime-fix.js",
+    "prepare:cloudflare": "pnpm run clean:cloudflare && pnpm run inject:runtime-fix",
+    "deploy:cloudflare": "pnpm build && pnpm run prepare:cloudflare && pnpm dlx wrangler pages deploy .next --skip-caching"
   },
   "dependencies": {
     "@cosmjs/crypto": "^0.33.1",
@@ -24,7 +21,6 @@
     "@cosmjs/stargate": "^0.33.1",
     "@headlessui/react": "^2.2.0",
     "@heroicons/react": "^2.2.0",
-    "@tanstack/react-query": "^5.68.0",
     "axios": "^1.8.3",
     "cosmjs-types": "^0.9.0",
     "dotenv": "^16.5.0",
@@ -45,6 +41,7 @@
     "cross-env": "^7.0.3",
     "eslint": "^9",
     "eslint-config-next": "15.2.2",
+    "rimraf": "^6.0.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

@@ -24,11 +24,12 @@
 /.cloudflare/
 
 # webpack cache files
-cache/
-**/cache/
-**/.cache/
-**/cache/webpack/
-**/*.pack
+# Commented out for development access
+# cache/
+# **/cache/
+# **/.cache/
+# **/cache/webpack/
+# **/*.pack
 
 # build artifacts
 .swc/

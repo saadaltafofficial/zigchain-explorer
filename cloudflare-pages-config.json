@@ -1,7 +1,0 @@
-{
-  "build": {
-    "baseDirectory": "dist",
-    "command": null,
-    "publicDirectory": "."
-  }
-}

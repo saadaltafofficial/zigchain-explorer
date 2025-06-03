@@ -1,7 +1,0 @@
-{
-  "framework": "nextjs",
-  "buildCommand": "npm run build",
-  "outputDirectory": ".next",
-  "compatibility_flags": ["nodejs_compat"],
-  "compatibility_date": "2023-06-01"
-}

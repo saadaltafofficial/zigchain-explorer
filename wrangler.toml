@@ -1,68 +1,8 @@
 # Cloudflare Pages configuration for ZigChain Explorer
 
-# Skip the build process entirely by setting an empty command
-[build]
-command = ""  # Empty command to skip build process
+# Basic configuration
+name = "zigchain-explorer"
+compatibility_date = "2024-01-01"
 
-[build.environment]
-NODE_VERSION = "18"
-
-# Specify the directory to deploy
-[site]
-pages_build_output_dir = "cloudflare-deploy"  # Explicitly set output directory
-
-# Skip processing but keep essential files
-[build.processing]
-skip = true
-
-# Explicitly exclude cache files and large files but keep essential webpack chunks
-[site.exclude]
-patterns = [
-  "**/cache/**",
-  "**/.cache/**", 
-  "**/node_modules/**", 
-  "**/*.pack",
-  "**/*.map",
-  ".git/**",
-  ".github/**",
-  ".vscode/**",
-  ".idea/**",
-  ".swc/**",
-  ".turbo/**"
-]
-
-# Explicitly include essential webpack chunks
-[site.include]
-patterns = [
-  "**/_next/static/chunks/webpack-*.js",
-  "**/_next/static/chunks/main-*.js",
-  "**/_next/static/chunks/pages/_app-*.js",
-  "**/_next/static/chunks/framework-*.js"
-]
-
-# Define output directory for functions
-[functions]
-directory = "functions"
-
-# Configure headers for API routes
-[[headers]]
-for = "/api/*"
-[headers.values]
-Access-Control-Allow-Origin = "*"
-Access-Control-Allow-Methods = "GET, POST, OPTIONS"
-Access-Control-Allow-Headers = "Content-Type"
-
-# Add cache control for static assets
-[[headers]]
-for = "/static/*"
-[headers.values]
-Cache-Control = "public, max-age=31536000, immutable"
-
-# Add security headers for all pages
-[[headers]]
-for = "/*"
-[headers.values]
-X-Content-Type-Options = "nosniff"
-X-Frame-Options = "DENY"
-X-XSS-Protection = "1; mode=block"
-Referrer-Policy = "strict-origin-when-cross-origin"
+# Explicitly set output directory for Pages deployment
+pages_build_output_dir = ".next"

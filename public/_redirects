@@ -1,4 +1,0 @@
-# Redirects for Cloudflare Pages
-/api/rpc/* /api/rpc 200
-/api/verify-turnstile/* /api/verify-turnstile 200
-/* /index.html 200
