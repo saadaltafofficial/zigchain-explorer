@@ -1,34 +1,34 @@
 import axios from 'axios';
 
 // API endpoint for our FastAPI backend
-const API_ENDPOINT = 'https://zigscan.net/api';
+const API_ENDPOINT = 'https://api.zigscan.net';
 
 // Direct RPC endpoint for fallback
-const RPC_URL = 'https://zigscan.net';
+const RPC_URL = 'https://rpc.zigscan.net';
 
-// ZigChain API endpoint
-const ZIGCHAIN_API = process.env.NEXT_PUBLIC_ZIGCHAIN_API || 'https://zigscan.net/api';
+// ZigChain API endpoint (Cosmos API/REST)
+const ZIGCHAIN_API = process.env.NEXT_PUBLIC_ZIGCHAIN_API || 'https://api.zigscan.net';
 
-// RPC proxy URL for direct access to RPC endpoints
-const RPC_PROXY_URL = 'https://zigscan.net';
+// Indexer API URL for transaction indexing
+const INDEXER_API_URL = 'https://indexer-api.zigscan.net';
+
+// RPC proxy URL for direct access to RPC endpoints (Tendermint RPC)
+const RPC_PROXY_URL = 'https://rpc.zigscan.net';
 
 // Helper function to build proxy URL
 const buildProxyUrl = (path: string, params: Record<string, string> = {}) => {
-  // Direct path to RPC endpoint without using the proxy function
-  const baseUrl = `${RPC_PROXY_URL}${path.startsWith('/') ? path : '/' + path}`;
-  
-  // If no params, return the base URL
-  if (Object.keys(params).length === 0) {
-    return baseUrl;
+  // Direct path to RPC endpoint using the new domain structure
+  const baseUrl = `${RPC_URL}${path.startsWith('/') ? path : '/' + path}`;
+
+  // Add query parameters if provided
+  if (Object.keys(params).length > 0) {
+    const queryString = Object.entries(params)
+      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+      .join('&');
+    return `${baseUrl}?${queryString}`;
   }
-  
-  // Build query string
-  const queryString = Object.entries(params)
-    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-    .join('&');
-  
-  // Return URL with query string
-  return `${baseUrl}?${queryString}`;
+
+  return baseUrl;
 };
 
 // Flag to determine if we should use direct RPC calls
@@ -37,7 +37,7 @@ let useDirectRpc = false;
 // Function to check if the API is available
 const checkApiAvailability = async () => {
   try {
-    const response = await axios.get(`${API_ENDPOINT}/chain/info`);
+    const response = await axios.get(`${INDEXER_API_URL}/chain/info`);
     if (response.status === 200) {
       // FastAPI backend is available
       useDirectRpc = false;
@@ -91,7 +91,7 @@ export const getAccountInfo = async (address: string) => {
     log(`[API Client] Fetching account details for ${address}`);
     
     // Fetch account details from auth API
-    const authUrl = `https://testnet-api.zigchain.com/cosmos/auth/v1beta1/accounts/${address}`;
+    const authUrl = `${ZIGCHAIN_API}/cosmos/auth/v1beta1/accounts/${address}`;
     log(`[API Client] Auth API URL: ${authUrl}`);
     
     const authResponse = await axios.get(authUrl);
@@ -108,7 +108,7 @@ export const getAccountInfo = async (address: string) => {
     };
     
     // Fetch account balances from bank API
-    const bankUrl = `https://testnet-api.zigchain.com/cosmos/bank/v1beta1/balances/${address}`;
+    const bankUrl = `${ZIGCHAIN_API}/cosmos/bank/v1beta1/balances/${address}`;
     log(`[API Client] Bank API URL: ${bankUrl}`);
     
     const bankResponse = await axios.get(bankUrl);
@@ -181,158 +181,6 @@ export const getAccountInfo = async (address: string) => {
  * @param maxPages Maximum number of pages to fetch (default: 3)
  * @returns The raw transaction data from the API with transactions up to the page limit
  */
-// export const getTransactionsByAddress = async (
-//   address: string, 
-//   type: 'sent' | 'received' | 'all' = 'all',
-//   maxPages: number = 3
-// ) => {
-//   try {
-//     console.log(`[API Client] Fetching ${type} transactions for address ${address} using Tendermint RPC endpoint`);
-    
-//     // Function to fetch transactions with pagination
-//     const fetchTransactionsPage = async (queryType: string, page: number = 1, perPage: number = 100) => {
-//       // Build the query string based on the transaction type
-//       let queryString = '';
-      
-//       if (queryType === 'message') {
-//         // For message sender transactions
-//         queryString = `message.sender='${address}'`;
-//       } else if (queryType === 'transfer.sender') {
-//         // For sent transactions
-//         queryString = `transfer.sender="${address}"`;
-//       } else {
-//         // For received transactions
-//         queryString = `transfer.recipient="${address}"`;
-//       }
-      
-//       console.log(`[API Client] Fetching transactions with query: ${queryString}`);
-      
-//       // Make a proper JSON-RPC request to the Tendermint endpoint
-//       const rpcEndpoint = 'https://zigscan.net';
-      
-//       // Construct the JSON-RPC request payload
-//       const rpcPayload = {
-//         jsonrpc: '2.0',
-//         id: 1,
-//         method: 'tx_search',
-//         params: {
-//           query: queryString,
-//           prove: true,
-//           page: page.toString(),
-//           per_page: perPage.toString(),
-//           order_by: 'desc'
-//         }
-//       };
-      
-//       console.log(`[API Client] RPC payload: ${JSON.stringify(rpcPayload)}`);
-      
-//       // Make the API request with a timeout
-//       const response = await axios.get(rpcEndpoint, {
-//         timeout: 15000,
-//         headers: {
-//           'Content-Type': 'application/json'
-//         }
-//       });
-      
-//       if (response.status !== 200) {
-//         console.error(`[API Client] Error response: ${response.status}`, response.data);
-//         return { txs: [], totalCount: 0 };
-//       }
-      
-//       // Extract transactions from the Tendermint RPC response
-//       const txs = response.data?.result?.txs || [];
-//       const totalCount = parseInt(response.data?.result?.total_count || '0');
-      
-//       console.log(`[API Client] Found ${txs.length} ${queryType} transactions out of ${totalCount} total`);
-//       return { txs, totalCount };
-//     };
-    
-//     // Fetch transactions based on type
-//     if (type === 'sent') {
-//       // Only fetch sent transactions
-//       const sentResult = await fetchTransactionsPage('transfer.sender', 1, 100);
-      
-//       return {
-//         result: {
-//           txs: sentResult.txs,
-//           total_count: sentResult.totalCount.toString(),
-//           pagination_info: {
-//             fetched_count: sentResult.txs.length,
-//             total_count: sentResult.totalCount,
-//             has_more: sentResult.txs.length < sentResult.totalCount,
-//             max_pages_fetched: 1
-//           }
-//         }
-//       };
-//     } else if (type === 'received') {
-//       // Only fetch received transactions
-//       const receivedResult = await fetchTransactionsPage('transfer.recipient', 1, 100);
-      
-//       return {
-//         result: {
-//           txs: receivedResult.txs,
-//           total_count: receivedResult.totalCount.toString(),
-//           pagination_info: {
-//             fetched_count: receivedResult.txs.length,
-//             total_count: receivedResult.totalCount,
-//             has_more: receivedResult.txs.length < receivedResult.totalCount,
-//             max_pages_fetched: 1
-//           }
-//         }
-//       };
-//     } else {
-//       // Fetch both sent and received transactions
-//       const sentResult = await fetchTransactionsPage('transfer.sender', 1, 100);
-//       const receivedResult = await fetchTransactionsPage('transfer.recipient', 1, 100);
-//       const messageResult = await fetchTransactionsPage('message', 1, 100);
-      
-//       // Combine all transactions and remove duplicates by hash
-//       const allTxs = [...sentResult.txs, ...receivedResult.txs, ...messageResult.txs];
-//       const uniqueTxs = allTxs.filter((tx, index, self) => 
-//         index === self.findIndex((t) => t.hash === tx.hash)
-//       );
-      
-//       // Calculate the total unique transactions (approximately)
-//       const totalUniqueTxs = Math.max(
-//         sentResult.totalCount, 
-//         receivedResult.totalCount,
-//         messageResult.totalCount
-//       );
-      
-//       console.log(`[API Client] Combined ${uniqueTxs.length} unique transactions after removing duplicates`);
-      
-//       return {
-//         result: {
-//           txs: uniqueTxs,
-//           total_count: totalUniqueTxs.toString(),
-//           pagination_info: {
-//             fetched_count: uniqueTxs.length,
-//             total_count: totalUniqueTxs,
-//             has_more: uniqueTxs.length < totalUniqueTxs,
-//             max_pages_fetched: 1
-//           }
-//         }
-//       };
-//     }
-//   } catch (error) {
-//     console.error(`[API Client] Error fetching ${type} transactions for address ${address}:`, error);
-    
-//     // Return empty results with default pagination info on error
-//     return {
-//       result: {
-//         txs: [],
-//         total_count: '0',
-//         pagination_info: {
-//           fetched_count: 0,
-//           total_count: 0,
-//           has_more: false,
-//           max_pages_fetched: 0
-//         }
-//       }
-//     };
-//   }
-// };
-
 export const getTransactionsByAddress = async (
   address: string, 
   type: 'sent' | 'received' | 'all' = 'all',
@@ -366,7 +214,7 @@ export const getTransactionsByAddress = async (
     }
     
     // Build the complete URL with all parameters directly included
-    const apiUrl = `https://zigscan.net/tx_search?query=${queryParam}&prove=true&page=1&per_page=${maxPages}&order_by=%22desc%22`;
+    const apiUrl = `${RPC_URL}/tx_search?query=${queryParam}&prove=true&page=1&per_page=${maxPages}&order_by=%22desc%22`;
     log(`[API Client] Full request URL: ${apiUrl}`);
     
     const controller = new AbortController();
@@ -461,33 +309,54 @@ export const getBlockTime = async (block: string): Promise<string> => {
  * Get chain information
  */
 export const getChainInfo = async () => {
+  // Try the main API endpoint first
   try {
-    console.log('[API Client] Fetching from zigscan.net/info');
-    const response = await axios.get('https://zigscan.net/api/chain/info');
+    console.log('[API Client] Fetching chain info from API endpoint');
+    const response = await axios.get(`${INDEXER_API_URL}/chain/info`, { timeout: 5000 });
 
-    const data = response.data;
-
-    const result = {
-      chainId: data.chain_id ?? 'unknown',
-      blockHeight: data.latest_block_height ?? 0,
-      blockTime: data.block_time ?? 5.0,
-      validatorCount: data.validator_count ?? 0,
-      activeValidators: data.active_validators ?? 0,
-      votingPower: data.voting_power ?? 0,
-      uptime: parseFloat(data.uptime),
-      transactionsPerSecond: data.transactionsPerSecond ?? 0,
-      bondedTokens: `${data.voting_power ?? 0} ZIG`,
-      nodeInfo: {
-        version: '1.0.0'
-      },
-      version: '1.0.0'
-    };
-
-    console.log('[API Client] Chain info:', result);
-    return result;
-
+    if (response.status === 200 && response.data) {
+      const data = response.data;
+      return {
+        chainId: data.chain_id || 'zig-test-2',
+        blockHeight: parseInt(data.latest_block_height) || 0,
+        blockTime: parseFloat(data.block_time) || 5,
+        validatorCount: parseInt(data.validator_count) || 0,
+        activeValidators: parseInt(data.active_validators) || 0,
+        votingPower: parseInt(data.voting_power) || 0,
+        uptime: parseFloat(data.uptime) || 0,
+        transactionsPerSecond: parseFloat(data.transactions_per_second) || 0,
+        bondedTokens: data.bonded_tokens || '0 ZIG',
+        nodeInfo: data.node_info || { version: '0.38.17' },
+        version: data.node_info?.version || '0.38.17'
+      };
+    }
   } catch (error) {
-    console.warn('[API Client] Primary info fetch failed, falling back to RPC...');
+    console.warn('[API Client] Primary API endpoint fetch failed, trying indexer API...');
+  }
+  
+  // Try the indexer API as a second option
+  try {
+    console.log('[API Client] Fetching chain info from indexer API');
+    const response = await axios.get(`${INDEXER_API_URL}/chain/info`, { timeout: 5000 });
+
+    if (response.status === 200 && response.data) {
+      const data = response.data;
+      return {
+        chainId: data.chain_id || 'zig-test-2',
+        blockHeight: parseInt(data.latest_block_height) || 0,
+        blockTime: parseFloat(data.block_time) || 5,
+        validatorCount: parseInt(data.validator_count) || 0,
+        activeValidators: parseInt(data.active_validators) || 0,
+        votingPower: parseInt(data.voting_power) || 0,
+        uptime: parseFloat(data.uptime) || 0,
+        transactionsPerSecond: parseFloat(data.transactions_per_second) || 0,
+        bondedTokens: data.bonded_tokens || '0 ZIG',
+        nodeInfo: data.node_info || { version: '0.38.17' },
+        version: data.node_info?.version || '0.38.17'
+      };
+    }
+  } catch (error) {
+    console.warn('[API Client] Indexer API fetch failed, falling back to RPC...');
     console.error(error);
 
     try {
@@ -538,50 +407,73 @@ export const getChainInfo = async () => {
  * Get latest blocks
  * @param limit Number of blocks to fetch
  */
-export const getLatestBlocks = async (limit = 10) => {
+export const getLatestBlocks = async (limit = 5) => {
   try {
     console.log(`[API Client] Fetching latest ${limit} blocks`);
     
-    // Try fetching from our API endpoint first
+    // Try fetching from our main API endpoint first
     try {
+      console.log(`[API Client] Trying main API endpoint: ${API_ENDPOINT}/blocks/latest`);
       const response = await axios.get(`${API_ENDPOINT}/blocks/latest`, {
-        params: { limit }
+        params: { limit },
+        timeout: 5000
       });
-      return response.data;
-    } catch (error) {
-      console.warn('[API Client] Failed to get latest blocks from API endpoint, falling back to RPC');
-      
-      // Fallback to direct RPC call
-      const latestBlockResponse = await axios.get(buildProxyUrl('/status'));
-      const latestHeight = parseInt(latestBlockResponse.data?.result?.sync_info?.latest_block_height || '0');
-      
-      // Fetch the latest blocks one by one
-      const blocks = [];
-      for (let i = 0; i < limit; i++) {
-        const height = latestHeight - i;
-        if (height <= 0) break;
-        
-        try {
-          const blockResponse = await axios.get(buildProxyUrl('/block', { height: height.toString() }));
-          const blockResult = blockResponse.data?.result || {};
-          
-          blocks.push({
-            height: height,
-            hash: blockResult.block_id?.hash || '',
-            time: blockResult.block?.header?.time || '',
-            proposer: blockResult.block?.header?.proposer_address || '',
-            num_txs: parseInt(blockResult.block?.data?.txs?.length || '0'),
-          });
-        } catch (blockError) {
-          console.error(`[API Client] Error fetching block at height ${height}:`, blockError);
-        }
+      if (response.status === 200) {
+        return response.data;
       }
-      
-      return blocks;
+    } catch (error) {
+      console.warn('[API Client] Failed to get latest blocks from main API endpoint, trying indexer API');
     }
+    
+    // Try fetching from indexer API next
+    try {
+      console.log(`[API Client] Trying indexer API: ${INDEXER_API_URL}/blocks/latest`);
+      const response = await axios.get(`${INDEXER_API_URL}/blocks/latest`, {
+        params: { limit },
+        timeout: 5000
+      });
+      if (response.status === 200) {
+        return response.data;
+      }
+    } catch (error) {
+      console.warn('[API Client] Failed to get latest blocks from indexer API, falling back to RPC');
+    }
+    
+    // Fallback to direct RPC call
+    console.log(`[API Client] Fetching latest blocks from RPC: ${RPC_URL}/status`);
+    const latestBlockResponse = await axios.get(`${RPC_URL}/status`, { timeout: 10000 });
+    const latestHeight = parseInt(latestBlockResponse.data?.result?.sync_info?.latest_block_height || '0');
+      
+    // Fetch the latest blocks one by one
+    const blocks = [];
+    for (let i = 0; i < limit; i++) {
+      const height = latestHeight - i;
+      if (height <= 0) break;
+        
+      try {
+        const blockResponse = await axios.get(`${RPC_URL}/block?height=${height}`, { timeout: 5000 });
+        const blockData = blockResponse.data?.result;
+          
+        if (blockData) {
+          const block = {
+            height: parseInt(blockData.block.header.height),
+            hash: blockData.block_id.hash,
+            time: blockData.block.header.time,
+            proposer: blockData.block.header.proposer_address,
+            txCount: blockData.block.data.txs ? blockData.block.data.txs.length : 0
+          };
+          blocks.push(block);
+        }
+      } catch (blockError) {
+        console.warn(`[API Client] Error fetching block at height ${height}:`, blockError);
+        continue;
+      }
+    }
+      
+    return blocks;
   } catch (error) {
     console.error('[API Client] Error fetching latest blocks:', error);
-    throw error;
+    return [];
   }
 };
 
@@ -614,28 +506,47 @@ export const getTransactionBlockHeight = async (txHash: string): Promise<string 
  * Get latest transactions
  * @param limit Number of transactions to fetch
  */
-export const getLatestTransactions = async (limit = 10) => {
+export const getLatestTransactions = async (limit = 5) => {
   try {
     console.log(`[API Client] Fetching latest ${limit} transactions`);
     
-    // Try fetching from our API endpoint first
+    // Try fetching from our main API endpoint first
     try {
-      const response = await axios.get(`${API_ENDPOINT}/transactions/latest`, {
-        params: { limit }
+      console.log(`[API Client] Trying main API endpoint: ${INDEXER_API_URL}/transactions/latest`);
+      const response = await axios.get(`${INDEXER_API_URL}/transactions/latest`, {
+        params: { limit },
+        timeout: 5000
       });
-      return response.data;
+      if (response.status === 200) {
+        return response.data;
+      }
     } catch (error) {
-      console.warn('[API Client] Failed to get latest transactions from API endpoint, falling back to RPC');
-      
-      // Fallback to direct RPC call - query recent transactions
-      // Build the URL with parameters directly to avoid issues with parameter encoding
-      const queryParam = encodeURIComponent('"tx.height > 0"');
-      const perPage = encodeURIComponent(limit.toString());
-      const orderBy = encodeURIComponent('"desc"');
-      const fullUrl = `${RPC_PROXY_URL}/tx_search?query=${queryParam}&per_page=${perPage}&order_by=${orderBy}&prove=true`;
-      
-      console.log(`[API Client] Fetching latest transactions from: ${fullUrl}`);
-      const txSearchResponse = await axios.get(fullUrl);
+      console.warn('[API Client] Failed to get latest transactions from main API endpoint, trying indexer API');
+    }
+    
+    // Try fetching from indexer API next
+    try {
+      console.log(`[API Client] Trying indexer API: ${INDEXER_API_URL}/transactions/latest`);
+      const response = await axios.get(`${INDEXER_API_URL}/transactions/latest`, {
+        params: { limit },
+        timeout: 5000
+      });
+      if (response.status === 200) {
+        return response.data;
+      }
+    } catch (error) {
+      console.warn('[API Client] Failed to get latest transactions from indexer API, falling back to RPC');
+    }
+    
+    // Fallback to direct RPC call - query recent transactions
+    // Build the URL with parameters directly to avoid issues with parameter encoding
+    const queryParam = encodeURIComponent('"tx.height > 0"');
+    const perPage = encodeURIComponent(limit.toString());
+    const orderBy = encodeURIComponent('"desc"');
+    const fullUrl = `${RPC_URL}/tx_search?query=${queryParam}&per_page=${perPage}&order_by=${orderBy}&prove=true`;
+    
+    console.log(`[API Client] Fetching latest transactions from RPC: ${fullUrl}`);
+    const txSearchResponse = await axios.get(fullUrl, { timeout: 10000 });
       
       const txs = txSearchResponse.data?.result?.txs || [];
       
@@ -651,6 +562,22 @@ export const getLatestTransactions = async (limit = 10) => {
         let from = '';
         let to = '';
         
+        // Safe base64 decode function that handles errors
+        const safeAtob = (str: string) => {
+          try {
+            // Check if the string is valid base64
+            if (typeof str !== 'string') return '';
+            if (str.trim() === '') return '';
+            
+            // Some base64 strings might need padding
+            const padded = str.padEnd(Math.ceil(str.length / 4) * 4, '=');
+            return atob(padded);
+          } catch (error) {
+            console.warn(`[API Client] Error decoding base64 string: ${str}`, error);
+            return '';
+          }
+        };
+        
         // Extract events if available
         const events = tx.tx_result?.events || [];
         
@@ -659,14 +586,25 @@ export const getLatestTransactions = async (limit = 10) => {
         if (transferEvent) {
           const attributes = transferEvent.attributes || [];
           
-          // Find sender and recipient
-          const senderAttr = attributes.find((attr: any) => atob(attr.key) === 'sender');
-          const recipientAttr = attributes.find((attr: any) => atob(attr.key) === 'recipient');
-          const amountAttr = attributes.find((attr: any) => atob(attr.key) === 'amount');
+          // Find sender and recipient using safe decoding
+          const senderAttr = attributes.find((attr: any) => {
+            try { return safeAtob(attr.key) === 'sender'; } 
+            catch { return false; }
+          });
           
-          if (senderAttr) from = atob(senderAttr.value);
-          if (recipientAttr) to = atob(recipientAttr.value);
-          if (amountAttr) amount = atob(amountAttr.value);
+          const recipientAttr = attributes.find((attr: any) => {
+            try { return safeAtob(attr.key) === 'recipient'; } 
+            catch { return false; }
+          });
+          
+          const amountAttr = attributes.find((attr: any) => {
+            try { return safeAtob(attr.key) === 'amount'; } 
+            catch { return false; }
+          });
+          
+          if (senderAttr) from = safeAtob(senderAttr.value);
+          if (recipientAttr) to = safeAtob(recipientAttr.value);
+          if (amountAttr) amount = safeAtob(amountAttr.value);
         }
         
         return {
@@ -682,10 +620,10 @@ export const getLatestTransactions = async (limit = 10) => {
         };
       });
     }
-  } catch (error) {
+  catch (error) {
     console.error('[API Client] Error fetching latest transactions:', error);
-    throw error;
-  }
+    return [];
+  } 
 };
 
 /**
