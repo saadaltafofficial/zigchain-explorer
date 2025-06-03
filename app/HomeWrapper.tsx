@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import BlockCard from './components/BlockCard';
 import TransactionCard from './components/TransactionCard';
 import { ArrowRight } from 'lucide-react';
+import { formatDate } from './utils/format';
 
 // Dynamic imports for heavy components
 const DynamicPriceChart = dynamic(
@@ -174,7 +175,7 @@ export default function HomeWrapper({
                         <BlockCard
                           height={block.height}
                           hash={block.hash}
-                          time={block.time}
+                          time={formatDate(block.time)}
                           txCount={block.numTxs}
                         />
                       </div>
@@ -201,7 +202,7 @@ export default function HomeWrapper({
                       <div key={tx.hash} className="p-4">
                         <TransactionCard
                           hash={tx.hash}
-                          time={tx.created_at}
+                          time={formatDate(tx.created_at)}
                           status={tx.status as 'success' | 'failed'}
                           from={tx.from_address}
                           to={tx.to_address}

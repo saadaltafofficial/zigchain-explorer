@@ -43,6 +43,7 @@ export default async function Home() {
   let chainInfo: ChainInfo | null = null;
   let loading = false;
 
+
   try {
     // Fetch data in parallel for better performance
     const [blocksPromise, transactionsPromise, chainInfoPromise] = await Promise.allSettled([
@@ -75,7 +76,11 @@ export default async function Home() {
     console.error('Error fetching data:', err);
     error = err instanceof Error ? err.message : 'Failed to load blockchain data. Please try again.';
     loading = false;
+
+
   }
+
+  console.log(latestBlocks, latestTransactions, chainInfo);
 
   // We can't pass function props from server components to client components
   // The client component will handle retries internally
