@@ -46,8 +46,8 @@ export default async function Home() {
   try {
     // Fetch data in parallel for better performance
     const [blocksPromise, transactionsPromise, chainInfoPromise] = await Promise.allSettled([
-      getLatestBlocks(10),
-      getLatestTransactions(10),
+      getLatestBlocks(5),
+      getLatestTransactions(5),
       getChainInfo()
     ]);
 
