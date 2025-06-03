@@ -72,6 +72,7 @@ export default async function Home() {
       error = 'Failed to load blockchain data. Please try again.';
       loading = false;
     }
+    console.log(latestBlocks, latestTransactions, chainInfo);
   } catch (err) {
     console.error('Error fetching data:', err);
     error = err instanceof Error ? err.message : 'Failed to load blockchain data. Please try again.';
@@ -80,7 +81,6 @@ export default async function Home() {
 
   }
 
-  console.log(latestBlocks, latestTransactions, chainInfo);
 
   // We can't pass function props from server components to client components
   // The client component will handle retries internally
