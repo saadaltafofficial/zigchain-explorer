@@ -72,7 +72,7 @@ export default async function Home() {
       error = 'Failed to load blockchain data. Please try again.';
       loading = false;
     }
-    console.log(latestBlocks, latestTransactions, chainInfo);
+    console.log("latestBlocks", latestBlocks, "latestTransactions", latestTransactions, "chainInfo", chainInfo);
   } catch (err) {
     console.error('Error fetching data:', err);
     error = err instanceof Error ? err.message : 'Failed to load blockchain data. Please try again.';
