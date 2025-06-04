@@ -1,6 +1,7 @@
 import React from 'react';
 import { getLatestBlocks, getLatestTransactions, getChainInfo, ChainInfo } from './services/api'; // Updated import
 import HomeWrapper from './HomeWrapper';
+import { unstable_noStore as noStore } from 'next/cache';
 
 // Define types for the state (local ChainInfo removed)
 interface Block {
@@ -25,6 +26,8 @@ interface Transaction {
 
 // Server component - fetches data on the server
 export default async function Home() {
+  // Prevent caching of this page
+  noStore();
   // Initialize state for error handling
   let error: string | null = null;
   let latestBlocks: Block[] = [];

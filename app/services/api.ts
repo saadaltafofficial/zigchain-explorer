@@ -335,6 +335,7 @@ export const getChainInfo = async (): Promise<ChainInfo> => {
     console.log('[API Client] Fetching chain info from RPC endpoint: https://rpc.zigscan.net/status');
     const response = await axios.get('https://rpc.zigscan.net/status', { timeout: 10000 });
 
+
     if (response.status === 200 && response.data && response.data.result) {
       const result = response.data.result;
       const nodeInfo = result.node_info;
