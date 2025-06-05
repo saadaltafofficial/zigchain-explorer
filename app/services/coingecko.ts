@@ -19,7 +19,7 @@ const getOrSetCache = async (key: string, fetcher: () => Promise<any>) => {
   const cached = cache[key];
   
   if (cached && now - cached.timestamp < CACHE_TTL) {
-    console.log(`Using cached data for ${key}`);
+    // console.log(`Using cached data for ${key}`);
     return cached.data;
   }
   
