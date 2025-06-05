@@ -102,7 +102,7 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({
 
         <div>
           <h3 className="text-lg font-semibold mb-1 text-gray-200">Raw Transaction Data</h3>
-          <div className="bg-gray-100 dark:bg-gray-900 p-4 rounded-lg overflow-x-auto">
+          <div className="dark:bg-gray-900 p-4 rounded-lg overflow-x-auto">
             <pre className="text-xs text-gray-300 font-mono break-all whitespace-pre-wrap">
               {decodedTx.rawData}
             </pre>

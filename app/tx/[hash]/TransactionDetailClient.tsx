@@ -320,7 +320,7 @@ export default function TransactionDetailClient({ params }: TransactionDetailCli
                 <div className="absolute top-2 right-6">
                   <button
                     onClick={copyToClipboard}
-                    className="p-2 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                    className="p-2 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                     title="Copy to clipboard"
                   >
                     {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
@@ -328,7 +328,7 @@ export default function TransactionDetailClient({ params }: TransactionDetailCli
                 </div>
                 <pre
                   ref={jsonRef}
-                  className="bg-gray-100 dark:bg-gray-900 p-4 rounded-md overflow-auto text-xs font-mono max-h-96"
+                  className="dark:bg-gray-900 p-4 rounded-md overflow-auto text-xs font-mono max-h-96"
                 >
                   {JSON.stringify(transaction, null, 2)}
                 </pre>
@@ -358,7 +358,7 @@ export default function TransactionDetailClient({ params }: TransactionDetailCli
           {transaction.memo && (
             <div className="mt-6">
               <h2 className="text-xl font-semibold mb-2">Memo</h2>
-              <div className="bg-gray-100 dark:bg-gray-900 p-4 rounded">
+              <div className="dark:bg-gray-900 p-4 rounded">
                 <p className="font-mono text-sm break-all">{transaction.memo}</p>
               </div>
             </div>
